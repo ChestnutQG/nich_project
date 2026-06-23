@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chuizhipu.shop.mapper.AddressMapper">
+
+    <select id="selectByUserId" resultType="com.chuizhipu.shop.entity.Address">
+        SELECT id, user_id AS userId, name, phone, province, city, district,
+               detail, is_default AS isDefault, create_time AS createTime
+        FROM t_address
+        WHERE user_id = #{userId}
+        ORDER BY is_default DESC, create_time DESC
+    </select>
+
+    <select id="selectById" resultType="com.chuizhipu.shop.entity.Address">
+        SELECT id, user_id AS userId, name, phone, province, city, district,
+               detail, is_default AS isDefault, create_time AS createTime
+        FROM t_address WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_address (user_id, name, phone, province, city, district, detail, is_default)
+        VALUES (#{userId}, #{name}, #{phone}, #{province}, #{city}, #{district}, #{detail}, #{isDefault})
+    </insert>
+
+    <update id="updateById">
+        UPDATE t_address
+        SET name = #{name}, phone = #{phone}, province = #{province}, city = #{city},
+            district = #{district}, detail = #{detail}, is_default = #{isDefault}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_address WHERE id = #{id}
+    </delete>
+
+    <update id="clearDefault">
+        UPDATE t_address SET is_default = 0 WHERE user_id = #{userId}
+    </update>
+
+</mapper>

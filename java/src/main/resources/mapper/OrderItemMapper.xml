@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chuizhipu.shop.mapper.OrderItemMapper">
+
+    <select id="selectByOrderId" resultType="com.chuizhipu.shop.entity.OrderItem">
+        SELECT id, order_id AS orderId, product_id AS productId,
+               product_name AS productName, product_image AS productImage,
+               sku_id AS skuId, sku_name AS skuName, price, quantity
+        FROM t_order_item
+        WHERE order_id = #{orderId}
+    </select>
+
+    <select id="selectByOrderIds" resultType="com.chuizhipu.shop.entity.OrderItem">
+        SELECT id, order_id AS orderId, product_id AS productId,
+               product_name AS productName, product_image AS productImage,
+               sku_id AS skuId, sku_name AS skuName, price, quantity
+        FROM t_order_item
+        WHERE order_id IN
+        <foreach collection="orderIds" item="oid" open="(" separator="," close=")">
+            #{oid}
+        </foreach>
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_order_item (order_id, product_id, product_name, product_image,
+                                   sku_id, sku_name, price, quantity)
+        VALUES (#{orderId}, #{productId}, #{productName}, #{productImage},
+                #{skuId}, #{skuName}, #{price}, #{quantity})
+    </insert>
+
+    <insert id="insertBatch">
+        INSERT INTO t_order_item (order_id, product_id, product_name, product_image,
+                                   sku_id, sku_name, price, quantity)
+        VALUES
+        <foreach collection="items" item="item" separator=",">
+            (#{item.orderId}, #{item.productId}, #{item.productName}, #{item.productImage},
+             #{item.skuId}, #{item.skuName}, #{item.price}, #{item.quantity})
+        </foreach>
+    </insert>
+
+</mapper>

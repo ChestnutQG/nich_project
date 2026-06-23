@@ -1,0 +1,164 @@
+// 搜索页
+import { router } from '@kit.ArkUI'
+import { Colors } from '../common/Colors'
+import { Constants } from '../common/Constants'
+import { Product } from '../model/Product'
+import { ProductService } from '../service/ProductService'
+import { NavBar } from '../components/NavBar'
+import { ProductCard } from '../components/ProductCard'
+
+@Entry
+@Component
+struct SearchPage {
+  @State keyword: string = ''
+  @State results: Product[] = []
+  @State searching: boolean = false
+  @State history: string[] = ['苏绣', '紫砂壶', '青花瓷', '银饰', '歙砚']
+  private hotKeywords: string[] = ['景德镇陶瓷', '苏绣团扇', '宜兴紫砂', '苗银饰品', '手工宣纸', '蜡染']
+
+  async doSearch(): Promise<void> {
+    if (this.keyword.trim().length === 0) return
+    this.searching = true
+    if (!this.history.includes(this.keyword)) {
+      const newHistory: string[] = [this.keyword]
+      this.history.forEach((h: string) => { newHistory.push(h) })
+      this.history = newHistory.slice(0, 10)
+    }
+    const resp = await ProductService.searchProducts(this.keyword)
+    if (resp.code === 0) {
+      this.results = resp.data
+    }
+    this.searching = false
+  }
+
+  build() {
+    Column() {
+      NavBar({ title: '搜索', showBack: true })
+
+      Row() {
+        TextInput({ placeholder: '搜非遗好物、匠人、技艺...', text: this.keyword })
+          .fontSize(14)
+          .layoutWeight(1)
+          .height(38)
+          .backgroundColor(Color.Transparent)
+          .onChange((value: string) => { this.keyword = value })
+          .onSubmit(() => { this.doSearch() })
+
+        Text('搜索')
+          .fontSize(14)
+          .fontColor(Colors.PRIMARY)
+          .fontWeight(FontWeight.Medium)
+          .margin({ left: 8 })
+          .onClick(() => { this.doSearch() })
+      }
+      .width('100%')
+      .height(44)
+      .padding({ left: 16, right: 16 })
+      .backgroundColor(Colors.BG_WHITE)
+
+      if (this.results.length > 0) {
+        Scroll() {
+          Grid() {
+            ForEach(this.results, (product: Product) => {
+              GridItem() {
+                ProductCard({
+                  product: product,
+                  onItemClick: (p: Product) => {
+                    router.pushUrl({ url: Constants.PAGE_PRODUCT_DETAIL, params: { productId: p.id } })
+                  }
+                })
+              }
+            })
+          }
+          .columnsTemplate('1fr 1fr')
+          .columnsGap(10)
+          .rowsGap(10)
+          .width('100%')
+          .padding(16)
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .backgroundColor(Colors.BG_PAPER)
+        .scrollBar(BarState.Off)
+      } else if (this.searching) {
+        Row() {
+          LoadingProgress().width(24).height(24).color(Colors.PRIMARY)
+          Text('搜索中...').fontSize(14).fontColor(Colors.TEXT_HINT).margin({ left: 8 })
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor(Colors.BG_PAPER)
+      } else {
+        Scroll() {
+          Column() {
+            Row() {
+              Text('搜索历史')
+                .fontSize(14)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(Colors.TEXT_PRIMARY)
+              Blank()
+              Text('清空')
+                .fontSize(12)
+                .fontColor(Colors.TEXT_HINT)
+                .onClick(() => { this.history = [] })
+            }
+            .width('100%')
+            .padding(16)
+
+            Flex({ wrap: FlexWrap.Wrap }) {
+              ForEach(this.history, (item: string) => {
+                Text(item)
+                  .fontSize(12)
+                  .fontColor(Colors.TEXT_SECONDARY)
+                  .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+                  .borderRadius(14)
+                  .backgroundColor(Colors.BG_CARD)
+                  .margin({ right: 10, bottom: 10 })
+                  .onClick(() => {
+                    this.keyword = item
+                    this.doSearch()
+                  })
+              })
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16 })
+
+            Row() {
+              Text('热门搜索')
+                .fontSize(14)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(Colors.TEXT_PRIMARY)
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 20 })
+
+            Flex({ wrap: FlexWrap.Wrap }) {
+              ForEach(this.hotKeywords, (item: string) => {
+                Text(item)
+                  .fontSize(12)
+                  .fontColor(Colors.TEXT_HINT)
+                  .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+                  .borderRadius(14)
+                  .backgroundColor(Colors.BG_CARD)
+                  .margin({ right: 10, bottom: 10 })
+                  .onClick(() => {
+                    this.keyword = item
+                    this.doSearch()
+                  })
+              })
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16 })
+          }
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .backgroundColor(Colors.BG_PAPER)
+        .scrollBar(BarState.Off)
+      }
+    }
+    .width('100%')
+    .height('100%')
+  }
+}

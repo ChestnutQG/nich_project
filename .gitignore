@@ -1,0 +1,38 @@
+# ========== 构建产物 ==========
+# HarmonyOS
+.hvigor/
+**/build/
+*.hap
+*.app
+*.hsp
+
+# Maven / Java
+**/target/
+*.class
+*.jar
+*.war
+
+# ========== IDE ==========
+.idea/
+*.iml
+
+# ========== 依赖 ==========
+node_modules/
+oh_modules/
+
+# ========== 敏感配置 ==========
+application.properties
+application.yml
+**/application-*.properties
+**/application-*.yml
+
+# ========== Claude 本地配置 ==========
+.claude/
+
+# ========== 日志 ==========
+*.log
+logs/
+
+# ========== 系统文件 ==========
+.DS_Store
+Thumbs.db

@@ -1,0 +1,24 @@
+package com.chuizhipu.shop.mapper;
+
+import com.chuizhipu.shop.entity.Artisan;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface ArtisanMapper {
+
+    /** 匠人列表（可按技艺筛选） */
+    List<Artisan> selectList(@Param("craftType") String craftType,
+                             @Param("offset") int offset,
+                             @Param("size") int size);
+
+    long countList(@Param("craftType") String craftType);
+
+    /** 热门推荐（按关注数） */
+    List<Artisan> selectTop(@Param("limit") int limit);
+
+    /** 匠人详情 */
+    Artisan selectById(@Param("id") Long id);
+}

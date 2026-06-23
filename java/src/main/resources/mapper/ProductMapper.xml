@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chuizhipu.shop.mapper.ProductMapper">
+
+    <resultMap id="productMap" type="com.chuizhipu.shop.entity.Product">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="artisanId" column="artisan_id"/>
+        <result property="artisanName" column="artisan_name"/>
+        <result property="images" column="images"/>
+        <result property="price" column="price"/>
+        <result property="originalPrice" column="original_price"/>
+        <result property="stock" column="stock"/>
+        <result property="sales" column="sales"/>
+        <result property="region" column="region"/>
+        <result property="craftType" column="craft_type"/>
+        <result property="story" column="story"/>
+        <result property="craftProcess" column="craft_process"/>
+        <result property="rating" column="rating"/>
+        <result property="tags" column="tags"/>
+        <result property="isOnSale" column="is_on_sale"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 首页推荐 — 销量前10 -->
+    <select id="selectRecommend" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.is_on_sale = 1
+        ORDER BY p.sales DESC
+        LIMIT 10
+    </select>
+
+    <!-- 分页列表 -->
+    <select id="selectPage" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.is_on_sale = 1
+        <if test="categoryId != null">
+            AND p.category_id = #{categoryId}
+        </if>
+        <choose>
+            <when test="sortBy == 'price_asc'">ORDER BY p.price ASC</when>
+            <when test="sortBy == 'price_desc'">ORDER BY p.price DESC</when>
+            <when test="sortBy == 'sales'">ORDER BY p.sales DESC</when>
+            <otherwise>ORDER BY p.create_time DESC</otherwise>
+        </choose>
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) FROM t_product WHERE is_on_sale = 1
+        <if test="categoryId != null">
+            AND category_id = #{categoryId}
+        </if>
+    </select>
+
+    <!-- 商品详情 -->
+    <select id="selectById" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.id = #{id}
+    </select>
+
+    <!-- 搜索 -->
+    <select id="search" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.is_on_sale = 1
+          AND (p.name LIKE CONCAT('%', #{keyword}, '%')
+               OR p.craft_type LIKE CONCAT('%', #{keyword}, '%')
+               OR p.region LIKE CONCAT('%', #{keyword}, '%')
+               OR p.tags LIKE CONCAT('%', #{keyword}, '%'))
+        ORDER BY p.sales DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countSearch" resultType="long">
+        SELECT COUNT(*) FROM t_product
+        WHERE is_on_sale = 1
+          AND (name LIKE CONCAT('%', #{keyword}, '%')
+               OR craft_type LIKE CONCAT('%', #{keyword}, '%')
+               OR region LIKE CONCAT('%', #{keyword}, '%')
+               OR tags LIKE CONCAT('%', #{keyword}, '%'))
+    </select>
+
+    <!-- 根据匠人查商品 -->
+    <select id="selectByArtisanId" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.artisan_id = #{artisanId} AND p.is_on_sale = 1
+        ORDER BY p.create_time DESC
+    </select>
+
+    <!-- 发布商品 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_product (name, description, category_id, artisan_id,
+                               images, price, original_price, stock, region,
+                               craft_type, story, craft_process, tags, is_on_sale)
+        VALUES (#{name}, #{description}, #{categoryId}, #{artisanId},
+                #{images}, #{price}, #{originalPrice}, #{stock}, #{region},
+                #{craftType}, #{story}, #{craftProcess}, #{tags}, 1)
+    </insert>
+
+</mapper>

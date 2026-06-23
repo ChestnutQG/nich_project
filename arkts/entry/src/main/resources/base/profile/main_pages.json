@@ -1,0 +1,19 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/Search",
+    "pages/ProductList",
+    "pages/ProductDetail",
+    "pages/Cart",
+    "pages/OrderConfirm",
+    "pages/OrderList",
+    "pages/OrderDetail",
+    "pages/Login",
+    "pages/AddressList",
+    "pages/ArtisanList",
+    "pages/ArtisanDetail",
+    "pages/WikiIndex",
+    "pages/WikiDetail",
+    "pages/ProductPublish"
+  ]
+}
