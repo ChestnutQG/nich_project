@@ -11,8 +11,10 @@ import { ProductCard } from '../components/ProductCard'
 import { ArtisanCard } from '../components/ArtisanCard'
 import { ProductService } from '../service/ProductService'
 import { CartService } from '../service/CartService'
+import { ApiClient } from '../service/ApiClient'
 import { MockCategories } from '../mock/MockCategories'
 import { getHotArtisans } from '../mock/MockArtisans'
+import { User } from '../model/User'
 
 @Entry
 @Component
@@ -41,12 +43,19 @@ struct Index {
   @State hotArtisans: Artisan[] = getHotArtisans()
   @State recommendProducts: Product[] = []
   @State loading: boolean = true
+  @State userName: string = '非遗爱好者'
+  @State userAvatar: string = ''
+  @State userPhone: string = ''
+  @State userCollectCount: number = 0
+  @State userFollowCount: number = 0
+  @State userOrderCount: number = 0
 
   private tabTitles: string[] = ['首页', '分类', '百科', '购物车', '我的']
   private tabIcons: string[] = ['🏠', '📂', '📚', '🛒', '👤']
 
   aboutToAppear(): void {
     this.loadRecommendProducts()
+    this.loadUserData()
   }
 
   async loadRecommendProducts(): Promise<void> {
@@ -57,8 +66,21 @@ struct Index {
     this.loading = false
   }
 
+  async loadUserData(): Promise<void> {
+    const resp = await ApiClient.get<User>('/users/1')
+    if (resp.code === 0 && resp.data) {
+      this.userName = resp.data.nickname || '非遗爱好者'
+      this.userAvatar = resp.data.avatar || ''
+      this.userPhone = resp.data.phone || ''
+      this.userCollectCount = resp.data.collectCount || 0
+      this.userFollowCount = resp.data.followCount || 0
+      this.userOrderCount = resp.data.orderCount || 0
+    }
+  }
+
   onPageShow(): void {
     this.cartCount = CartService.getCartCount()
+    this.loadUserData()
   }
 
   build() {
@@ -254,6 +276,13 @@ struct Index {
         .width('100%')
         .height(120)
         .justifyContent(FlexAlign.Center)
+      } else if (this.recommendProducts.length === 0) {
+        Text('暂无推荐商品')
+          .fontSize(13)
+          .fontColor(Colors.TEXT_HINT)
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .padding({ top: 30, bottom: 30 })
       } else {
         Grid() {
           ForEach(this.recommendProducts, (product: Product) => {
@@ -508,19 +537,31 @@ struct Index {
       Column() {
         // 顶部用户信息区
         Row() {
-          Image('https://picsum.photos/seed/avatar01/64/64')
-            .width(56)
-            .height(56)
-            .borderRadius(28)
-            .objectFit(ImageFit.Cover)
+          if (this.userAvatar) {
+            Image(this.userAvatar)
+              .width(56)
+              .height(56)
+              .borderRadius(28)
+              .objectFit(ImageFit.Cover)
+          } else {
+            Text(this.userName.charAt(0))
+              .fontSize(24)
+              .fontColor(Colors.BG_WHITE)
+              .width(56)
+              .height(56)
+              .borderRadius(28)
+              .backgroundColor(Colors.PRIMARY_LIGHT)
+              .textAlign(TextAlign.Center)
+              .lineHeight(56)
+          }
 
           Column() {
-            Text('非遗爱好者小明')
+            Text(this.userName)
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
               .fontColor(Colors.TEXT_PRIMARY)
 
-            Text('138****8888')
+            Text(this.userPhone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'))
               .fontSize(12)
               .fontColor(Colors.TEXT_SECONDARY)
               .margin({ top: 4 })
@@ -533,6 +574,7 @@ struct Index {
           Text('编辑资料 >')
             .fontSize(12)
             .fontColor(Colors.TEXT_HINT)
+            .onClick(() => router.pushUrl({ url: Constants.PAGE_PROFILE_EDIT }))
         }
         .width('100%')
         .padding(20)
@@ -542,9 +584,9 @@ struct Index {
 
         // 数据统计
         Row() {
-          this.StatItem('收藏', '12')
-          this.StatItem('关注', '5')
-          this.StatItem('订单', '8')
+          this.StatItem('收藏', `${this.userCollectCount}`, () => router.pushUrl({ url: Constants.PAGE_PRODUCT_LIST }))
+          this.StatItem('关注', `${this.userFollowCount}`, () => router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST }))
+          this.StatItem('订单', `${this.userOrderCount}`, () => router.pushUrl({ url: Constants.PAGE_ORDER_LIST }))
         }
         .width('100%')
         .padding({ top: 16, bottom: 16 })
@@ -577,7 +619,7 @@ struct Index {
   }
 
   @Builder
-  StatItem(label: string, count: string) {
+  StatItem(label: string, count: string, onClick?: () => void) {
     Column() {
       Text(count)
         .fontSize(20)
@@ -589,6 +631,9 @@ struct Index {
         .margin({ top: 4 })
     }
     .layoutWeight(1)
+    .onClick(() => {
+      if (onClick) { onClick() }
+    })
   }
 
   @Builder

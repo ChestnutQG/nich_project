@@ -26,7 +26,8 @@
 
     <update id="updateById">
         UPDATE t_user
-        SET nickname = #{nickname}, avatar = #{avatar}
+        SET nickname = #{nickname}, avatar = #{avatar}, phone = #{phone},
+            update_time = NOW()
         WHERE id = #{id}
     </update>
 

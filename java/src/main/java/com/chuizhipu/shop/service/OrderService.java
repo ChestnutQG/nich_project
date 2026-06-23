@@ -43,6 +43,11 @@ public class OrderService {
     /** 创建订单 */
     @Transactional
     public Long createOrder(Order order, List<OrderItem> items) {
+        // 自动生成订单号：时间戳 + 4位随机数
+        String orderNo = java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                + String.format("%04d", (int)(Math.random() * 10000));
+        order.setOrderNo(orderNo);
         orderMapper.insert(order);
         Long orderId = order.getId();
         items.forEach(item -> item.setOrderId(orderId));

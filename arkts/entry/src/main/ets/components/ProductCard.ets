@@ -11,7 +11,7 @@ export struct ProductCard {
   build() {
     Column() {
       // 商品图片
-      Image(this.product.images[0])
+      Image(this.product.images.length > 0 ? this.product.images[0] : '')
         .width('100%')
         .aspectRatio(1)
         .objectFit(ImageFit.Cover)

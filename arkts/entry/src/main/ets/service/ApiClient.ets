@@ -13,12 +13,20 @@ interface FilePart {
 
 // Spring Boot 后端地址（开发环境）
 // 真机调试时需改为电脑的局域网 IP，例如 http://192.168.1.xxx:8080
-const BASE_URL = 'http://10.73.187.13:8080/api'
+const BASE_URL = 'http://10.142.230.64:8080/api'
 
 // 如果需要在模拟器上调试，使用以下地址：
 // const BASE_URL = 'http://10.0.2.2:8080/api'
 
 export class ApiClient {
+
+  // 安全解析响应：SDK 可能已自动将 JSON 解析为对象
+  private static parseResponse<T>(result: string | Object | ArrayBuffer): T {
+    if (typeof result === 'string') {
+      return JSON.parse(result as string) as T
+    }
+    return result as T
+  }
 
   // GET 请求
   static async get<T>(path: string, params?: Record<string, string>): Promise<ApiResponse<T>> {
@@ -38,7 +46,7 @@ export class ApiClient {
         readTimeout: 15000
       })
       req.destroy()
-      return JSON.parse(resp.result as string) as ApiResponse<T>
+      return ApiClient.parseResponse<ApiResponse<T>>(resp.result)
     } catch (err) {
       return { code: -1, message: `网络请求失败: ${JSON.stringify(err)}`, data: null as T }
     }
@@ -56,7 +64,7 @@ export class ApiClient {
         readTimeout: 15000
       })
       req.destroy()
-      return JSON.parse(resp.result as string) as ApiResponse<T>
+      return ApiClient.parseResponse<ApiResponse<T>>(resp.result)
     } catch (err) {
       return { code: -1, message: `网络请求失败: ${JSON.stringify(err)}`, data: null as T }
     }
@@ -74,7 +82,7 @@ export class ApiClient {
         readTimeout: 15000
       })
       req.destroy()
-      return JSON.parse(resp.result as string) as ApiResponse<T>
+      return ApiClient.parseResponse<ApiResponse<T>>(resp.result)
     } catch (err) {
       return { code: -1, message: `网络请求失败: ${JSON.stringify(err)}`, data: null as T }
     }
@@ -91,7 +99,7 @@ export class ApiClient {
         readTimeout: 15000
       })
       req.destroy()
-      return JSON.parse(resp.result as string) as ApiResponse<T>
+      return ApiClient.parseResponse<ApiResponse<T>>(resp.result)
     } catch (err) {
       return { code: -1, message: `网络请求失败: ${JSON.stringify(err)}`, data: null as T }
     }
@@ -130,7 +138,7 @@ export class ApiClient {
         readTimeout: 30000
       })
       req.destroy()
-      return JSON.parse(resp.result as string) as ApiResponse<Record<string, string[]>>
+      return ApiClient.parseResponse<ApiResponse<Record<string, string[]>>>(resp.result)
     } catch (err) {
       const emptyData: Record<string, string[]> = {}
       // 尽量提取可读的错误信息

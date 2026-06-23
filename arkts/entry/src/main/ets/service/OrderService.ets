@@ -71,11 +71,48 @@ export class OrderService {
     return ApiClient.get<Order>(`/orders/${id}`)
   }
 
-  static async createOrder(order: Order): Promise<ApiResponse<Order>> {
+  static async createOrder(order: Order): Promise<ApiResponse<number>> {
     if (USE_MOCK) {
       await delay(800)
-      return { code: 0, message: '下单成功', data: order }
+      return { code: 0, message: '下单成功', data: 1 }
     }
-    return ApiClient.post<Order>('/orders', order)
+    // 后端接收 { order: { userId, payAmount, addressJson, ... }, items: [...] }
+    const body: Record<string, Object> = {}
+    const orderData: Record<string, Object> = {}
+    orderData['userId'] = 1
+    orderData['status'] = order.status
+    orderData['totalAmount'] = order.totalAmount
+    orderData['discountAmount'] = order.discountAmount
+    orderData['freight'] = order.freight
+    orderData['payAmount'] = order.payAmount
+    orderData['addressJson'] = JSON.stringify(order.address)
+    body['order'] = orderData
+
+    const itemList: Record<string, Object>[] = []
+    order.items.forEach((item) => {
+      const itemData: Record<string, Object> = {}
+      itemData['productId'] = item.productId
+      itemData['productName'] = item.productName
+      itemData['productImage'] = item.productImage
+      itemData['skuId'] = item.skuId
+      itemData['skuName'] = item.skuName
+      itemData['price'] = item.price
+      itemData['quantity'] = item.quantity
+      itemList.push(itemData)
+    })
+    body['items'] = itemList
+
+    return ApiClient.post<number>('/orders', body)
+  }
+
+  static async updateStatus(orderId: string, status: number): Promise<ApiResponse<Record<string, Object>>> {
+    if (USE_MOCK) {
+      await delay()
+      const data: Record<string, Object> = {}
+      return { code: 0, message: 'ok', data: data }
+    }
+    const body: Record<string, Object> = {}
+    body['status'] = status
+    return ApiClient.put<Record<string, Object>>(`/orders/${orderId}/status`, body)
   }
 }

@@ -23,6 +23,7 @@ export class Constants {
   static readonly PAGE_WIKI_INDEX = 'pages/WikiIndex'
   static readonly PAGE_WIKI_DETAIL = 'pages/WikiDetail'
   static readonly PAGE_PRODUCT_PUBLISH = 'pages/ProductPublish'
+  static readonly PAGE_PROFILE_EDIT = 'pages/ProfileEdit'
 
   // 非遗传承认证等级
   static readonly ARTISAN_LEVEL_TEXT: Record<number, string> = {
