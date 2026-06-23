@@ -1,6 +1,6 @@
 // HTTP API 客户端 — 对接 Spring Boot 后端
 import { http } from '@kit.NetworkKit'
-import { fileIo, fileUri } from '@kit.CoreFileKit'
+import { fileIo } from '@kit.CoreFileKit'
 import { ApiResponse } from '../model/ApiResponse'
 
 // multipart 文件上传数据项
@@ -104,9 +104,7 @@ export class ApiClient {
 
       for (let i = 0; i < uris.length; i++) {
         const uri = uris[i]
-        // content URI → 实际文件路径
-        const path = fileUri.getPath(uri)
-        const file = fileIo.openSync(path, fileIo.OpenMode.READ_ONLY)
+        const file = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY)
         const stat = fileIo.statSync(file.fd)
         const buf = new ArrayBuffer(stat.size)
         fileIo.readSync(file.fd, buf)

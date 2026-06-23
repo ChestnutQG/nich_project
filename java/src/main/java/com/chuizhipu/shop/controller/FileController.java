@@ -18,7 +18,8 @@ import java.util.*;
 @RequestMapping("/api")
 public class FileController {
 
-    private static final String UPLOAD_DIR = "uploads";
+    // 使用项目根目录下的绝对路径，避免 Tomcat 临时工作目录的问题
+    private static final String UPLOAD_DIR = System.getProperty("user.dir") + File.separator + "uploads";
 
     /** POST /api/upload — 上传图片（支持多文件） */
     @PostMapping("/upload")

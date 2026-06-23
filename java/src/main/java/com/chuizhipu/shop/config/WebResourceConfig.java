@@ -14,8 +14,8 @@ public class WebResourceConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 上传目录的绝对路径
-        String uploadPath = new File("uploads").getAbsolutePath();
+        // 上传目录 — 与 FileController 保持一致，使用项目根目录绝对路径
+        String uploadPath = System.getProperty("user.dir") + File.separator + "uploads";
         // /uploads/xxx.jpg → 映射到本地的 uploads/ 目录
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + uploadPath + File.separator);
