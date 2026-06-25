@@ -1,8 +1,8 @@
-// HTTP API 客户端 — 对接 Spring Boot 后端
+// HTTP API 客户端 — 对接 Spring Boot 后端（自动探测服务器 IP）
 import { http } from '@kit.NetworkKit'
 import { fileIo } from '@kit.CoreFileKit'
 import { ApiResponse } from '../model/ApiResponse'
-import { SERVER_IP } from '../common/LocalConfig'
+import { discoverServerIp } from '../common/ServerDiscovery'
 
 // multipart 文件上传数据项
 interface FilePart {
@@ -12,7 +12,18 @@ interface FilePart {
   remoteFileName: string
 }
 
-const BASE_URL = `http://${SERVER_IP}:8080/api`
+let baseUrl = ''
+let initPromise: Promise<void> | null = null
+
+async function ensureBaseUrl(): Promise<void> {
+  if (baseUrl) return
+  if (!initPromise) {
+    initPromise = discoverServerIp().then((ip) => {
+      baseUrl = `http://${ip}:8080/api`
+    })
+  }
+  await initPromise
+}
 
 export class ApiClient {
 
@@ -27,8 +38,9 @@ export class ApiClient {
   // GET 请求
   static async get<T>(path: string, params?: Record<string, string>): Promise<ApiResponse<T>> {
     try {
+      await ensureBaseUrl()
       const req = http.createHttp()
-      let url = `${BASE_URL}${path}`
+      let url = `${baseUrl}${path}`
       if (params) {
         const query = Object.keys(params)
           .filter(k => params[k] !== undefined && params[k] !== '')
@@ -51,8 +63,9 @@ export class ApiClient {
   // POST 请求
   static async post<T>(path: string, body: object): Promise<ApiResponse<T>> {
     try {
+      await ensureBaseUrl()
       const req = http.createHttp()
-      const resp = await req.request(`${BASE_URL}${path}`, {
+      const resp = await req.request(`${baseUrl}${path}`, {
         method: http.RequestMethod.POST,
         header: { 'Content-Type': 'application/json' },
         extraData: JSON.stringify(body),
@@ -69,8 +82,9 @@ export class ApiClient {
   // PUT 请求
   static async put<T>(path: string, body: object): Promise<ApiResponse<T>> {
     try {
+      await ensureBaseUrl()
       const req = http.createHttp()
-      const resp = await req.request(`${BASE_URL}${path}`, {
+      const resp = await req.request(`${baseUrl}${path}`, {
         method: http.RequestMethod.PUT,
         header: { 'Content-Type': 'application/json' },
         extraData: JSON.stringify(body),
@@ -87,8 +101,9 @@ export class ApiClient {
   // DELETE 请求
   static async del<T>(path: string): Promise<ApiResponse<T>> {
     try {
+      await ensureBaseUrl()
       const req = http.createHttp()
-      const resp = await req.request(`${BASE_URL}${path}`, {
+      const resp = await req.request(`${baseUrl}${path}`, {
         method: http.RequestMethod.DELETE,
         header: { 'Content-Type': 'application/json' },
         connectTimeout: 10000,
@@ -101,9 +116,10 @@ export class ApiClient {
     }
   }
 
-  // 多文件上传 — 使用 SDK 原生 multiFormDataList
+  // 多文件上传
   static async uploadFiles(uris: string[]): Promise<ApiResponse<Record<string, string[]>>> {
     try {
+      await ensureBaseUrl()
       const formData: FilePart[] = []
 
       for (let i = 0; i < uris.length; i++) {
@@ -126,7 +142,7 @@ export class ApiClient {
       }
 
       const req = http.createHttp()
-      const resp = await req.request(`${BASE_URL}/upload`, {
+      const resp = await req.request(`${baseUrl}/upload`, {
         method: http.RequestMethod.POST,
         header: { 'Content-Type': 'multipart/form-data' },
         multiFormDataList: formData,
@@ -137,7 +153,6 @@ export class ApiClient {
       return ApiClient.parseResponse<ApiResponse<Record<string, string[]>>>(resp.result)
     } catch (err) {
       const emptyData: Record<string, string[]> = {}
-      // 尽量提取可读的错误信息
       const e = err as Record<string, string>
       let detail = '未知错误'
       if (e && e['message'] as string) {
