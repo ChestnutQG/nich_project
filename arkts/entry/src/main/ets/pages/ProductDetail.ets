@@ -1,5 +1,5 @@
 // 商品详情页
-import { router } from '@kit.ArkUI'
+import { router, promptAction } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
 import { Utils } from '../common/Utils'
@@ -337,8 +337,7 @@ struct ProductDetail {
         .height(40)
         .layoutWeight(1)
         .margin({ left: 12, right: 8 })
-        .onClick(() => {
-          // 添加购物车逻辑
+        .onClick(async () => {
           const cartItem: CartItem = {
             productId: this.product!.id,
             productName: this.product!.name,
@@ -350,8 +349,8 @@ struct ProductDetail {
             quantity: 1,
             checked: true
           }
-          CartService.addToCart(cartItem)
-          // 提示
+          await CartService.addToCart(cartItem)
+          promptAction.showToast({ message: '已加入购物车' })
         })
 
       // 立即购买

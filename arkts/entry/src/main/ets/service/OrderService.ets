@@ -46,6 +46,15 @@ const mockOrders: Order[] = [
 ]
 
 export class OrderService {
+
+  // 把字符串 ID 转成数字（兼容 "p003" 这种 mock 格式和 "1" 这种真实格式）
+  private static toNum(str: string): number {
+    const n = parseInt(str)
+    if (!isNaN(n)) return n
+    const stripped = str.replace(/^[a-zA-Z_]+/, '')
+    const n2 = parseInt(stripped)
+    return isNaN(n2) ? 0 : n2
+  }
   static async fetchOrders(status?: OrderStatus, userId?: string): Promise<ApiResponse<Order[]>> {
     if (USE_MOCK) {
       await delay()
@@ -91,10 +100,10 @@ export class OrderService {
     const itemList: Record<string, Object>[] = []
     order.items.forEach((item) => {
       const itemData: Record<string, Object> = {}
-      itemData['productId'] = item.productId
+      itemData['productId'] = OrderService.toNum(item.productId)
       itemData['productName'] = item.productName
       itemData['productImage'] = item.productImage
-      itemData['skuId'] = item.skuId
+      itemData['skuId'] = OrderService.toNum(item.skuId)
       itemData['skuName'] = item.skuName
       itemData['price'] = item.price
       itemData['quantity'] = item.quantity

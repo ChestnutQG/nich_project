@@ -10,6 +10,7 @@ import { Address } from '../model/Address'
 import { Product } from '../model/Product'
 import { ProductService } from '../service/ProductService'
 import { OrderService } from '../service/OrderService'
+import { CartService } from '../service/CartService'
 
 @Entry
 @Component
@@ -48,9 +49,13 @@ struct OrderConfirm {
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, string>
     if (params && params['productId']) {
+      // 从商品详情页过来，按 productId 加载
       this.productId = params['productId']
       this.skuId = params['skuId'] || ''
       this.loadProductData()
+    } else {
+      // 从购物车过来，直接从 CartService 取选中的商品
+      this.loadFromCart()
     }
   }
 
@@ -75,6 +80,31 @@ struct OrderConfirm {
           quantity: 1
         }
       ]
+    }
+    this.loading = false
+  }
+
+  // 从购物车加载选中的商品
+  async loadFromCart(): Promise<void> {
+    const resp = await CartService.fetchCartList()
+    if (resp.code === 0 && resp.data) {
+      const items: OrderItem[] = []
+      for (let i = 0; i < resp.data.length; i++) {
+        const ci = resp.data[i]
+        if (ci.checked) {
+          const item: OrderItem = {
+            productId: ci.productId,
+            productName: ci.productName,
+            productImage: ci.productImage,
+            skuId: ci.skuId,
+            skuName: ci.skuName,
+            price: ci.price,
+            quantity: ci.quantity
+          }
+          items.push(item)
+        }
+      }
+      this.cartItems = items
     }
     this.loading = false
   }

@@ -18,19 +18,7 @@ function delay(ms: number = 200): Promise<void> {
 }
 
 // 购物车数据存在内存中（后续接入 PersistenStorage）
-const cartItems: CartItem[] = [
-  {
-    productId: 'p003',
-    productName: '苗族银饰錾花手镯 · 百鸟朝凤',
-    productImage: 'https://picsum.photos/seed/nh07/200/200',
-    artisanName: '杨阿妹',
-    skuId: 'sku003',
-    skuName: '百鸟朝凤·标准款',
-    price: 56000,
-    quantity: 1,
-    checked: true
-  }
-]
+const cartItems: CartItem[] = []
 
 export class CartService {
   static async fetchCartList(): Promise<ApiResponse<CartItem[]>> {
@@ -39,13 +27,13 @@ export class CartService {
   }
 
   static async addToCart(item: CartItem): Promise<ApiResponse<null>> {
-    await delay()
     const exist = cartItems.find(i => i.skuId === item.skuId)
     if (exist) {
       exist.quantity += item.quantity
     } else {
       cartItems.push(item)
     }
+    await delay()
     return { code: 0, message: '已加入购物车', data: null }
   }
 
