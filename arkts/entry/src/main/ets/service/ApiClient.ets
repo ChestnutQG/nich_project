@@ -13,7 +13,7 @@ interface FilePart {
 
 // Spring Boot 后端地址（开发环境）
 // 真机调试时需改为电脑的局域网 IP，例如 http://192.168.1.xxx:8080
-const BASE_URL = 'http://10.142.230.64:8080/api'
+const BASE_URL = 'http://10.73.248.72:8080/api'
 
 // 如果需要在模拟器上调试，使用以下地址：
 // const BASE_URL = 'http://10.0.2.2:8080/api'
