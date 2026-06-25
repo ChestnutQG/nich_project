@@ -1,0 +1,21 @@
+# ============================================================
+# 国风非遗 - SpringBoot 配置文件
+# ============================================================
+
+server:
+  port: 8080  # 服务端口（模拟器/真机访问时需改为 0.0.0.0）
+
+spring:
+  datasource:
+    # MySQL 8.0 连接（请按实际环境修改密码）
+    url: jdbc:mysql://127.0.0.1:3306/nonheritage_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: nonheritage
+    password: 0000
+  jpa:
+    hibernate:
+      ddl-auto: update  # 自动更新表结构（开发模式，生产请改为 validate）
+    show-sql: false     # 是否打印 SQL 日志
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect

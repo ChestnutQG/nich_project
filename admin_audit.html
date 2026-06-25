@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>国风非遗 - 运营审核端</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; min-height: 100vh; }
+
+.header { background: linear-gradient(135deg, #C62828, #8B0000); color: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 20px; }
+.header .user-info { font-size: 13px; opacity: 0.9; }
+.btn { padding: 8px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+.btn-primary { background: #C62828; color: #fff; }
+.btn-primary:hover { background: #8B0000; }
+.btn-success { background: #2E7D32; color: #fff; }
+.btn-success:hover { background: #1B5E20; }
+.btn-danger { background: #C62828; color: #fff; }
+.btn-danger:hover { background: #8B0000; }
+.btn-outline { background: #fff; color: #C62828; border: 1px solid #C62828; }
+
+.login-box { max-width: 380px; margin: 80px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; }
+.login-box h2 { margin-bottom: 24px; color: #C62828; }
+.login-box input { width: 100%; padding: 12px; margin-bottom: 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 15px; }
+.login-box .btn { width: 100%; padding: 12px; font-size: 16px; }
+
+.main-container { max-width: 900px; margin: 0 auto; padding: 24px; }
+.toolbar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.toolbar button { padding: 8px 18px; border-radius: 20px; font-size: 13px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+.toolbar button.active { background: #C62828; color: #fff; border-color: #C62828; }
+
+.card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; gap: 14px; align-items: center; }
+.card img { width: 100px; height: 80px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+.card .info { flex: 1; min-width: 0; }
+.card .info .title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.card .info .meta { font-size: 12px; color: #999; }
+.card .info .tags { margin-top: 4px; }
+.card .info .tags span { display: inline-block; background: #FFF0F0; color: #C62828; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-right: 4px; }
+.card .actions { display: flex; gap: 8px; flex-shrink: 0; }
+.card .actions button { padding: 6px 16px; font-size: 13px; }
+
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal { background: #fff; padding: 28px; border-radius: 12px; width: 420px; max-width: 90%; }
+.modal h3 { margin-bottom: 16px; }
+.modal textarea { width: 100%; height: 80px; border: 1px solid #ddd; border-radius: 6px; padding: 10px; font-size: 14px; resize: vertical; }
+.modal .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+.empty { text-align: center; padding: 60px; color: #999; }
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 2000; transition: opacity 0.3s; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="loginPage">
+  <div class="login-box">
+    <h2>国风非遗 · 审核端</h2>
+    <input type="text" id="loginPhone" placeholder="手机号" value="13800000001">
+    <input type="password" id="loginPwd" placeholder="密码" value="123456">
+    <button class="btn btn-primary" onclick="doLogin()">登录审核系统</button>
+  </div>
+</div>
+
+<div id="mainPage" class="hidden">
+  <div class="header">
+    <h1>内容审核中心</h1>
+    <span class="user-info" id="adminName"></span>
+  </div>
+  <div class="main-container">
+    <div class="toolbar">
+      <button class="active" data-status="reviewing" onclick="filterStatus('reviewing', this)">待审核</button>
+      <button data-status="passed" onclick="filterStatus('passed', this)">已通过</button>
+      <button data-status="rejected" onclick="filterStatus('rejected', this)">已驳回</button>
+      <button onclick="location.reload()" style="margin-left:auto;">刷新</button>
+    </div>
+    <div id="contentList"></div>
+  </div>
+</div>
+
+<div id="rejectModal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>驳回理由</h3>
+    <textarea id="rejectReason" placeholder="请填写驳回原因..."></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeRejectModal()">取消</button>
+      <button class="btn btn-danger" onclick="confirmReject()">确认驳回</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script>
+const API_BASE = 'http://localhost:8080';
+let token = localStorage.getItem('admin_token') || '';
+let currentRejectId = null;
+let currentStatus = 'reviewing';
+
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.remove('hidden');
+  t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.classList.add('hidden'), 300); }, 2000);
+}
+
+async function api(path, method = 'GET', body = null) {
+  let opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body) opts.body = JSON.stringify(body);
+  let resp = await fetch(API_BASE + path, opts);
+  let data = await resp.json();
+  if (data.code !== 200) throw new Error(data.message || '请求失败');
+  return data;
+}
+
+async function doLogin() {
+  try {
+    let phone = document.getElementById('loginPhone').value;
+    let pwd = document.getElementById('loginPwd').value;
+    let data = await api('/api/users/login', 'POST', { phone, password: pwd });
+    if (data.data.role !== 'admin') { showToast('非管理员账号'); return; }
+    token = data.data.token;
+    localStorage.setItem('admin_token', token);
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('mainPage').classList.remove('hidden');
+    document.getElementById('adminName').textContent = '管理员: ' + data.data.username;
+    loadList();
+  } catch (e) { showToast(e.message || '登录失败'); }
+}
+
+function filterStatus(status, btn) {
+  document.querySelectorAll('.toolbar button[data-status]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentStatus = status;
+  loadList();
+}
+
+async function loadList() {
+  let el = document.getElementById('contentList');
+  el.innerHTML = '<div class="empty">加载中...</div>';
+  try {
+    let data = await api('/api/admin/audit/list?status=' + currentStatus);
+    let list = data.data || [];
+    if (list.length === 0) { el.innerHTML = '<div class="empty">暂无内容</div>'; return; }
+    el.innerHTML = list.map(c => {
+      let thumb = '';
+      try { let urls = JSON.parse(c.mediaUrls); if (urls.length > 0) thumb = urls[0]; } catch(e) {}
+      let tags = (c.tags || '').split(',').filter(t => t).map(t => `<span>${t.trim()}</span>`).join('');
+      let canAudit = c.status === 'reviewing';
+      return `<div class="card">
+        ${thumb ? `<img src="${thumb}" onerror="this.style.display='none'" alt="">` : '<div style="width:100px;height:80px;background:#eee;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#999;font-size:12px">无预览</div>'}
+        <div class="info">
+          <div class="title">${esc(c.title)}</div>
+          <div class="meta">发布者: ${esc(c.authorName)} | ${c.createdAt}</div>
+          <div class="tags">${tags}</div>
+        </div>
+        ${canAudit ? `<div class="actions">
+          <button class="btn btn-success" onclick="doPass(${c.id})">通过</button>
+          <button class="btn btn-danger" onclick="openReject(${c.id})">驳回</button>
+        </div>` : `<span style="font-size:12px;color:#999">${c.status==='passed'?'已通过':'已驳回'}</span>`}
+      </div>`;
+    }).join('');
+  } catch (e) { el.innerHTML = '<div class="empty">加载失败，请检查网络</div>'; }
+}
+
+function esc(s) { let d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+async function doPass(id) {
+  try { await api('/api/admin/audit/' + id + '/pass', 'PUT'); showToast('已通过'); loadList(); }
+  catch(e) { showToast(e.message); }
+}
+
+function openReject(id) {
+  currentRejectId = id;
+  document.getElementById('rejectModal').classList.remove('hidden');
+  document.getElementById('rejectReason').value = '';
+}
+function closeRejectModal() {
+  document.getElementById('rejectModal').classList.add('hidden');
+  currentRejectId = null;
+}
+async function confirmReject() {
+  let reason = document.getElementById('rejectReason').value;
+  if (!reason) { showToast('请填写驳回理由'); return; }
+  try {
+    await api('/api/admin/audit/' + currentRejectId + '/reject', 'PUT', { reason });
+    showToast('已驳回'); closeRejectModal(); loadList();
+  } catch(e) { showToast(e.message); }
+}
+
+// Init
+if (token) {
+  (async () => {
+    try {
+      let data = await api('/api/users/me');
+      if (data.data.role !== 'admin') throw new Error('非管理员');
+      document.getElementById('loginPage').classList.add('hidden');
+      document.getElementById('mainPage').classList.remove('hidden');
+      document.getElementById('adminName').textContent = '管理员: ' + data.data.username;
+      loadList();
+    } catch(e) { localStorage.removeItem('admin_token'); token = ''; }
+  })();
+}
+</script>
+</body>
+</html>
