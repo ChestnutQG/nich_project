@@ -1,5 +1,6 @@
 // API 配置 — 集中管理后端连接参数
-// 切换 Mock / 真实后端时只需改这里
+// IP 地址在 LocalConfig.ets 中配置（不会被提交到 Git）
+import { SERVER_IP } from './LocalConfig'
 
 export class ApiConfig {
 
@@ -7,9 +8,7 @@ export class ApiConfig {
   static readonly USE_MOCK = true
 
   // Spring Boot 后端地址
-  // 模拟器用: http://10.0.2.2:8080
-  // 真机调试用: http://电脑局域网IP:8080
-  static readonly BASE_URL = 'http://10.73.248.72:8080'
+  static readonly BASE_URL = `http://${SERVER_IP}:8080`
 
   // API 前缀
   static readonly API_PREFIX = '/api'

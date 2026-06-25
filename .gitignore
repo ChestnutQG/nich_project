@@ -29,6 +29,9 @@ application.yml
 # ========== Claude 本地配置 ==========
 .claude/
 
+# ========== 本地配置（IP 等因人而异） ==========
+**/LocalConfig.ets
+
 # ========== 上传文件 ==========
 uploads/
 
