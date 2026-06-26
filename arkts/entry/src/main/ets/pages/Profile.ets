@@ -1,9 +1,10 @@
 // 我的 — 独立页面（从首页顶部头像图标进入）
 import { router } from '@kit.ArkUI'
+import { promptAction } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
 import { CartService } from '../service/CartService'
-import { ApiClient } from '../service/ApiClient'
+import { AuthService } from '../service/AuthService'
 import { User } from '../model/User'
 import { NavBar } from '../components/NavBar'
 
@@ -11,27 +12,37 @@ import { NavBar } from '../components/NavBar'
 @Component
 struct Profile {
   @State cartCount: number = CartService.getCartCount()
+  @State user: User | null = null
   @State userName: string = '非遗爱好者'
   @State userAvatar: string = ''
   @State userPhone: string = ''
+  @State userRole: string = ''
+  @State userCredit: number = 100
   @State userCollectCount: number = 0
   @State userFollowCount: number = 0
   @State userOrderCount: number = 0
 
   aboutToAppear(): void {
     this.loadUserData()
-    this.cartCount = CartService.getCartCount()
+    CartService.loadCartCount().then((c: number) => { this.cartCount = c })
   }
 
   async loadUserData(): Promise<void> {
-    const resp = await ApiClient.get<User>('/users/1')
+    const resp = await AuthService.getUserInfo()
     if (resp.code === 0 && resp.data) {
-      this.userName = resp.data.nickname || '非遗爱好者'
-      this.userAvatar = resp.data.avatar || ''
-      this.userPhone = resp.data.phone || ''
-      this.userCollectCount = resp.data.collectCount || 0
-      this.userFollowCount = resp.data.followCount || 0
-      this.userOrderCount = resp.data.orderCount || 0
+      const u = resp.data
+      this.user = u
+      this.userName = u.nickname || '非遗爱好者'
+      this.userAvatar = u.avatar || ''
+      this.userPhone = u.phone || ''
+      this.userRole = u.role || 'user'
+      this.userCredit = u.creditScore || 100
+      this.userCollectCount = u.collectCount || 0
+      this.userFollowCount = u.followCount || 0
+      this.userOrderCount = u.orderCount || 0
+    } else if (resp.code === 401) {
+      // 未登录，跳转到登录页
+      router.pushUrl({ url: Constants.PAGE_LOGIN })
     }
   }
 
@@ -62,15 +73,31 @@ struct Profile {
             }
 
             Column() {
-              Text(this.userName)
-                .fontSize(16)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(Colors.TEXT_PRIMARY)
+              Row() {
+                Text(this.userName)
+                  .fontSize(16)
+                  .fontWeight(FontWeight.Medium)
+                // 角色标签
+                Text(this.roleLabel())
+                  .fontSize(10)
+                  .fontColor(Colors.BG_WHITE)
+                  .backgroundColor(this.userRole === 'admin' ? '#E74C3C' :
+                    this.userRole === 'artisan' ? '#C8A45C' : Colors.PRIMARY)
+                  .borderRadius(4)
+                  .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                  .margin({ left: 8 })
+              }
 
               Text(this.userPhone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'))
                 .fontSize(12)
                 .fontColor(Colors.TEXT_SECONDARY)
                 .margin({ top: 4 })
+
+              Text(`信用分: ${this.userCredit}`)
+                .fontSize(11)
+                .fontColor(this.userCredit >= 80 ? '#27AE60' :
+                  this.userCredit >= 60 ? '#F39C12' : '#E74C3C')
+                .margin({ top: 2 })
             }
             .margin({ left: 12 })
             .alignItems(HorizontalAlign.Start)
@@ -90,9 +117,9 @@ struct Profile {
 
           // 统计数据
           Row() {
-            this.StatItem('收藏', `${this.userCollectCount}`, () => router.pushUrl({ url: Constants.PAGE_PRODUCT_LIST }))
-            this.StatItem('关注', `${this.userFollowCount}`, () => router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST }))
-            this.StatItem('订单', `${this.userOrderCount}`, () => router.pushUrl({ url: Constants.PAGE_ORDER_LIST }))
+            this.StatItem('收藏', `${this.userCollectCount}`)
+            this.StatItem('关注', `${this.userFollowCount}`)
+            this.StatItem('订单', `${this.userOrderCount}`)
           }
           .width('100%')
           .padding({ top: 16, bottom: 16 })
@@ -107,11 +134,33 @@ struct Profile {
             })
             this.MenuItem('📦', '发布作品', () => router.pushUrl({ url: Constants.PAGE_PRODUCT_PUBLISH }))
             this.MenuItem('📋', '我的订单', () => router.pushUrl({ url: Constants.PAGE_ORDER_LIST }))
+            this.MenuItem('⚖️', '我的维权', () => router.pushUrl({ url: Constants.PAGE_DISPUTE_LIST }))
+            this.MenuItem('👨‍⚖️', '陪审邀请', () => router.pushUrl({ url: Constants.PAGE_JURY_INVITATIONS }))
             this.MenuItem('📍', '收货地址', () => router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST }))
             this.MenuItem('❤️', '我的收藏', () => router.pushUrl({ url: Constants.PAGE_PRODUCT_LIST }))
             this.MenuItem('🧑‍🎨', '关注的匠人', () => router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST }))
-            this.MenuItem('🔔', '消息通知', () => {})
-            this.MenuItem('⚙️', '设置', () => {})
+          }
+          .width('100%')
+          .backgroundColor(Colors.BG_WHITE)
+          .borderRadius(8)
+          .margin({ left: 16, right: 16, top: 12 })
+
+          // 退出登录
+          Column() {
+            Row() {
+              Text('退出登录')
+                .fontSize(15)
+                .fontColor('#E74C3C')
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+            .justifyContent(FlexAlign.Center)
+            .onClick(async () => {
+              await AuthService.logout()
+              this.user = null
+              promptAction.showToast({ message: '已退出' })
+              router.back()
+            })
           }
           .width('100%')
           .backgroundColor(Colors.BG_WHITE)
@@ -130,8 +179,16 @@ struct Profile {
     .height('100%')
   }
 
+  roleLabel(): string {
+    switch (this.userRole) {
+      case 'admin': return '管理员'
+      case 'artisan': return '传承人'
+      default: return '用户'
+    }
+  }
+
   @Builder
-  StatItem(label: string, count: string, onClick?: () => void) {
+  StatItem(label: string, count: string) {
     Column() {
       Text(count)
         .fontSize(20)
@@ -143,9 +200,6 @@ struct Profile {
         .margin({ top: 4 })
     }
     .layoutWeight(1)
-    .onClick(() => {
-      if (onClick) { onClick() }
-    })
   }
 
   @Builder

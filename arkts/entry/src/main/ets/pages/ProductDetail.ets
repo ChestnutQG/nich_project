@@ -438,18 +438,16 @@ struct ProductDetail {
                         .layoutWeight(1)
                         .margin({ right: 8 })
                         .onClick(async () => {
-                          const cartItem: CartItem = {
-                            productId: this.product!.id,
-                            productName: this.product!.name,
-                            productImage: this.product!.images[0],
-                            artisanName: this.product!.artisanName,
-                            skuId: this.selectedSku!.id,
-                            skuName: this.selectedSku!.name,
-                            price: this.selectedSku!.price,
-                            quantity: 1,
-                            checked: true
-                          }
-                          await CartService.addToCart(cartItem)
+                          await CartService.addToCart(
+                            this.product!.id,
+                            this.selectedSku!.id,
+                            1,
+                            this.product!.name,
+                            this.product!.images[0],
+                            this.product!.artisanName,
+                            this.selectedSku!.name,
+                            this.selectedSku!.price
+                          )
                           promptAction.showToast({ message: '已加入购物车' })
                         })
 

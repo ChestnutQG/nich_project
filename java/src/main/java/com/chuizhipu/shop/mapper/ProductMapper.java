@@ -37,4 +37,10 @@ public interface ProductMapper {
 
     /** 发布商品 */
     int insert(Product product);
+
+    /** 待审核商品列表 */
+    List<Product> selectPending();
+
+    /** 审核商品 */
+    int updateAuditStatus(@Param("id") Long id, @Param("auditStatus") String auditStatus);
 }

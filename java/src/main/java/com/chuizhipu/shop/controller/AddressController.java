@@ -3,13 +3,11 @@ package com.chuizhipu.shop.controller;
 import com.chuizhipu.shop.common.R;
 import com.chuizhipu.shop.entity.Address;
 import com.chuizhipu.shop.service.AddressService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 收货地址接口
- */
 @RestController
 @RequestMapping("/api/addresses")
 public class AddressController {
@@ -20,9 +18,11 @@ public class AddressController {
         this.addressService = addressService;
     }
 
-    /** GET /api/addresses?userId=1 */
+    /** GET /api/addresses — 当前用户地址列表 */
     @GetMapping
-    public R list(@RequestParam Long userId) {
+    public R list(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        if (userId == null) return R.error(401, "请先登录");
         List<Address> list = addressService.getByUserId(userId);
         return R.ok(list);
     }
@@ -31,15 +31,16 @@ public class AddressController {
     @GetMapping("/{id}")
     public R detail(@PathVariable Long id) {
         Address addr = addressService.getById(id);
-        if (addr == null) {
-            return R.error("地址不存在");
-        }
+        if (addr == null) return R.error("地址不存在");
         return R.ok(addr);
     }
 
-    /** POST /api/addresses */
+    /** POST /api/addresses — 新增/更新地址 */
     @PostMapping
-    public R save(@RequestBody Address address) {
+    public R save(HttpServletRequest request, @RequestBody Address address) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        if (userId == null) return R.error(401, "请先登录");
+        address.setUserId(userId);
         Long id = addressService.save(address);
         return R.ok(id);
     }

@@ -16,6 +16,9 @@ public class User {
     private Integer followCount;
     private Integer orderCount;
     private LocalDateTime createTime;
+    private String role;
+    private Integer creditScore;
+    private String status;
     private LocalDateTime updateTime;
 
     public Long getId() { return id; }
@@ -38,4 +41,10 @@ public class User {
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
     public LocalDateTime getUpdateTime() { return updateTime; }
     public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+    public Integer getCreditScore() { return creditScore; }
+    public void setCreditScore(Integer creditScore) { this.creditScore = creditScore; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

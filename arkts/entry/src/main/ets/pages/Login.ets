@@ -1,15 +1,20 @@
-// 登录页
+// 登录页 — 手机号+密码登录
 import { router } from '@kit.ArkUI'
+import { promptAction } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
+import { Constants } from '../common/Constants'
 import { AuthService } from '../service/AuthService'
+import { LoginResult } from '../model/User'
+import { ApiResponse } from '../model/ApiResponse'
 
 @Entry
 @Component
 struct Login {
-  @State phone: string = ''
-  @State code: string = ''
-  @State codeSending: boolean = false
+  @State phone: string = '13800000001'
+  @State password: string = '123456'
   @State logging: boolean = false
+  @State isRegister: boolean = false
+  @State username: string = ''
 
   build() {
     Column() {
@@ -26,15 +31,33 @@ struct Login {
       .padding(16)
 
       Column() {
-        Text('欢迎来到锤子铺')
+        Text(this.isRegister ? '注册账号' : '欢迎来到锤子铺')
           .fontSize(26)
           .fontWeight(FontWeight.Bold)
           .fontColor(Colors.TEXT_PRIMARY)
 
-        Text('发现并拥有中国手艺')
+        Text(this.isRegister ? '加入非遗守护者' : '发现并拥有中国手艺')
           .fontSize(14)
           .fontColor(Colors.TEXT_SECONDARY)
           .margin({ top: 8 })
+
+        // 注册时显示用户名输入
+        if (this.isRegister) {
+          Row() {
+            TextInput({ placeholder: '请输入用户名', text: this.username })
+              .fontSize(16)
+              .layoutWeight(1)
+              .height(44)
+              .backgroundColor(Color.Transparent)
+              .onChange((value: string) => { this.username = value })
+          }
+          .width('100%')
+          .padding({ left: 16, right: 16 })
+          .height(48)
+          .borderRadius(8)
+          .border({ width: 1, color: Colors.DIVIDER })
+          .margin({ top: 24 })
+        }
 
         Row() {
           Text('+86')
@@ -57,27 +80,16 @@ struct Login {
         .height(48)
         .borderRadius(8)
         .border({ width: 1, color: Colors.DIVIDER })
-        .margin({ top: 32 })
+        .margin({ top: 24 })
 
         Row() {
-          TextInput({ placeholder: '验证码', text: this.code })
+          TextInput({ placeholder: '请输入密码', text: this.password })
             .fontSize(16)
             .layoutWeight(1)
             .height(44)
-            .type(InputType.Number)
-            .maxLength(6)
+            .type(InputType.Password)
             .backgroundColor(Color.Transparent)
-            .onChange((value: string) => { this.code = value })
-
-          Text(this.codeSending ? '60s后重试' : '获取验证码')
-            .fontSize(13)
-            .fontColor(this.codeSending ? Colors.TEXT_HINT : Colors.PRIMARY)
-            .onClick(() => {
-              if (!this.codeSending && this.phone.length >= 11) {
-                this.codeSending = true
-                setTimeout(() => { this.codeSending = false }, 60000)
-              }
-            })
+            .onChange((value: string) => { this.password = value })
         }
         .width('100%')
         .padding({ left: 16, right: 16 })
@@ -86,7 +98,7 @@ struct Login {
         .border({ width: 1, color: Colors.DIVIDER })
         .margin({ top: 16 })
 
-        Button('登 录')
+        Button(this.isRegister ? '注 册' : '登 录')
           .fontSize(16)
           .fontWeight(FontWeight.Medium)
           .backgroundColor(Colors.PRIMARY)
@@ -96,13 +108,51 @@ struct Login {
           .margin({ top: 32 })
           .enabled(!this.logging)
           .onClick(async () => {
-            if (this.phone.length >= 11 && this.code.length >= 4) {
-              this.logging = true
-              await AuthService.login(this.phone, this.code)
-              this.logging = false
+            if (this.phone.length < 11) {
+              promptAction.showToast({ message: '请输入正确的手机号' })
+              return
+            }
+            if (this.password.length < 6) {
+              promptAction.showToast({ message: '密码至少6位' })
+              return
+            }
+            if (this.isRegister && !this.username) {
+              promptAction.showToast({ message: '请输入用户名' })
+              return
+            }
+
+            this.logging = true
+            let resp: ApiResponse<LoginResult>
+            if (this.isRegister) {
+              resp = await AuthService.register(this.username, this.phone, this.password)
+            } else {
+              resp = await AuthService.login(this.phone, this.password)
+            }
+            this.logging = false
+
+            if (resp.code === 0) {
+              promptAction.showToast({ message: this.isRegister ? '注册成功' : '登录成功' })
               router.back()
+            } else {
+              promptAction.showToast({ message: resp.message || '操作失败' })
             }
           })
+
+        Row() {
+          Text(this.isRegister ? '已有账号？' : '没有账号？')
+            .fontSize(13)
+            .fontColor(Colors.TEXT_SECONDARY)
+          Text(this.isRegister ? '去登录' : '去注册')
+            .fontSize(13)
+            .fontColor(Colors.PRIMARY)
+            .onClick(() => {
+              this.isRegister = !this.isRegister
+              this.username = ''
+            })
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+        .margin({ top: 24 })
 
         Row() {
           Text('登录即表示同意')
@@ -120,7 +170,7 @@ struct Login {
         }
         .width('100%')
         .justifyContent(FlexAlign.Center)
-        .margin({ top: 24 })
+        .margin({ top: 16 })
       }
       .width('100%')
       .layoutWeight(1)

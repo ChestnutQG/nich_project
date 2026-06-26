@@ -5,13 +5,11 @@ import com.chuizhipu.shop.entity.Order;
 import com.chuizhipu.shop.entity.OrderItem;
 import com.chuizhipu.shop.service.OrderService;
 import com.chuizhipu.shop.vo.OrderVO;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 订单接口 — 匹配前端 OrderService.ets
- */
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
@@ -22,10 +20,12 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    /** GET /api/orders — 用户订单列表 */
+    /** GET /api/orders — 用户订单列表（需登录） */
     @GetMapping
-    public R list(@RequestParam Long userId,
+    public R list(HttpServletRequest request,
                   @RequestParam(required = false) Integer status) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        if (userId == null) return R.error(401, "请先登录");
         List<OrderVO> orders = orderService.getOrders(userId, status);
         return R.ok(orders);
     }
@@ -40,10 +40,13 @@ public class OrderController {
         return R.ok(order);
     }
 
-    /** POST /api/orders — 创建订单 */
+    /** POST /api/orders — 创建订单（需登录） */
     @PostMapping
-    public R create(@RequestBody OrderCreateReq req) {
+    public R create(HttpServletRequest request, @RequestBody OrderCreateReq req) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        if (userId == null) return R.error(401, "请先登录");
         Order order = req.getOrder();
+        order.setUserId(userId);
         List<OrderItem> items = req.getItems();
         if (order == null || items == null || items.isEmpty()) {
             return R.error("订单信息不完整");

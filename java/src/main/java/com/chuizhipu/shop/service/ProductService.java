@@ -130,6 +130,8 @@ public class ProductService {
         vo.setArtisanId(EntityUtils.strId(p.getArtisanId()));
         vo.setArtisanName(p.getArtisanName());
         vo.setImages(EntityUtils.parseStrList(p.getImages()));
+        vo.setVideoUrl(p.getVideoUrl());
+        vo.setAuditStatus(p.getAuditStatus());
         vo.setPrice(p.getPrice());
         vo.setOriginalPrice(p.getOriginalPrice());
         vo.setStock(p.getStock());

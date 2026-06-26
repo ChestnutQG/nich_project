@@ -1,76 +1,100 @@
-// 购物车服务（本地存储 + Mock）
+// 购物车服务 — 对接 Spring Boot CartController
+import { ApiClient } from './ApiClient'
 import { ApiResponse } from '../model/ApiResponse'
 
 export interface CartItem {
+  id: string
   productId: string
   productName: string
   productImage: string
   artisanName: string
   skuId: string
   skuName: string
-  price: number       // 分
+  price: number
   quantity: number
-  checked: boolean
+  isChecked: boolean
+  stock: number
 }
 
-function delay(ms: number = 200): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+// 请求体类型（ArkTS 要求显式声明）
+interface AddCartReq {
+  productId: string
+  skuId: string
+  quantity: number
+  productName: string
+  productImage: string
+  artisanName: string
+  skuName: string
+  price: number
 }
 
-// 购物车数据存在内存中（后续接入 PersistenStorage）
-const cartItems: CartItem[] = []
+interface QtyReq {
+  quantity: number
+}
+
+interface CheckedReq {
+  isChecked: number
+}
+
+let cachedCount: number = 0
 
 export class CartService {
+
   static async fetchCartList(): Promise<ApiResponse<CartItem[]>> {
-    await delay()
-    return { code: 0, message: 'ok', data: [...cartItems] }
-  }
-
-  static async addToCart(item: CartItem): Promise<ApiResponse<null>> {
-    const exist = cartItems.find(i => i.skuId === item.skuId)
-    if (exist) {
-      exist.quantity += item.quantity
-    } else {
-      cartItems.push(item)
+    const resp = await ApiClient.get<CartItem[]>('/cart')
+    if (resp.code === 0) {
+      cachedCount = resp.data.length
     }
-    await delay()
-    return { code: 0, message: '已加入购物车', data: null }
+    return resp
   }
 
-  static async updateQuantity(skuId: string, quantity: number): Promise<ApiResponse<null>> {
-    await delay(100)
-    const item = cartItems.find(i => i.skuId === skuId)
-    if (item && quantity > 0) {
-      item.quantity = quantity
+  static async addToCart(productId: string, skuId: string, quantity: number,
+                          productName: string, productImage: string,
+                          artisanName: string, skuName: string, price: number): Promise<ApiResponse<null>> {
+    const body: AddCartReq = { productId, skuId, quantity, productName, productImage, artisanName, skuName, price }
+    const resp = await ApiClient.post<null>('/cart', body)
+    if (resp.code === 0) {
+      CartService.refreshCount()
     }
-    return { code: 0, message: 'ok', data: null }
+    return resp
   }
 
-  static async updateChecked(skuId: string, checked: boolean): Promise<ApiResponse<null>> {
-    await delay(100)
-    const item = cartItems.find(i => i.skuId === skuId)
-    if (item) {
-      item.checked = checked
+  static async updateQuantity(cartItemId: string, quantity: number): Promise<ApiResponse<null>> {
+    const body: QtyReq = { quantity }
+    return await ApiClient.put<null>(`/cart/${cartItemId}`, body)
+  }
+
+  static async updateChecked(cartItemId: string, isChecked: number): Promise<ApiResponse<null>> {
+    const body: CheckedReq = { isChecked }
+    return await ApiClient.put<null>(`/cart/${cartItemId}/checked`, body)
+  }
+
+  static async updateAllChecked(isChecked: number): Promise<ApiResponse<null>> {
+    const body: CheckedReq = { isChecked }
+    return await ApiClient.put<null>('/cart/check-all', body)
+  }
+
+  static async removeItem(cartItemId: string): Promise<ApiResponse<null>> {
+    const resp = await ApiClient.del<null>(`/cart/${cartItemId}`)
+    if (resp.code === 0) {
+      CartService.refreshCount()
     }
-    return { code: 0, message: 'ok', data: null }
+    return resp
   }
 
-  static async updateAllChecked(checked: boolean): Promise<ApiResponse<null>> {
-    await delay(100)
-    cartItems.forEach(i => i.checked = checked)
-    return { code: 0, message: 'ok', data: null }
-  }
-
-  static async removeItem(skuId: string): Promise<ApiResponse<null>> {
-    await delay(200)
-    const idx = cartItems.findIndex(i => i.skuId === skuId)
-    if (idx >= 0) {
-      cartItems.splice(idx, 1)
+  static async refreshCount(): Promise<void> {
+    const resp = await ApiClient.get<number>('/cart/count')
+    if (resp.code === 0) {
+      cachedCount = resp.data as number || 0
     }
-    return { code: 0, message: '已移除', data: null }
   }
 
   static getCartCount(): number {
-    return cartItems.length
+    return cachedCount
+  }
+
+  static async loadCartCount(): Promise<number> {
+    await CartService.refreshCount()
+    return cachedCount
   }
 }

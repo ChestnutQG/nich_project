@@ -1,10 +1,10 @@
-// HTTP API 客户端 — 对接 Spring Boot 后端（自动探测服务器 IP）
+// HTTP API 客户端 — 对接 Spring Boot 后端（自动探测服务器 IP + Token 鉴权）
 import { http } from '@kit.NetworkKit'
 import { fileIo } from '@kit.CoreFileKit'
+import { preferences } from '@kit.ArkData'
 import { ApiResponse } from '../model/ApiResponse'
 import { discoverServerIp } from '../common/ServerDiscovery'
 
-// multipart 文件上传数据项
 interface FilePart {
   name: string
   contentType: string
@@ -14,6 +14,49 @@ interface FilePart {
 
 let baseUrl = ''
 let initPromise: Promise<void> | null = null
+let authToken: string = ''
+let prefsInitialized = false
+
+const PREF_NAME = 'chuizhi_shop'
+const KEY_TOKEN = 'token'
+const KEY_USER_ID = 'userId'
+const KEY_USER_ROLE = 'userRole'
+
+// 初始化 preferences 并读取已保存的 token
+async function initPrefs(): Promise<void> {
+  if (prefsInitialized) return
+  try {
+    const prefs = preferences.getPreferencesSync(getContext(), { name: PREF_NAME })
+    authToken = prefs.getSync(KEY_TOKEN, '') as string
+    prefsInitialized = true
+  } catch (_e) {
+    prefsInitialized = true
+  }
+}
+
+export function getToken(): string {
+  return authToken
+}
+
+export async function saveToken(token: string): Promise<void> {
+  authToken = token
+  await initPrefs()
+  try {
+    const prefs = preferences.getPreferencesSync(getContext(), { name: PREF_NAME })
+    prefs.putSync(KEY_TOKEN, token)
+    prefs.flush()
+  } catch (_e) { /* ignore */ }
+}
+
+export async function clearToken(): Promise<void> {
+  authToken = ''
+  await initPrefs()
+  try {
+    const prefs = preferences.getPreferencesSync(getContext(), { name: PREF_NAME })
+    prefs.deleteSync(KEY_TOKEN)
+    prefs.flush()
+  } catch (_e) { /* ignore */ }
+}
 
 async function ensureBaseUrl(): Promise<void> {
   if (baseUrl) return
@@ -25,9 +68,14 @@ async function ensureBaseUrl(): Promise<void> {
   await initPromise
 }
 
+function authHeaders(): Record<string, string> {
+  const h: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (authToken) h['Authorization'] = `Bearer ${authToken}`
+  return h
+}
+
 export class ApiClient {
 
-  // 安全解析响应：SDK 可能已自动将 JSON 解析为对象
   private static parseResponse<T>(result: string | Object | ArrayBuffer): T {
     if (typeof result === 'string') {
       return JSON.parse(result as string) as T
@@ -35,9 +83,11 @@ export class ApiClient {
     return result as T
   }
 
-  // GET 请求
+  // ---- 公开方法 ----
+
   static async get<T>(path: string, params?: Record<string, string>): Promise<ApiResponse<T>> {
     try {
+      await initPrefs()
       await ensureBaseUrl()
       const req = http.createHttp()
       let url = `${baseUrl}${path}`
@@ -49,7 +99,7 @@ export class ApiClient {
       }
       const resp = await req.request(url, {
         method: http.RequestMethod.GET,
-        header: { 'Content-Type': 'application/json' },
+        header: authHeaders(),
         connectTimeout: 10000,
         readTimeout: 15000
       })
@@ -60,14 +110,14 @@ export class ApiClient {
     }
   }
 
-  // POST 请求
   static async post<T>(path: string, body: object): Promise<ApiResponse<T>> {
     try {
+      await initPrefs()
       await ensureBaseUrl()
       const req = http.createHttp()
       const resp = await req.request(`${baseUrl}${path}`, {
         method: http.RequestMethod.POST,
-        header: { 'Content-Type': 'application/json' },
+        header: authHeaders(),
         extraData: JSON.stringify(body),
         connectTimeout: 10000,
         readTimeout: 15000
@@ -79,14 +129,14 @@ export class ApiClient {
     }
   }
 
-  // PUT 请求
   static async put<T>(path: string, body: object): Promise<ApiResponse<T>> {
     try {
+      await initPrefs()
       await ensureBaseUrl()
       const req = http.createHttp()
       const resp = await req.request(`${baseUrl}${path}`, {
         method: http.RequestMethod.PUT,
-        header: { 'Content-Type': 'application/json' },
+        header: authHeaders(),
         extraData: JSON.stringify(body),
         connectTimeout: 10000,
         readTimeout: 15000
@@ -98,14 +148,14 @@ export class ApiClient {
     }
   }
 
-  // DELETE 请求
   static async del<T>(path: string): Promise<ApiResponse<T>> {
     try {
+      await initPrefs()
       await ensureBaseUrl()
       const req = http.createHttp()
       const resp = await req.request(`${baseUrl}${path}`, {
         method: http.RequestMethod.DELETE,
-        header: { 'Content-Type': 'application/json' },
+        header: authHeaders(),
         connectTimeout: 10000,
         readTimeout: 15000
       })
@@ -131,13 +181,15 @@ export class ApiClient {
         fileIo.closeSync(file)
 
         const parts = uri.split('/')
-        const filename = parts[parts.length - 1] || `photo_${i}.jpg`
+        const rawName = parts[parts.length - 1] || `file_${i}`
+        const lowerName = rawName.toLowerCase()
+        const isVideo = lowerName.endsWith('.mp4') || lowerName.endsWith('.mov') || lowerName.endsWith('.avi') || lowerName.endsWith('.mkv')
 
         formData.push({
           name: 'files',
-          contentType: 'image/jpeg',
+          contentType: isVideo ? 'video/mp4' : 'image/jpeg',
           data: buf,
-          remoteFileName: filename
+          remoteFileName: rawName
         })
       }
 

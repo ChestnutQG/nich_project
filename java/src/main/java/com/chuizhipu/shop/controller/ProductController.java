@@ -5,14 +5,12 @@ import com.chuizhipu.shop.entity.Product;
 import com.chuizhipu.shop.entity.ProductSku;
 import com.chuizhipu.shop.service.ProductService;
 import com.chuizhipu.shop.vo.ProductVO;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
-/**
- * 商品接口 — 匹配前端 ProductService.ets
- */
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
@@ -23,20 +21,27 @@ public class ProductController {
         this.productService = productService;
     }
 
+    /** 从 request 中取 userId（已登录则返回，否则返回 null） */
+    private Long getCurrentUserId(HttpServletRequest request) {
+        return (Long) request.getAttribute("currentUserId");
+    }
+
     /** GET /api/products/recommend — 首页推荐 */
     @GetMapping("/recommend")
-    public R recommend(@RequestParam(required = false) Long userId) {
+    public R recommend(HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
         List<ProductVO> list = productService.getRecommendProducts(userId);
         return R.ok(list);
     }
 
     /** GET /api/products — 分页列表 */
     @GetMapping
-    public R list(@RequestParam(required = false) Long categoryId,
+    public R list(HttpServletRequest request,
+                  @RequestParam(required = false) Long categoryId,
                   @RequestParam(defaultValue = "1") int page,
                   @RequestParam(defaultValue = "10") int size,
-                  @RequestParam(required = false) String sortBy,
-                  @RequestParam(required = false) Long userId) {
+                  @RequestParam(required = false) String sortBy) {
+        Long userId = getCurrentUserId(request);
         List<ProductVO> list = productService.getProductList(categoryId, page, size, sortBy, userId);
         long total = productService.countProducts(categoryId);
         Map<String, Object> data = R.pageData(list, total, page, size);
@@ -45,30 +50,31 @@ public class ProductController {
 
     /** GET /api/products/{id} — 商品详情 */
     @GetMapping("/{id}")
-    public R detail(@PathVariable Long id,
-                    @RequestParam(required = false) Long userId) {
+    public R detail(HttpServletRequest request, @PathVariable Long id) {
+        Long userId = getCurrentUserId(request);
         ProductVO product = productService.getProductDetail(id, userId);
-        if (product == null) {
-            return R.error("商品不存在");
-        }
+        if (product == null) return R.error("商品不存在");
         return R.ok(product);
     }
 
     /** GET /api/products/search — 搜索 */
     @GetMapping("/search")
-    public R search(@RequestParam String keyword,
+    public R search(HttpServletRequest request,
+                    @RequestParam String keyword,
                     @RequestParam(defaultValue = "1") int page,
-                    @RequestParam(defaultValue = "10") int size,
-                    @RequestParam(required = false) Long userId) {
+                    @RequestParam(defaultValue = "10") int size) {
+        Long userId = getCurrentUserId(request);
         List<ProductVO> list = productService.searchProducts(keyword, page, size, userId);
         long total = productService.countSearch(keyword);
         Map<String, Object> data = R.pageData(list, total, page, size);
         return R.ok(data);
     }
 
-    /** POST /api/products — 发布商品 */
+    /** POST /api/products — 发布商品（需登录） */
     @PostMapping
-    public R publish(@RequestBody PublishReq req) {
+    public R publish(HttpServletRequest request, @RequestBody PublishReq req) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        if (userId == null) return R.error(401, "请先登录");
         if (req.getName() == null || req.getName().isBlank()) {
             return R.error("商品名称不能为空");
         }

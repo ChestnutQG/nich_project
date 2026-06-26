@@ -12,6 +12,7 @@
         <result property="artisanId" column="artisan_id"/>
         <result property="artisanName" column="artisan_name"/>
         <result property="images" column="images"/>
+        <result property="videoUrl" column="video_url"/>
         <result property="price" column="price"/>
         <result property="originalPrice" column="original_price"/>
         <result property="stock" column="stock"/>
@@ -22,29 +23,30 @@
         <result property="craftProcess" column="craft_process"/>
         <result property="rating" column="rating"/>
         <result property="tags" column="tags"/>
+        <result property="auditStatus" column="audit_status"/>
         <result property="isOnSale" column="is_on_sale"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
-    <!-- 首页推荐 — 销量前10 -->
+    <!-- 首页推荐 — 只展示已审核通过的 -->
     <select id="selectRecommend" resultMap="productMap">
         SELECT p.*, c.name AS category_name, a.name AS artisan_name
         FROM t_product p
         LEFT JOIN t_category c ON p.category_id = c.id
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
-        WHERE p.is_on_sale = 1
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1
         ORDER BY p.sales DESC
         LIMIT 10
     </select>
 
-    <!-- 分页列表 -->
+    <!-- 分页列表 — 只展示已审核通过的 -->
     <select id="selectPage" resultMap="productMap">
         SELECT p.*, c.name AS category_name, a.name AS artisan_name
         FROM t_product p
         LEFT JOIN t_category c ON p.category_id = c.id
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
-        WHERE p.is_on_sale = 1
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1
         <if test="categoryId != null">
             AND p.category_id = #{categoryId}
         </if>
@@ -58,7 +60,7 @@
     </select>
 
     <select id="countPage" resultType="long">
-        SELECT COUNT(*) FROM t_product WHERE is_on_sale = 1
+        SELECT COUNT(*) FROM t_product WHERE audit_status = 'approved' AND is_on_sale = 1
         <if test="categoryId != null">
             AND category_id = #{categoryId}
         </if>
@@ -73,13 +75,13 @@
         WHERE p.id = #{id}
     </select>
 
-    <!-- 搜索 -->
+    <!-- 搜索 — 只搜索已审核通过的 -->
     <select id="search" resultMap="productMap">
         SELECT p.*, c.name AS category_name, a.name AS artisan_name
         FROM t_product p
         LEFT JOIN t_category c ON p.category_id = c.id
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
-        WHERE p.is_on_sale = 1
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1
           AND (p.name LIKE CONCAT('%', #{keyword}, '%')
                OR p.craft_type LIKE CONCAT('%', #{keyword}, '%')
                OR p.region LIKE CONCAT('%', #{keyword}, '%')
@@ -90,31 +92,52 @@
 
     <select id="countSearch" resultType="long">
         SELECT COUNT(*) FROM t_product
-        WHERE is_on_sale = 1
+        WHERE audit_status = 'approved' AND is_on_sale = 1
           AND (name LIKE CONCAT('%', #{keyword}, '%')
                OR craft_type LIKE CONCAT('%', #{keyword}, '%')
                OR region LIKE CONCAT('%', #{keyword}, '%')
                OR tags LIKE CONCAT('%', #{keyword}, '%'))
     </select>
 
-    <!-- 根据匠人查商品 -->
+    <!-- 根据匠人查商品 — 只查已通过的 -->
     <select id="selectByArtisanId" resultMap="productMap">
         SELECT p.*, c.name AS category_name, a.name AS artisan_name
         FROM t_product p
         LEFT JOIN t_category c ON p.category_id = c.id
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
-        WHERE p.artisan_id = #{artisanId} AND p.is_on_sale = 1
+        WHERE p.artisan_id = #{artisanId} AND p.audit_status = 'approved' AND p.is_on_sale = 1
         ORDER BY p.create_time DESC
     </select>
 
-    <!-- 发布商品 -->
+    <!-- 发布商品 — 默认待审核 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO t_product (name, description, category_id, artisan_id,
-                               images, price, original_price, stock, region,
-                               craft_type, story, craft_process, tags, is_on_sale)
+                               images, video_url, price, original_price, stock, region,
+                               craft_type, story, craft_process, tags, audit_status, is_on_sale)
         VALUES (#{name}, #{description}, #{categoryId}, #{artisanId},
-                #{images}, #{price}, #{originalPrice}, #{stock}, #{region},
-                #{craftType}, #{story}, #{craftProcess}, #{tags}, 1)
+                #{images}, #{videoUrl}, #{price}, #{originalPrice}, #{stock}, #{region},
+                #{craftType}, #{story}, #{craftProcess}, #{tags},
+                COALESCE(#{auditStatus}, 'pending'), 0)
     </insert>
+
+    <!-- ===== 审核相关 ===== -->
+
+    <!-- 待审核商品列表 -->
+    <select id="selectPending" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        ORDER BY
+            CASE p.audit_status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,
+            p.create_time DESC
+    </select>
+
+    <update id="updateAuditStatus">
+        UPDATE t_product SET audit_status = #{auditStatus},
+               is_on_sale = CASE WHEN #{auditStatus} = 'approved' THEN 1 ELSE 0 END,
+               update_time = NOW()
+        WHERE id = #{id}
+    </update>
 
 </mapper>

@@ -5,7 +5,16 @@ export interface User {
   nickname: string
   avatar: string
   phone: string
-  collectCount: number    // 收藏商品数
-  followCount: number     // 关注匠人数
-  orderCount: number      // 订单数
+  role: string             // user | artisan | admin
+  creditScore: number      // 信用分
+  status: string           // active | frozen
+  collectCount: number
+  followCount: number
+  orderCount: number
+}
+
+// 登录返回
+export interface LoginResult {
+  user: User
+  token: string
 }

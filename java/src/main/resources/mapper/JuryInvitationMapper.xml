@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chuizhipu.shop.mapper.JuryInvitationMapper">
+
+    <resultMap id="invitationMap" type="com.chuizhipu.shop.entity.JuryInvitation">
+        <id property="id" column="id"/>
+        <result property="disputeId" column="dispute_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="status" column="status"/>
+        <result property="inviteTime" column="invite_time"/>
+        <result property="voteTime" column="vote_time"/>
+        <result property="disputeReason" column="reason"/>
+        <result property="userName" column="user_name"/>
+    </resultMap>
+
+    <insert id="batchInsert">
+        INSERT INTO t_jury_invitation (dispute_id, user_id, status, invite_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.disputeId}, #{item.userId}, 'pending', NOW())
+        </foreach>
+    </insert>
+
+    <select id="selectByUserId" resultMap="invitationMap">
+        SELECT ji.*, d.reason, u.nickname AS user_name
+        FROM t_jury_invitation ji
+        LEFT JOIN t_dispute d ON ji.dispute_id = d.id
+        LEFT JOIN t_user u ON ji.user_id = u.id
+        WHERE ji.user_id = #{userId}
+        ORDER BY ji.invite_time DESC
+    </select>
+
+    <select id="selectByDisputeId" resultMap="invitationMap">
+        SELECT * FROM t_jury_invitation WHERE dispute_id = #{disputeId}
+    </select>
+
+    <select id="existsByDisputeAndUser" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM t_jury_invitation
+        WHERE dispute_id = #{disputeId} AND user_id = #{userId}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE t_jury_invitation SET status = #{status}, vote_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectEligibleJurors" resultType="long">
+        SELECT id FROM t_user
+        WHERE credit_score >= 60 AND status = 'active'
+        <if test="excludeIds != null and excludeIds.size() > 0">
+            AND id NOT IN
+            <foreach collection="excludeIds" item="eid" open="(" separator="," close=")">
+                #{eid}
+            </foreach>
+        </if>
+        ORDER BY RAND() LIMIT 20
+    </select>
+
+</mapper>

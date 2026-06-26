@@ -5,6 +5,7 @@
 
     <select id="selectById" resultType="com.chuizhipu.shop.entity.User">
         SELECT id, nickname, avatar, phone, password,
+               role, credit_score AS creditScore, status,
                collect_count AS collectCount, follow_count AS followCount,
                order_count AS orderCount, create_time AS createTime,
                update_time AS updateTime
@@ -13,6 +14,7 @@
 
     <select id="selectByPhone" resultType="com.chuizhipu.shop.entity.User">
         SELECT id, nickname, avatar, phone, password,
+               role, credit_score AS creditScore, status,
                collect_count AS collectCount, follow_count AS followCount,
                order_count AS orderCount, create_time AS createTime,
                update_time AS updateTime
@@ -20,15 +22,26 @@
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO t_user (nickname, avatar, phone, password)
-        VALUES (#{nickname}, #{avatar}, #{phone}, #{password})
+        INSERT INTO t_user (nickname, avatar, phone, password, role, credit_score, status)
+        VALUES (#{nickname}, #{avatar}, #{phone}, #{password},
+                COALESCE(#{role}, 'user'), COALESCE(#{creditScore}, 100), COALESCE(#{status}, 'active'))
     </insert>
 
     <update id="updateById">
         UPDATE t_user
         SET nickname = #{nickname}, avatar = #{avatar}, phone = #{phone},
+            role = #{role}, credit_score = #{creditScore}, status = #{status},
             update_time = NOW()
         WHERE id = #{id}
     </update>
+
+    <select id="selectAll" resultType="com.chuizhipu.shop.entity.User">
+        SELECT id, nickname, avatar, phone, password,
+               role, credit_score AS creditScore, status,
+               collect_count AS collectCount, follow_count AS followCount,
+               order_count AS orderCount, create_time AS createTime,
+               update_time AS updateTime
+        FROM t_user ORDER BY id
+    </select>
 
 </mapper>

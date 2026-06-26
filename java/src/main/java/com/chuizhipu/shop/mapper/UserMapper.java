@@ -4,6 +4,8 @@ import com.chuizhipu.shop.entity.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 @Mapper
 public interface UserMapper {
 
@@ -14,4 +16,6 @@ public interface UserMapper {
     int insert(User user);
 
     int updateById(User user);
+
+    List<User> selectAll();
 }

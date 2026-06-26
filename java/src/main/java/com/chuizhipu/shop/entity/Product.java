@@ -12,6 +12,7 @@ public class Product {
     private Long categoryId;
     private Long artisanId;
     private String images;        // JSON 数组
+    private String videoUrl;      // 视频URL（可选）
     private Long price;           // 现价（分）
     private Long originalPrice;   // 原价（分）
     private Integer stock;
@@ -22,6 +23,7 @@ public class Product {
     private String craftProcess;  // JSON 数组
     private Double rating;
     private String tags;          // 逗号分隔
+    private String auditStatus;   // pending | approved | rejected
     private Integer isOnSale;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
@@ -44,6 +46,8 @@ public class Product {
     public void setArtisanId(Long artisanId) { this.artisanId = artisanId; }
     public String getImages() { return images; }
     public void setImages(String images) { this.images = images; }
+    public String getVideoUrl() { return videoUrl; }
+    public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
     public Long getPrice() { return price; }
     public void setPrice(Long price) { this.price = price; }
     public Long getOriginalPrice() { return originalPrice; }
@@ -64,6 +68,8 @@ public class Product {
     public void setRating(Double rating) { this.rating = rating; }
     public String getTags() { return tags; }
     public void setTags(String tags) { this.tags = tags; }
+    public String getAuditStatus() { return auditStatus; }
+    public void setAuditStatus(String auditStatus) { this.auditStatus = auditStatus; }
     public Integer getIsOnSale() { return isOnSale; }
     public void setIsOnSale(Integer isOnSale) { this.isOnSale = isOnSale; }
     public LocalDateTime getCreateTime() { return createTime; }

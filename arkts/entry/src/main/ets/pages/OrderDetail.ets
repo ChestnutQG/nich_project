@@ -1,6 +1,7 @@
 // 订单详情页
 import { router } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
+import { Constants } from '../common/Constants'
 import { Utils } from '../common/Utils'
 import { Order, OrderStatus, getOrderStatusText, OrderItem } from '../model/Order'
 import { OrderService } from '../service/OrderService'
@@ -190,6 +191,23 @@ struct OrderDetail {
               .borderRadius(20)
               .height(40)
               .layoutWeight(1)
+          }
+          .width('100%')
+          .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+          .backgroundColor(Colors.BG_WHITE)
+        }
+        if (this.order!.status === OrderStatus.PENDING_RECEIVE ||
+            this.order!.status === OrderStatus.COMPLETED) {
+          Row() {
+            Button('申请维权')
+              .fontSize(14)
+              .backgroundColor(Colors.WARNING)
+              .borderRadius(20)
+              .height(40)
+              .layoutWeight(1)
+              .onClick(() => {
+                router.pushUrl({ url: Constants.PAGE_DISPUTE_APPLY })
+              })
           }
           .width('100%')
           .padding({ left: 16, right: 16, top: 12, bottom: 12 })

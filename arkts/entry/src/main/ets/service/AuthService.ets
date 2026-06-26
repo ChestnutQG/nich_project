@@ -1,34 +1,50 @@
-// 认证服务（当前使用 Mock，后续替换为真实认证）
-import { User } from '../model/User'
+// 认证服务 — 对接 Spring Boot UserController
+import { User, LoginResult } from '../model/User'
 import { ApiResponse } from '../model/ApiResponse'
+import { ApiClient, saveToken, clearToken } from './ApiClient'
 
-function delay(ms: number = 500): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+interface LoginReq {
+  phone: string
+  password: string
 }
 
-const mockUser: User = {
-  id: 'u001',
-  nickname: '非遗爱好者小明',
-  avatar: 'https://picsum.photos/seed/user01/200/200',
-  phone: '138****8888',
-  collectCount: 12,
-  followCount: 5,
-  orderCount: 8
+interface RegisterReq {
+  username: string
+  phone: string
+  password: string
 }
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+interface EmptyReq {}
 
 export class AuthService {
-  static async login(phone: string, code: string): Promise<ApiResponse<User>> {
-    await delay()
-    return { code: 0, message: 'ok', data: mockUser }
+
+  static async login(phone: string, password: string): Promise<ApiResponse<LoginResult>> {
+    const body: LoginReq = { phone, password }
+    const resp = await ApiClient.post<LoginResult>('/users/login', body)
+    if (resp.code === 0 && resp.data?.token) {
+      await saveToken(resp.data.token)
+    }
+    return resp
+  }
+
+  static async register(username: string, phone: string, password: string): Promise<ApiResponse<LoginResult>> {
+    const body: RegisterReq = { username, phone, password }
+    const resp = await ApiClient.post<LoginResult>('/users/register', body)
+    if (resp.code === 0 && resp.data?.token) {
+      await saveToken(resp.data.token)
+    }
+    return resp
   }
 
   static async getUserInfo(): Promise<ApiResponse<User>> {
-    await delay(200)
-    return { code: 0, message: 'ok', data: mockUser }
+    return await ApiClient.get<User>('/users/me')
   }
 
   static async logout(): Promise<ApiResponse<null>> {
-    await delay(200)
+    const empty: EmptyReq = {}
+    await ApiClient.post<null>('/users/logout', empty)
+    await clearToken()
     return { code: 0, message: 'ok', data: null }
   }
 }

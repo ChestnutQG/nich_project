@@ -23,6 +23,7 @@ export interface Product {
   artisanId: string
   artisanName: string
   images: string[]
+  videoUrl?: string       // 视频URL（可选）
   price: number          // 现价，单位：分
   originalPrice: number  // 原价，单位：分
   stock: number

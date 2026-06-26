@@ -2,25 +2,25 @@
 // 顶部导航 + 分类 chip + 作品卡片
 // 左上角头像点击弹出侧边栏（从左侧滑入）
 import { router } from '@kit.ArkUI'
+import { promptAction } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
 import { Product } from '../model/Product'
 import { Category } from '../model/Category'
 import { ProductService } from '../service/ProductService'
 import { CartService } from '../service/CartService'
-import { ApiClient } from '../service/ApiClient'
+import { AuthService } from '../service/AuthService'
 import { MockCategories } from '../mock/MockCategories'
 import { User } from '../model/User'
+import { getToken } from '../service/ApiClient'
 
 @Entry
 @Component
 struct Index {
-  // Feed 数据
   @State feedProducts: Product[] = []
   @State feedLoading: boolean = true
   @State feedRefreshing: boolean = false
 
-  // 用户数据（侧边栏用）
   @State userAvatar: string = ''
   @State userName: string = '非遗爱好者'
   @State userPhone: string = ''
@@ -28,21 +28,21 @@ struct Index {
   @State userFollowCount: number = 0
   @State userOrderCount: number = 0
   @State cartCount: number = CartService.getCartCount()
+  @State isLoggedIn: boolean = false
 
-  // 侧边栏状态
   @State showSideBar: boolean = false
-  @State drawerOffset: number = -100  // -100 隐藏（左侧外），0 完全显示
+  @State drawerOffset: number = -100
 
-  // 分类 chip 数据
   private categories: Category[] = MockCategories
 
   aboutToAppear(): void {
     this.loadFeedData()
     this.loadUserData()
+    CartService.loadCartCount().then((c: number) => { this.cartCount = c })
   }
 
   onPageShow(): void {
-    this.cartCount = CartService.getCartCount()
+    CartService.loadCartCount().then((c: number) => { this.cartCount = c })
     this.loadUserData()
   }
 
@@ -56,7 +56,10 @@ struct Index {
   }
 
   async loadUserData(): Promise<void> {
-    const resp = await ApiClient.get<User>('/users/1')
+    this.isLoggedIn = getToken().length > 0
+    if (!this.isLoggedIn) return
+
+    const resp = await AuthService.getUserInfo()
     if (resp.code === 0 && resp.data) {
       this.userName = resp.data.nickname || '非遗爱好者'
       this.userAvatar = resp.data.avatar || ''
@@ -301,6 +304,14 @@ struct Index {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_ORDER_LIST })
                 })
+                this.MenuItem('⚖️', '我的维权', () => {
+                  this.closeDrawer()
+                  router.pushUrl({ url: Constants.PAGE_DISPUTE_LIST })
+                })
+                this.MenuItem('👨‍⚖️', '陪审邀请', () => {
+                  this.closeDrawer()
+                  router.pushUrl({ url: Constants.PAGE_JURY_INVITATIONS })
+                })
                 this.MenuItem('📍', '收货地址', () => {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST })
@@ -313,12 +324,49 @@ struct Index {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST })
                 })
-                this.MenuItem('🔔', '消息通知', () => {
+                this.MenuItem('👤', '个人中心', () => {
                   this.closeDrawer()
+                  if (this.isLoggedIn) {
+                    router.pushUrl({ url: Constants.PAGE_PROFILE })
+                  } else {
+                    router.pushUrl({ url: Constants.PAGE_LOGIN })
+                  }
                 })
-                this.MenuItem('⚙️', '设置', () => {
-                  this.closeDrawer()
-                })
+                this.MenuItem('🔔', '消息通知', () => { this.closeDrawer() })
+                this.MenuItem('⚙️', '设置', () => { this.closeDrawer() })
+
+                // 登录 / 退出
+                if (this.isLoggedIn) {
+                  Row() {
+                    Text('退出登录')
+                      .fontSize(15)
+                      .fontColor('#E74C3C')
+                  }
+                  .width('100%')
+                  .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+                  .justifyContent(FlexAlign.Center)
+                  .onClick(async () => {
+                    this.closeDrawer()
+                    await AuthService.logout()
+                    this.isLoggedIn = false
+                    this.userName = '非遗爱好者'
+                    this.userAvatar = ''
+                    promptAction.showToast({ message: '已退出' })
+                  })
+                } else {
+                  Row() {
+                    Text('登录 / 注册')
+                      .fontSize(15)
+                      .fontColor(Colors.PRIMARY)
+                  }
+                  .width('100%')
+                  .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+                  .justifyContent(FlexAlign.Center)
+                  .onClick(() => {
+                    this.closeDrawer()
+                    router.pushUrl({ url: Constants.PAGE_LOGIN })
+                  })
+                }
               }
               .width('100%')
               .backgroundColor(Colors.BG_WHITE)
@@ -381,14 +429,42 @@ struct Index {
     .onClick(onClick)
   }
 
-  // Feed 卡片（无价格，突出文化内容）
+  // Feed 卡片（支持视频播放）
   @Builder
   FeedCard(product: Product) {
     Column() {
-      Image(product.images[0])
+      // 媒体区域：有视频 URL 显示视频，否则显示首图
+      if (product.videoUrl && product.videoUrl.length > 0) {
+        Stack() {
+          Video({
+            src: product.videoUrl,
+            previewUri: product.images[0]
+          })
+            .width('100%')
+            .height(220)
+            .objectFit(ImageFit.Contain)
+            .autoPlay(false)
+            .controls(true)
+            .loop(true)
+            .backgroundColor('#000000')
+
+          // 视频标签
+          Text('视频')
+            .fontSize(11)
+            .fontColor(Colors.BG_WHITE)
+            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+            .borderRadius(4)
+            .backgroundColor('#99000000')
+            .position({ left: 8, top: 8 })
+        }
         .width('100%')
-        .height(200)
-        .objectFit(ImageFit.Cover)
+        .height(220)
+      } else {
+        Image(product.images[0])
+          .width('100%')
+          .height(200)
+          .objectFit(ImageFit.Cover)
+      }
 
       Text(product.name)
         .fontSize(15)

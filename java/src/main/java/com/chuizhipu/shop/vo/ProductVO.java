@@ -15,6 +15,7 @@ public class ProductVO {
     private String artisanId;
     private String artisanName;
     private List<String> images;
+    private String videoUrl;       // 视频URL
     private Long price;            // 现价（分）
     private Long originalPrice;    // 原价（分）
     private Integer stock;
@@ -26,6 +27,7 @@ public class ProductVO {
     private List<SkuVO> skus;
     private Double rating;
     private List<String> tags;
+    private String auditStatus;    // pending | approved | rejected
     private Boolean isCollect;
     private Long createTime;       // 毫秒时间戳
 
@@ -46,6 +48,8 @@ public class ProductVO {
     public void setArtisanName(String artisanName) { this.artisanName = artisanName; }
     public List<String> getImages() { return images; }
     public void setImages(List<String> images) { this.images = images; }
+    public String getVideoUrl() { return videoUrl; }
+    public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
     public Long getPrice() { return price; }
     public void setPrice(Long price) { this.price = price; }
     public Long getOriginalPrice() { return originalPrice; }
@@ -68,6 +72,8 @@ public class ProductVO {
     public void setRating(Double rating) { this.rating = rating; }
     public List<String> getTags() { return tags; }
     public void setTags(List<String> tags) { this.tags = tags; }
+    public String getAuditStatus() { return auditStatus; }
+    public void setAuditStatus(String auditStatus) { this.auditStatus = auditStatus; }
     public Boolean getIsCollect() { return isCollect; }
     public void setIsCollect(Boolean isCollect) { this.isCollect = isCollect; }
     public Long getCreateTime() { return createTime; }

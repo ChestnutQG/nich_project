@@ -91,7 +91,7 @@ struct OrderConfirm {
       const items: OrderItem[] = []
       for (let i = 0; i < resp.data.length; i++) {
         const ci = resp.data[i]
-        if (ci.checked) {
+        if (ci.isChecked) {
           const item: OrderItem = {
             productId: ci.productId,
             productName: ci.productName,

@@ -9,7 +9,13 @@ CREATE DATABASE IF NOT EXISTS chuizhi_shop
 
 USE chuizhi_shop;
 
+-- 强制客户端使用 utf8mb4，避免 Windows 终端中文乱码
+SET NAMES utf8mb4;
+
 -- 先删旧表（按依赖顺序），方便重复执行
+DROP TABLE IF EXISTS t_jury_vote;
+DROP TABLE IF EXISTS t_jury_invitation;
+DROP TABLE IF EXISTS t_dispute;
 DROP TABLE IF EXISTS t_follow;
 DROP TABLE IF EXISTS t_favorite;
 DROP TABLE IF EXISTS t_cart_item;
@@ -31,6 +37,9 @@ CREATE TABLE t_user (
     avatar      VARCHAR(500)  COMMENT '头像URL',
     phone       VARCHAR(11)   NOT NULL UNIQUE COMMENT '手机号',
     password    VARCHAR(128)  COMMENT '密码哈希',
+    role        VARCHAR(20)   NOT NULL DEFAULT 'user' COMMENT '角色: user|artisan|admin',
+    credit_score INT          NOT NULL DEFAULT 100 COMMENT '信用分',
+    status      VARCHAR(20)   NOT NULL DEFAULT 'active' COMMENT '状态: active|frozen',
     collect_count INT DEFAULT 0 COMMENT '收藏数',
     follow_count  INT DEFAULT 0 COMMENT '关注匠人数',
     order_count   INT DEFAULT 0 COMMENT '订单数',
@@ -96,6 +105,7 @@ CREATE TABLE t_product (
     category_id     BIGINT        COMMENT '分类ID',
     artisan_id      BIGINT        COMMENT '匠人ID',
     images          JSON          COMMENT '商品图片URL数组',
+    video_url       VARCHAR(500)  COMMENT '视频URL（可选）',
     price           BIGINT        NOT NULL COMMENT '现价（分）',
     original_price  BIGINT        COMMENT '原价（分）',
     stock           INT NOT NULL DEFAULT 0 COMMENT '库存',
@@ -106,7 +116,8 @@ CREATE TABLE t_product (
     craft_process   JSON          COMMENT '制作工艺步骤 JSON',
     rating          DOUBLE DEFAULT 5.0 COMMENT '评分',
     tags            VARCHAR(500)  COMMENT '标签（逗号分隔）',
-    is_on_sale      TINYINT DEFAULT 1 COMMENT '是否上架 1-上架 0-下架',
+    audit_status    VARCHAR(20) DEFAULT 'pending' COMMENT '审核状态: pending-待审核 approved-已通过 rejected-已驳回',
+    is_on_sale      TINYINT DEFAULT 0 COMMENT '是否上架 1-上架 0-下架',
     create_time     DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time     DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES t_category(id),
@@ -217,13 +228,61 @@ CREATE TABLE t_follow (
 ) COMMENT '关注匠人';
 
 -- ==========================================
+-- 12. 纠纷表（小法庭维权）
+-- ==========================================
+CREATE TABLE t_dispute (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id        BIGINT NOT NULL COMMENT '关联订单ID',
+    initiator_id    BIGINT NOT NULL COMMENT '申请人ID（买家）',
+    respondent_id   BIGINT NOT NULL COMMENT '被申请人ID（卖家）',
+    reason          TEXT COMMENT '维权原因',
+    evidence_urls   JSON COMMENT '凭证图片URL数组',
+    status          VARCHAR(20) NOT NULL DEFAULT 'negotiating' COMMENT 'negotiating|pending_jury|voting|resolved',
+    result          VARCHAR(20) COMMENT 'buyer_win|seller_win',
+    buyer_votes     INT DEFAULT 0 COMMENT '支持买家票数',
+    seller_votes    INT DEFAULT 0 COMMENT '支持卖家票数',
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES t_order(id),
+    FOREIGN KEY (initiator_id) REFERENCES t_user(id),
+    FOREIGN KEY (respondent_id) REFERENCES t_user(id),
+    INDEX idx_status (status)
+) COMMENT '纠纷/小法庭';
+
+-- 13. 陪审邀请表
+CREATE TABLE t_jury_invitation (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    dispute_id  BIGINT NOT NULL COMMENT '纠纷ID',
+    user_id     BIGINT NOT NULL COMMENT '陪审员用户ID',
+    status      VARCHAR(20) NOT NULL DEFAULT 'pending' COMMENT 'pending|voted',
+    invite_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    vote_time   DATETIME,
+    FOREIGN KEY (dispute_id) REFERENCES t_dispute(id),
+    FOREIGN KEY (user_id) REFERENCES t_user(id),
+    UNIQUE KEY uk_dispute_user (dispute_id, user_id)
+) COMMENT '陪审邀请';
+
+-- 14. 陪审投票表
+CREATE TABLE t_jury_vote (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    dispute_id  BIGINT NOT NULL COMMENT '纠纷ID',
+    voter_id    BIGINT NOT NULL COMMENT '投票人ID',
+    vote_side   VARCHAR(10) NOT NULL COMMENT 'buyer|seller',
+    vote_time   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (dispute_id) REFERENCES t_dispute(id),
+    FOREIGN KEY (voter_id) REFERENCES t_user(id),
+    UNIQUE KEY uk_dispute_voter (dispute_id, voter_id)
+) COMMENT '陪审投票';
+
+-- ==========================================
 -- 示例数据
 -- ==========================================
 
--- 用户
-INSERT INTO t_user (id, nickname, avatar, phone, collect_count, follow_count, order_count) VALUES
-(1, '爱非遗的小明', 'https://picsum.photos/seed/user01/200/200', '13800000001', 12, 5, 3),
-(2, '传统文化爱好者', 'https://picsum.photos/seed/user02/200/200', '13800000002', 8, 3, 1);
+-- 用户（密码 123456 的 MD5：e10adc3949ba59abbe56e057f20f883e）
+INSERT INTO t_user (id, nickname, avatar, phone, password, role, credit_score, status, collect_count, follow_count, order_count) VALUES
+(1, '爱非遗的小明', 'https://picsum.photos/seed/user01/200/200', '13800000001', 'e10adc3949ba59abbe56e057f20f883e', 'admin', 100, 'active', 12, 5, 3),
+(2, '传统文化爱好者', 'https://picsum.photos/seed/user02/200/200', '13800000002', 'e10adc3949ba59abbe56e057f20f883e', 'user', 100, 'active', 8, 3, 1),
+(3, '非遗守护者', 'https://picsum.photos/seed/user03/200/200', '13800000003', 'e10adc3949ba59abbe56e057f20f883e', 'user', 95, 'active', 5, 2, 0);
 
 -- 分类（10 大非遗类别）
 INSERT INTO t_category (id, name, icon, parent_id, sort_order) VALUES
@@ -250,55 +309,61 @@ INSERT INTO t_artisan (id, name, avatar, title, level, province, city, craft_typ
    '赵德胜，1962年生于北京，景泰蓝制作技艺国家级传承人，从事珐琅工艺四十载。',
    '["https://picsum.photos/seed/cert04/400/300"]', 72, 2100);
 
--- 商品
-INSERT INTO t_product (id, name, description, category_id, artisan_id, images, price, original_price, stock, sales, region, craft_type, story, tags, rating) VALUES
+-- 商品（部分含视频链接，用于Feed流视频播放）
+INSERT INTO t_product (id, name, description, category_id, artisan_id, images, video_url, price, original_price, stock, sales, region, craft_type, story, tags, rating, audit_status, is_on_sale) VALUES
 (1, '苏绣双面绣团扇 · 蝶恋花',
    '苏州绣娘纯手工双面绣，一面蝴蝶一面花卉，丝线光泽流转，栩栩如生。紫檀木扇柄，配真丝流苏。',
    2, 1,
    '["https://picsum.photos/seed/nh01/750/750","https://picsum.photos/seed/nh02/750/750","https://picsum.photos/seed/nh03/750/750"]',
+   'https://assets.mixkit.co/videos/preview/mixkit-woman-embroidering-a-fabric-with-flowers-28273-large.mp4',
    128000, 168000, 3, 127, '江苏苏州', '苏绣',
    '<p>苏绣，中国四大名绣之首，已有2500余年历史。明代正德年间，苏绣便以"精细雅洁"闻名于世。清代更是发展出双面绣技法，在同一底料上绣出正反两面完全相同的图案，成为苏绣标志性技艺。</p><p>此团扇由沈桂芳老师历时15天纯手工绣制，每平方厘米多达80针，丝线劈至1/16粗细，色彩过渡自然，蝴蝶翅膀纹理清晰可见。</p>',
-   '苏绣,双面绣,团扇,国礼级', 4.9),
+   '苏绣,双面绣,团扇,国礼级', 4.9, 'approved', 1),
 
 (2, '景德镇青花瓷茶具套装 · 山水清音',
    '景德镇非遗传承人手工拉坯，青花手绘山水纹样，一壶四杯一公道，配竹制茶盘。',
    1, 2,
    '["https://picsum.photos/seed/nh04/750/750","https://picsum.photos/seed/nh05/750/750"]',
+   'https://assets.mixkit.co/videos/preview/mixkit-pottery-craftsman-making-a-ceramic-pot-39963-large.mp4',
    86000, 108000, 15, 356, '江西景德镇', '青花瓷',
    '<p>景德镇手工制瓷技艺，2006年列入第一批国家级非物质文化遗产名录。从拉坯、利坯到画坯、上釉，七十二道工序，每一道皆是千年传承。</p>',
-   '青花瓷,茶具,手工,礼品', 4.8),
+   '青花瓷,茶具,手工,礼品', 4.8, 'approved', 1),
 
 (3, '景泰蓝铜胎掐丝珐琅花瓶 · 花开富贵',
    '纯铜胎底，手工掐丝描金，珐琅釉料烧制，牡丹纹饰雍容华贵。',
    1, 3,
    '["https://picsum.photos/seed/nh06/750/750","https://picsum.photos/seed/nh07/750/750"]',
+   NULL,
    560000, 680000, 2, 48, '北京', '景泰蓝',
    '<p>景泰蓝，又称铜胎掐丝珐琅，起源于元朝，盛行于明代景泰年间，因釉料以蓝色为主而得名。制作需经制胎、掐丝、点蓝、烧蓝、磨光、镀金等108道工序。</p>',
-   '景泰蓝,珐琅,花瓶,收藏级', 4.9),
+   '景泰蓝,珐琅,花瓶,收藏级', 4.9, 'approved', 1),
 
 (4, '苏绣真丝围巾 · 江南烟雨',
    '100%桑蚕丝底料，苏绣手工绣制江南水墨风景，轻盈柔滑。',
    2, 1,
    '["https://picsum.photos/seed/nh08/750/750","https://picsum.photos/seed/nh09/750/750"]',
+   NULL,
    36800, 46800, 25, 892, '江苏苏州', '苏绣',
    '<p>以苏州园林和江南水乡为灵感，用苏绣技艺将水墨意境呈现在真丝之上。适合日常穿搭，也是极具文化底蕴的礼品之选。</p>',
-   '苏绣,真丝,围巾,日常穿搭', 4.7),
+   '苏绣,真丝,围巾,日常穿搭', 4.7, 'approved', 1),
 
 (5, '手工紫砂壶 · 仿古如意',
    '宜兴黄龙山原矿紫泥，全手工拍打成型，国家级工艺美术师作品。',
    1, 2,
    '["https://picsum.photos/seed/nh10/750/750","https://picsum.photos/seed/nh11/750/750"]',
+   'https://assets.mixkit.co/videos/preview/mixkit-artisan-making-pottery-39964-large.mp4',
    198000, 258000, 5, 203, '江苏宜兴', '紫砂',
    '<p>宜兴紫砂陶制作技艺为国家级非遗。此壶选用黄龙山原矿紫泥，经风化、粉碎、练泥后，全手工拍打成型，不借助模具。壶身圆润饱满，出水利落，越养越润。</p>',
-   '紫砂,茶壶,手工,收藏', 4.8),
+   '紫砂,茶壶,手工,收藏', 4.8, 'approved', 1),
 
 (6, '苗族银饰手工锻造 · 凤冠',
    '贵州雷山苗族银匠纯手工锻造，传统苗族图腾凤冠造型。',
    1, 3,
    '["https://picsum.photos/seed/nh12/750/750"]',
+   NULL,
    88000, 98000, 8, 156, '贵州雷山', '苗族银饰',
    '<p>苗族银饰锻制技艺是国家级非物质文化遗产。苗族银匠以传统錾刻、镂空、花丝等技法，将民族图腾和自然纹样融入银饰之中。</p>',
-   '苗族银饰,凤冠,手工锻造,民族风', 4.6);
+   '苗族银饰,凤冠,手工锻造,民族风', 4.6, 'approved', 1);
 
 -- SKU
 INSERT INTO t_product_sku (id, product_id, name, price, stock, image) VALUES

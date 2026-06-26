@@ -21,19 +21,19 @@ struct Cart {
     const resp = await CartService.fetchCartList()
     if (resp.code === 0) {
       this.items = resp.data
-      this.allChecked = this.items.length > 0 && this.items.every((i: CartItem) => i.checked)
+      this.allChecked = this.items.length > 0 && this.items.every((i: CartItem) => i.isChecked)
     }
     this.loading = false
   }
 
   calcTotal(): number {
     let sum = 0
-    this.items.filter((i: CartItem) => i.checked).forEach((i: CartItem) => { sum += i.price * i.quantity })
+    this.items.filter((i: CartItem) => i.isChecked).forEach((i: CartItem) => { sum += i.price * i.quantity })
     return sum
   }
 
   calcCheckedCount(): number {
-    return this.items.filter((i: CartItem) => i.checked).length
+    return this.items.filter((i: CartItem) => i.isChecked).length
   }
 
   build() {
@@ -60,13 +60,13 @@ struct Cart {
           Column() {
             ForEach(this.items, (item: CartItem) => {
               Row() {
-                Text(item.checked ? '☑️' : '⬜')
+                Text(item.isChecked ? '☑️' : '⬜')
                   .fontSize(22)
                   .margin({ right: 10 })
                   .onClick(async () => {
-                    item.checked = !item.checked
-                    this.allChecked = this.items.every((i: CartItem) => i.checked)
-                    await CartService.updateChecked(item.skuId, item.checked)
+                    item.isChecked = !item.isChecked
+                    this.allChecked = this.items.every((i: CartItem) => i.isChecked)
+                    await CartService.updateChecked(item.id, item.isChecked ? 1 : 0)
                   })
 
                 Image(item.productImage)
@@ -96,7 +96,7 @@ struct Cart {
                         .onClick(async () => {
                           if (item.quantity > 1) {
                             item.quantity--
-                            await CartService.updateQuantity(item.skuId, item.quantity)
+                            await CartService.updateQuantity(item.id, item.quantity)
                           }
                         })
                       Text(`${item.quantity}`).fontSize(14).fontColor(Colors.TEXT_PRIMARY)
@@ -105,7 +105,7 @@ struct Cart {
                         .width(28).textAlign(TextAlign.Center)
                         .onClick(async () => {
                           item.quantity++
-                          await CartService.updateQuantity(item.skuId, item.quantity)
+                          await CartService.updateQuantity(item.id, item.quantity)
                         })
                     }
                     .borderRadius(4).border({ width: 1, color: Colors.DIVIDER })
@@ -131,8 +131,8 @@ struct Cart {
               .fontSize(22).margin({ right: 6 })
               .onClick(async () => {
                 this.allChecked = !this.allChecked
-                this.items.forEach((i: CartItem) => i.checked = this.allChecked)
-                await CartService.updateAllChecked(this.allChecked)
+                this.items.forEach((i: CartItem) => i.isChecked = this.allChecked)
+                await CartService.updateAllChecked(this.allChecked ? 1 : 0)
               })
             Text('全选').fontSize(13).fontColor(Colors.TEXT_SECONDARY)
           }

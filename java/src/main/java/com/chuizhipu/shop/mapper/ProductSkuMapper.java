@@ -17,4 +17,6 @@ public interface ProductSkuMapper {
 
     /** 批量插入 SKU */
     int insertBatch(@Param("skus") List<ProductSku> skus);
+
+    ProductSku selectById(Long skuId);
 }
