@@ -429,42 +429,14 @@ struct Index {
     .onClick(onClick)
   }
 
-  // Feed 卡片（支持视频播放）
+  // Feed 卡片
   @Builder
   FeedCard(product: Product) {
     Column() {
-      // 媒体区域：有视频 URL 显示视频，否则显示首图
-      if (product.videoUrl && product.videoUrl.length > 0) {
-        Stack() {
-          Video({
-            src: product.videoUrl,
-            previewUri: product.images[0]
-          })
-            .width('100%')
-            .height(220)
-            .objectFit(ImageFit.Contain)
-            .autoPlay(false)
-            .controls(true)
-            .loop(true)
-            .backgroundColor('#000000')
-
-          // 视频标签
-          Text('视频')
-            .fontSize(11)
-            .fontColor(Colors.BG_WHITE)
-            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-            .borderRadius(4)
-            .backgroundColor('#99000000')
-            .position({ left: 8, top: 8 })
-        }
+      Image(product.images[0])
         .width('100%')
-        .height(220)
-      } else {
-        Image(product.images[0])
-          .width('100%')
-          .height(200)
-          .objectFit(ImageFit.Cover)
-      }
+        .height(200)
+        .objectFit(ImageFit.Cover)
 
       Text(product.name)
         .fontSize(15)

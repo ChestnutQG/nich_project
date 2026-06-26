@@ -181,15 +181,13 @@ export class ApiClient {
         fileIo.closeSync(file)
 
         const parts = uri.split('/')
-        const rawName = parts[parts.length - 1] || `file_${i}`
-        const lowerName = rawName.toLowerCase()
-        const isVideo = lowerName.endsWith('.mp4') || lowerName.endsWith('.mov') || lowerName.endsWith('.avi') || lowerName.endsWith('.mkv')
+        const filename = parts[parts.length - 1] || `photo_${i}.jpg`
 
         formData.push({
           name: 'files',
-          contentType: isVideo ? 'video/mp4' : 'image/jpeg',
+          contentType: 'image/jpeg',
           data: buf,
-          remoteFileName: rawName
+          remoteFileName: filename
         })
       }
 

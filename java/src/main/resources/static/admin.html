@@ -84,6 +84,7 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#F5F0EB;c
   <div class="tabs">
     <div class="tab active" onclick="switchTab('disputes')">纠纷管理</div>
     <div class="tab" onclick="switchTab('users')">用户管理</div>
+    <div class="tab" onclick="switchTab('audit')">内容审核</div>
     <div class="tab" onclick="switchTab('products')">商品管理</div>
   </div>
   <div class="content" id="contentArea"></div>
@@ -134,6 +135,7 @@ async function loadStats(){
       <div class="stat-card"><div class="num">${d.data.negotiatingDisputes||0}</div><div class="label">协商中纠纷</div></div>
       <div class="stat-card"><div class="num">${d.data.votingDisputes||0}</div><div class="label">投票中纠纷</div></div>
       <div class="stat-card"><div class="num">${d.data.resolvedDisputes||0}</div><div class="label">已裁决纠纷</div></div>
+      <div class="stat-card"><div class="num">${d.data.pendingProducts||0}</div><div class="label">待审核商品</div></div>
     `;
   }
 }
@@ -228,7 +230,7 @@ function closeModal(){document.getElementById('modalBox').style.display='none'}
 
 // ---- 商品管理 ----
 async function loadProducts(){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===2));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===3));
   const r=await fetch(`${API}/products?page=1&size=20`);
   const d=await r.json();
   const a=document.getElementById('contentArea');
@@ -241,13 +243,50 @@ async function loadProducts(){
       <span class="sub">¥${(p.price/100).toFixed(2)}</span>
     </div>
     <div class="meta">匠人: ${escapeHtml(p.artisanName||'')} · 技艺: ${escapeHtml(p.craftType||'')} · 产地: ${escapeHtml(p.region||'')} · 销量: ${p.sales||0} · 评分: ${p.rating||5.0}</div>
-    <div class="meta">${p.videoUrl?'<span style="color:#C62828">含视频</span> · ':''}${(p.images||[]).length} 张图片</div>
+    <div class="meta">${(p.images||[]).length} 张图片</div>
   </div>`).join('');
+}
+
+async function loadAudit(){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===2));
+  const d=await api('GET','/admin/products/pending');
+  const a=document.getElementById('contentArea');
+  if(d.code!==0||!d.data||d.data.length===0){
+    a.innerHTML='<div class="card" style="text-align:center;color:#888;padding:40px">暂无待审核商品</div>';return;
+  }
+  a.innerHTML=d.data.map(p=>{
+    const statusLabel={'pending':'待审核','approved':'已通过','rejected':'已驳回'}[p.auditStatus]||p.auditStatus;
+    const statusColor={'pending':'#856404','approved':'#1E8449','rejected':'#721C24'}[p.auditStatus]||'#888';
+    const statusBg={'pending':'#FFF3CD','approved':'#D5F5E3','rejected':'#F8D7DA'}[p.auditStatus]||'#eee';
+    const images=(()=>{try{const r=JSON.parse(p.images||'[]');return Array.isArray(r)?r:[]}catch(e){return[]}})();
+    return `<div class="card">
+      <div class="row">
+        <div>
+          <span class="title">${escapeHtml(p.name)}</span>
+          <span class="badge" style="background:${statusBg};color:${statusColor}">${statusLabel}</span>
+        </div>
+        <div class="sub">¥${(p.price/100).toFixed(2)}</div>
+      </div>
+      <div class="meta">匠人: ${escapeHtml(p.artisanName||'')} · 技艺: ${escapeHtml(p.craftType||'')} · 产地: ${escapeHtml(p.region||'')}</div>
+      <div class="meta">${p.createTime||''}</div>
+      ${images.length>0?`<div class="meta">${images.length} 张图片</div>`:''}
+      ${p.auditStatus==='pending'?`<div class="actions">
+        <button class="btn btn-green" onclick="auditProduct('${p.id}','approved')">通过</button>
+        <button class="btn btn-red" onclick="auditProduct('${p.id}','rejected')">驳回</button>
+      </div>`:''}
+    </div>`
+  }).join('');
+}
+
+async function auditProduct(id,status){
+  const d=await api('PUT',`/admin/products/${id}/audit`,{auditStatus:status});
+  if(d.code===0){toast(d.data||'操作成功','success');loadAudit()}else{toast(d.message,'error')}
 }
 
 function switchTab(tab){
   if(tab==='disputes')loadDisputes();
   else if(tab==='users')loadUsers();
+  else if(tab==='audit')loadAudit();
   else loadProducts();
 }
 

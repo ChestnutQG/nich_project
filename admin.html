@@ -243,7 +243,7 @@ async function loadProducts(){
       <span class="sub">¥${(p.price/100).toFixed(2)}</span>
     </div>
     <div class="meta">匠人: ${escapeHtml(p.artisanName||'')} · 技艺: ${escapeHtml(p.craftType||'')} · 产地: ${escapeHtml(p.region||'')} · 销量: ${p.sales||0} · 评分: ${p.rating||5.0}</div>
-    <div class="meta">${p.videoUrl?'<span style="color:#C62828">含视频</span> · ':''}${(p.images||[]).length} 张图片</div>
+    <div class="meta">${(p.images||[]).length} 张图片</div>
   </div>`).join('');
 }
 
@@ -258,7 +258,7 @@ async function loadAudit(){
     const statusLabel={'pending':'待审核','approved':'已通过','rejected':'已驳回'}[p.auditStatus]||p.auditStatus;
     const statusColor={'pending':'#856404','approved':'#1E8449','rejected':'#721C24'}[p.auditStatus]||'#888';
     const statusBg={'pending':'#FFF3CD','approved':'#D5F5E3','rejected':'#F8D7DA'}[p.auditStatus]||'#eee';
-    const images=(()=>{try{return JSON.parse(p.images||'[]')}catch(e){return[]}})();
+    const images=(()=>{try{const r=JSON.parse(p.images||'[]');return Array.isArray(r)?r:[]}catch(e){return[]}})();
     return `<div class="card">
       <div class="row">
         <div>
@@ -269,7 +269,6 @@ async function loadAudit(){
       </div>
       <div class="meta">匠人: ${escapeHtml(p.artisanName||'')} · 技艺: ${escapeHtml(p.craftType||'')} · 产地: ${escapeHtml(p.region||'')}</div>
       <div class="meta">${p.createTime||''}</div>
-      ${p.videoUrl?'<div class="meta"><span style="color:#C62828">含视频</span></div>':''}
       ${images.length>0?`<div class="meta">${images.length} 张图片</div>`:''}
       ${p.auditStatus==='pending'?`<div class="actions">
         <button class="btn btn-green" onclick="auditProduct('${p.id}','approved')">通过</button>

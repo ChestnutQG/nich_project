@@ -22,8 +22,7 @@ struct ProductPublish {
   @State region: string = ''
   @State craftType: string = ''
   @State tags: string = ''
-  @State selectedUris: string[] = []      // 图片 uri
-  @State selectedVideoUris: string[] = [] // 视频 uri
+  @State selectedUris: string[] = []
   @State uploadedUrls: string[] = []
   @State submitting: boolean = false
   @State uploading: boolean = false
@@ -162,11 +161,11 @@ struct ProductPublish {
           .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
 
           // 图片选择
-          Text('作品图片与视频')
+          Text('作品图片')
             .fontSize(13).fontColor(Colors.TEXT_SECONDARY).width('100%')
             .padding({ left: 16, right: 16, top: 20, bottom: 8 })
 
-          if (this.selectedUris.length > 0 || this.selectedVideoUris.length > 0 || this.uploadedUrls.length > 0) {
+          if (this.selectedUris.length > 0 || this.uploadedUrls.length > 0) {
             Grid() {
               ForEach(this.selectedUris, (uri: string, index: number) => {
                 GridItem() {
@@ -185,28 +184,6 @@ struct ProductPublish {
                   }
                 }.width('100%').aspectRatio(1)
               })
-              ForEach(this.selectedVideoUris, (uri: string, index: number) => {
-                GridItem() {
-                  Stack() {
-                    Image(uri)  // 系统会自动生成视频缩略图
-                      .width('100%').height('100%')
-                      .objectFit(ImageFit.Cover).borderRadius(6)
-                    Text('▶')
-                      .fontSize(24).fontColor(Color.White)
-                      .width('100%').height('100%')
-                      .textAlign(TextAlign.Center)
-                      .backgroundColor('#66000000').borderRadius(6)
-                    Text('✕')
-                      .fontSize(12).fontColor(Color.White)
-                      .width(20).height(20).borderRadius(10)
-                      .backgroundColor('#99000000').textAlign(TextAlign.Center)
-                      .position({ x: -6, y: -6 })
-                      .onClick(() => {
-                        this.selectedVideoUris.splice(index, 1)
-                      })
-                  }
-                }.width('100%').aspectRatio(1)
-              })
             }
             .columnsTemplate('1fr 1fr 1fr 1fr')
             .columnsGap(8).rowsGap(8)
@@ -214,22 +191,13 @@ struct ProductPublish {
           }
 
           Row() {
-            Text(this.selectedUris.length > 0 ? `已选 ${this.selectedUris.length} 张图片` : '从相册选择图片')
+            Text(this.selectedUris.length > 0 ? `已选 ${this.selectedUris.length} 张` : '从相册选择图片')
               .fontSize(14).fontColor(Colors.TEXT_SECONDARY)
           }
           .width('100%').height(44).justifyContent(FlexAlign.Center)
           .borderRadius(8).border({ width: 1, color: Colors.DIVIDER, style: BorderStyle.Dashed })
           .margin({ left: 16, right: 16, top: 8 })
           .onClick(() => { this.pickImages() })
-
-          Row() {
-            Text(this.selectedVideoUris.length > 0 ? `已选 ${this.selectedVideoUris.length} 个视频` : '从相册选择视频')
-              .fontSize(14).fontColor(Colors.TEXT_SECONDARY)
-          }
-          .width('100%').height(44).justifyContent(FlexAlign.Center)
-          .borderRadius(8).border({ width: 1, color: Colors.DIVIDER, style: BorderStyle.Dashed })
-          .margin({ left: 16, right: 16, top: 8 })
-          .onClick(() => { this.pickVideos() })
 
           // 提交
           Button(this.submitting ? '发布中...' : (this.uploading ? '上传文件中...' : '立即发布'))
@@ -277,26 +245,6 @@ struct ProductPublish {
     }
   }
 
-  private async pickVideos(): Promise<void> {
-    try {
-      const picker = new photoAccessHelper.PhotoViewPicker()
-      const result = await picker.select({
-        MIMEType: photoAccessHelper.PhotoViewMIMETypes.VIDEO_TYPE,
-        maxSelectNumber: 3 - this.selectedVideoUris.length
-      })
-      const uris = result.photoUris
-      if (uris && uris.length > 0) {
-        const newUris: string[] = [...this.selectedVideoUris]
-        for (let i = 0; i < uris.length; i++) {
-          newUris.push(uris[i])
-        }
-        this.selectedVideoUris = newUris
-      }
-    } catch (err) {
-      // 用户取消选择会抛异常，忽略
-    }
-  }
-
   private async handlePublish(): Promise<void> {
     if (!this.name.trim()) {
       promptAction.showToast({ message: '请输入作品名称' })
@@ -315,16 +263,14 @@ struct ProductPublish {
     this.submitting = true
 
     let finalUrls: string[] = []
-    // 合并图片和视频 URI 一起上传
-    const allMediaUris: string[] = [...this.selectedUris, ...this.selectedVideoUris]
-    if (allMediaUris.length > 0) {
+    if (this.selectedUris.length > 0) {
       this.uploading = true
-      const resp = await ApiClient.uploadFiles(allMediaUris)
+      const resp = await ApiClient.uploadFiles(this.selectedUris)
       this.uploading = false
       if (resp.code === 0 && resp.data) {
         finalUrls = resp.data['urls'] || []
       } else {
-        promptAction.showToast({ message: resp.message || '文件上传失败' })
+        promptAction.showToast({ message: resp.message || '图片上传失败' })
         this.submitting = false
         return
       }
