@@ -9,6 +9,9 @@ import java.util.List;
 @Mapper
 public interface OrderMapper {
 
+    /** 用户订单总数 */
+    int countByUserId(@Param("userId") Long userId);
+
     Order selectById(@Param("id") Long id);
 
     /** 用户订单列表 */

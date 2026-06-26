@@ -22,6 +22,10 @@
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(*) FROM t_order WHERE user_id = #{userId}
+    </select>
+
     <select id="selectById" resultMap="orderMap">
         SELECT * FROM t_order WHERE id = #{id}
     </select>

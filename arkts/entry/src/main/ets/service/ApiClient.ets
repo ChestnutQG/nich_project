@@ -22,16 +22,15 @@ const KEY_TOKEN = 'token'
 const KEY_USER_ID = 'userId'
 const KEY_USER_ROLE = 'userRole'
 
-// 初始化 preferences 并读取已保存的 token
+// 初始化（仅内存，不持久化 token — 每次启动需重新登录）
 async function initPrefs(): Promise<void> {
   if (prefsInitialized) return
-  try {
-    const prefs = preferences.getPreferencesSync(getContext(), { name: PREF_NAME })
-    authToken = prefs.getSync(KEY_TOKEN, '') as string
-    prefsInitialized = true
-  } catch (_e) {
-    prefsInitialized = true
-  }
+  // 不从磁盘恢复 token，每次启动都是干净状态
+  prefsInitialized = true
+}
+
+export async function ensureTokenLoaded(): Promise<void> {
+  await initPrefs()
 }
 
 export function getToken(): string {
@@ -41,21 +40,11 @@ export function getToken(): string {
 export async function saveToken(token: string): Promise<void> {
   authToken = token
   await initPrefs()
-  try {
-    const prefs = preferences.getPreferencesSync(getContext(), { name: PREF_NAME })
-    prefs.putSync(KEY_TOKEN, token)
-    prefs.flush()
-  } catch (_e) { /* ignore */ }
 }
 
 export async function clearToken(): Promise<void> {
   authToken = ''
   await initPrefs()
-  try {
-    const prefs = preferences.getPreferencesSync(getContext(), { name: PREF_NAME })
-    prefs.deleteSync(KEY_TOKEN)
-    prefs.flush()
-  } catch (_e) { /* ignore */ }
 }
 
 async function ensureBaseUrl(): Promise<void> {

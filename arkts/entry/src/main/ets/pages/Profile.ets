@@ -5,6 +5,7 @@ import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
 import { CartService } from '../service/CartService'
 import { AuthService } from '../service/AuthService'
+import { ensureTokenLoaded } from '../service/ApiClient'
 import { User } from '../model/User'
 import { NavBar } from '../components/NavBar'
 
@@ -13,7 +14,7 @@ import { NavBar } from '../components/NavBar'
 struct Profile {
   @State cartCount: number = CartService.getCartCount()
   @State user: User | null = null
-  @State userName: string = '非遗爱好者'
+  @State userName: string = '未登录'
   @State userAvatar: string = ''
   @State userPhone: string = ''
   @State userRole: string = ''
@@ -28,11 +29,12 @@ struct Profile {
   }
 
   async loadUserData(): Promise<void> {
+    await ensureTokenLoaded()
     const resp = await AuthService.getUserInfo()
     if (resp.code === 0 && resp.data) {
       const u = resp.data
       this.user = u
-      this.userName = u.nickname || '非遗爱好者'
+      this.userName = u.nickname || '用户'
       this.userAvatar = u.avatar || ''
       this.userPhone = u.phone || ''
       this.userRole = u.role || 'user'
@@ -40,10 +42,23 @@ struct Profile {
       this.userCollectCount = u.collectCount || 0
       this.userFollowCount = u.followCount || 0
       this.userOrderCount = u.orderCount || 0
-    } else if (resp.code === 401) {
-      // 未登录，跳转到登录页
+    } else {
+      // 未登录或 token 过期，清空状态并跳转登录
+      this.user = null
+      this.resetUserState()
       router.pushUrl({ url: Constants.PAGE_LOGIN })
     }
+  }
+
+  private resetUserState(): void {
+    this.userName = '未登录'
+    this.userAvatar = ''
+    this.userPhone = ''
+    this.userRole = ''
+    this.userCredit = 100
+    this.userCollectCount = 0
+    this.userFollowCount = 0
+    this.userOrderCount = 0
   }
 
   build() {
@@ -158,6 +173,7 @@ struct Profile {
             .onClick(async () => {
               await AuthService.logout()
               this.user = null
+              this.resetUserState()
               promptAction.showToast({ message: '已退出' })
               router.back()
             })

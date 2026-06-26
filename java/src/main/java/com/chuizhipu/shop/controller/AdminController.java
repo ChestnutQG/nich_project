@@ -3,6 +3,7 @@ package com.chuizhipu.shop.controller;
 import com.chuizhipu.shop.common.R;
 import com.chuizhipu.shop.entity.*;
 import com.chuizhipu.shop.mapper.*;
+import com.chuizhipu.shop.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -15,13 +16,18 @@ public class AdminController {
     private final DisputeMapper disputeMapper;
     private final OrderMapper orderMapper;
     private final ProductMapper productMapper;
+    private final FavoriteMapper favoriteMapper;
+    private final FollowMapper followMapper;
 
     public AdminController(UserMapper userMapper, DisputeMapper disputeMapper,
-                           OrderMapper orderMapper, ProductMapper productMapper) {
+                           OrderMapper orderMapper, ProductMapper productMapper,
+                           FavoriteMapper favoriteMapper, FollowMapper followMapper) {
         this.userMapper = userMapper;
         this.disputeMapper = disputeMapper;
         this.orderMapper = orderMapper;
         this.productMapper = productMapper;
+        this.favoriteMapper = favoriteMapper;
+        this.followMapper = followMapper;
     }
 
     /** GET /api/admin/disputes — 所有纠纷列表 */
@@ -47,6 +53,9 @@ public class AdminController {
         List<User> users = userMapper.selectAll();
         List<Map<String, Object>> result = new ArrayList<>();
         for (User u : users) {
+            u.setCollectCount(favoriteMapper.countByUserId(u.getId()));
+            u.setFollowCount(followMapper.countByUserId(u.getId()));
+            u.setOrderCount(orderMapper.countByUserId(u.getId()));
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("id", u.getId().toString());
             map.put("nickname", u.getNickname());

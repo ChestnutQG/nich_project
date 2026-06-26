@@ -1,6 +1,9 @@
 package com.chuizhipu.shop.service;
 
 import com.chuizhipu.shop.entity.User;
+import com.chuizhipu.shop.mapper.FavoriteMapper;
+import com.chuizhipu.shop.mapper.FollowMapper;
+import com.chuizhipu.shop.mapper.OrderMapper;
 import com.chuizhipu.shop.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -11,17 +14,36 @@ import java.nio.charset.StandardCharsets;
 public class UserService {
 
     private final UserMapper userMapper;
+    private final FavoriteMapper favoriteMapper;
+    private final FollowMapper followMapper;
+    private final OrderMapper orderMapper;
 
-    public UserService(UserMapper userMapper) {
+    public UserService(UserMapper userMapper, FavoriteMapper favoriteMapper,
+                       FollowMapper followMapper, OrderMapper orderMapper) {
         this.userMapper = userMapper;
+        this.favoriteMapper = favoriteMapper;
+        this.followMapper = followMapper;
+        this.orderMapper = orderMapper;
     }
 
     public User getById(Long id) {
-        return userMapper.selectById(id);
+        User user = userMapper.selectById(id);
+        if (user != null) fillCounts(user);
+        return user;
     }
 
     public User getByPhone(String phone) {
-        return userMapper.selectByPhone(phone);
+        User user = userMapper.selectByPhone(phone);
+        if (user != null) fillCounts(user);
+        return user;
+    }
+
+    /** 用真实表数据覆盖 collectCount / followCount / orderCount */
+    private void fillCounts(User user) {
+        Long userId = user.getId();
+        user.setCollectCount(favoriteMapper.countByUserId(userId));
+        user.setFollowCount(followMapper.countByUserId(userId));
+        user.setOrderCount(orderMapper.countByUserId(userId));
     }
 
     /** 注册 — 密码 MD5 哈希 */
@@ -43,6 +65,7 @@ public class UserService {
         if ("frozen".equals(user.getStatus())) return null;
         String hashed = DigestUtils.md5DigestAsHex(password.getBytes(StandardCharsets.UTF_8));
         if (!hashed.equals(user.getPassword())) return null;
+        fillCounts(user);
         return user;
     }
 
@@ -57,7 +80,9 @@ public class UserService {
             user.setCreditScore(100);
             user.setStatus("active");
             userMapper.insert(user);
+            return user;
         }
+        fillCounts(user);
         return user;
     }
 

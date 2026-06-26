@@ -12,4 +12,7 @@ public interface FollowMapper {
     int delete(@Param("userId") Long userId, @Param("artisanId") Long artisanId);
 
     int exists(@Param("userId") Long userId, @Param("artisanId") Long artisanId);
+
+    /** 用户关注总数 */
+    int countByUserId(@Param("userId") Long userId);
 }

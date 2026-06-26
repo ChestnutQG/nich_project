@@ -4,21 +4,23 @@
 <mapper namespace="com.chuizhipu.shop.mapper.UserMapper">
 
     <select id="selectById" resultType="com.chuizhipu.shop.entity.User">
-        SELECT id, nickname, avatar, phone, password,
-               role, credit_score AS creditScore, status,
-               collect_count AS collectCount, follow_count AS followCount,
-               order_count AS orderCount, create_time AS createTime,
-               update_time AS updateTime
-        FROM t_user WHERE id = #{id}
+        SELECT u.id, u.nickname, u.avatar, u.phone, u.password,
+               u.role, u.credit_score AS creditScore, u.status,
+               (SELECT COUNT(*) FROM t_favorite f WHERE f.user_id = u.id) AS collectCount,
+               (SELECT COUNT(*) FROM t_follow fw WHERE fw.user_id = u.id) AS followCount,
+               (SELECT COUNT(*) FROM t_order o WHERE o.user_id = u.id) AS orderCount,
+               u.create_time AS createTime, u.update_time AS updateTime
+        FROM t_user u WHERE u.id = #{id}
     </select>
 
     <select id="selectByPhone" resultType="com.chuizhipu.shop.entity.User">
-        SELECT id, nickname, avatar, phone, password,
-               role, credit_score AS creditScore, status,
-               collect_count AS collectCount, follow_count AS followCount,
-               order_count AS orderCount, create_time AS createTime,
-               update_time AS updateTime
-        FROM t_user WHERE phone = #{phone}
+        SELECT u.id, u.nickname, u.avatar, u.phone, u.password,
+               u.role, u.credit_score AS creditScore, u.status,
+               (SELECT COUNT(*) FROM t_favorite f WHERE f.user_id = u.id) AS collectCount,
+               (SELECT COUNT(*) FROM t_follow fw WHERE fw.user_id = u.id) AS followCount,
+               (SELECT COUNT(*) FROM t_order o WHERE o.user_id = u.id) AS orderCount,
+               u.create_time AS createTime, u.update_time AS updateTime
+        FROM t_user u WHERE u.phone = #{phone}
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
@@ -36,12 +38,13 @@
     </update>
 
     <select id="selectAll" resultType="com.chuizhipu.shop.entity.User">
-        SELECT id, nickname, avatar, phone, password,
-               role, credit_score AS creditScore, status,
-               collect_count AS collectCount, follow_count AS followCount,
-               order_count AS orderCount, create_time AS createTime,
-               update_time AS updateTime
-        FROM t_user ORDER BY id
+        SELECT u.id, u.nickname, u.avatar, u.phone, u.password,
+               u.role, u.credit_score AS creditScore, u.status,
+               (SELECT COUNT(*) FROM t_favorite f WHERE f.user_id = u.id) AS collectCount,
+               (SELECT COUNT(*) FROM t_follow fw WHERE fw.user_id = u.id) AS followCount,
+               (SELECT COUNT(*) FROM t_order o WHERE o.user_id = u.id) AS orderCount,
+               u.create_time AS createTime, u.update_time AS updateTime
+        FROM t_user u ORDER BY u.id
     </select>
 
 </mapper>

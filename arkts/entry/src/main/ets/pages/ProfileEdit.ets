@@ -33,7 +33,7 @@ struct ProfileEdit {
   }
 
   async loadUser(): Promise<void> {
-    const resp = await ApiClient.get<User>('/users/1')
+    const resp = await ApiClient.get<User>('/users/me')
     if (resp.code === 0 && resp.data) {
       this.nickname = resp.data.nickname || ''
       this.avatar = resp.data.avatar || ''
@@ -400,7 +400,7 @@ struct ProfileEdit {
       body['phone'] = this.phone.trim()
     }
 
-    const resp = await ApiClient.put<Object>('/users/1', body)
+    const resp = await ApiClient.put<Object>('/users/profile', body)
     this.saving = false
 
     if (resp.code === 0) {

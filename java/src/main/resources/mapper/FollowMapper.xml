@@ -15,4 +15,8 @@
         SELECT COUNT(*) FROM t_follow WHERE user_id = #{userId} AND artisan_id = #{artisanId}
     </select>
 
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(*) FROM t_follow WHERE user_id = #{userId}
+    </select>
+
 </mapper>

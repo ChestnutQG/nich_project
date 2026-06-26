@@ -12,7 +12,7 @@ import { CartService } from '../service/CartService'
 import { AuthService } from '../service/AuthService'
 import { MockCategories } from '../mock/MockCategories'
 import { User } from '../model/User'
-import { getToken } from '../service/ApiClient'
+import { getToken, ensureTokenLoaded } from '../service/ApiClient'
 
 @Entry
 @Component
@@ -22,7 +22,7 @@ struct Index {
   @State feedRefreshing: boolean = false
 
   @State userAvatar: string = ''
-  @State userName: string = '非遗爱好者'
+  @State userName: string = '未登录'
   @State userPhone: string = ''
   @State userCollectCount: number = 0
   @State userFollowCount: number = 0
@@ -56,18 +56,35 @@ struct Index {
   }
 
   async loadUserData(): Promise<void> {
+    await ensureTokenLoaded()
     this.isLoggedIn = getToken().length > 0
-    if (!this.isLoggedIn) return
+    if (!this.isLoggedIn) {
+      this.resetUserState()
+      return
+    }
 
     const resp = await AuthService.getUserInfo()
     if (resp.code === 0 && resp.data) {
-      this.userName = resp.data.nickname || '非遗爱好者'
+      this.userName = resp.data.nickname || '用户'
       this.userAvatar = resp.data.avatar || ''
       this.userPhone = resp.data.phone || ''
       this.userCollectCount = resp.data.collectCount || 0
       this.userFollowCount = resp.data.followCount || 0
       this.userOrderCount = resp.data.orderCount || 0
+    } else {
+      // token 过期或其他错误，清空登录态
+      this.isLoggedIn = false
+      this.resetUserState()
     }
+  }
+
+  private resetUserState(): void {
+    this.userName = '未登录'
+    this.userAvatar = ''
+    this.userPhone = ''
+    this.userCollectCount = 0
+    this.userFollowCount = 0
+    this.userOrderCount = 0
   }
 
   private openDrawer(): void {
@@ -348,9 +365,8 @@ struct Index {
                   .onClick(async () => {
                     this.closeDrawer()
                     await AuthService.logout()
+                    this.resetUserState()
                     this.isLoggedIn = false
-                    this.userName = '非遗爱好者'
-                    this.userAvatar = ''
                     promptAction.showToast({ message: '已退出' })
                   })
                 } else {

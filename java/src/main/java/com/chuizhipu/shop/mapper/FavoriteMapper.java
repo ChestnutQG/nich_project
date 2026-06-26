@@ -19,4 +19,7 @@ public interface FavoriteMapper {
 
     /** 是否已收藏 */
     int exists(@Param("userId") Long userId, @Param("productId") Long productId);
+
+    /** 用户收藏总数 */
+    int countByUserId(@Param("userId") Long userId);
 }
