@@ -34,6 +34,7 @@ export const MockProducts: Product[] = [
     rating: 4.9,
     tags: ['苏绣', '双面绣', '团扇', '国礼级'],
     isCollect: false,
+    isSellable: true,
     createTime: 1715673600000
   },
   {
@@ -67,6 +68,7 @@ export const MockProducts: Product[] = [
     rating: 4.8,
     tags: ['青花瓷', '茶具', '手工'],
     isCollect: false,
+    isSellable: true,
     createTime: 1715846400000
   },
   {
@@ -100,6 +102,7 @@ export const MockProducts: Product[] = [
     rating: 4.7,
     tags: ['苗银', '手镯', '錾刻'],
     isCollect: true,
+    isSellable: true,
     createTime: 1716364800000
   },
   {
@@ -133,6 +136,7 @@ export const MockProducts: Product[] = [
     rating: 5.0,
     tags: ['紫砂', '茶壶', '全手工'],
     isCollect: false,
+    isSellable: true,
     createTime: 1716537600000
   },
   {
@@ -166,6 +170,7 @@ export const MockProducts: Product[] = [
     rating: 4.6,
     tags: ['蜀锦', '手提包', '丝绸'],
     isCollect: false,
+    isSellable: true,
     createTime: 1716883200000
   },
   {
@@ -199,6 +204,7 @@ export const MockProducts: Product[] = [
     rating: 5.0,
     tags: ['歙砚', '文房', '孤品'],
     isCollect: true,
+    isSellable: true,
     createTime: 1717056000000
   }
 ]

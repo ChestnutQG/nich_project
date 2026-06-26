@@ -1,4 +1,4 @@
-// 发布商品页面
+// 发布作品页面 — 支持选择是否售卖
 import { router } from '@kit.ArkUI'
 import { promptAction } from '@kit.ArkUI'
 import { photoAccessHelper } from '@kit.MediaLibraryKit'
@@ -15,14 +15,15 @@ struct ProductPublish {
   @State description: string = ''
   @State categoryId: number = 1
   @State selectedCategoryName: string = '传统技艺'
+  @State isSellable: boolean = true
   @State price: string = ''
   @State originalPrice: string = ''
   @State stock: string = '1'
   @State region: string = ''
   @State craftType: string = ''
   @State tags: string = ''
-  @State selectedUris: string[] = []    // 选中的图片 URI
-  @State uploadedUrls: string[] = []    // 上传后返回的 URL
+  @State selectedUris: string[] = []
+  @State uploadedUrls: string[] = []
   @State submitting: boolean = false
   @State uploading: boolean = false
 
@@ -33,7 +34,7 @@ struct ProductPublish {
 
   build() {
     Column() {
-      NavBar({ title: '发布商品', showBack: true })
+      NavBar({ title: '发布作品', showBack: true })
 
       Scroll() {
         Column() {
@@ -43,8 +44,8 @@ struct ProductPublish {
             .padding({ left: 16, right: 16, top: 20, bottom: 8 })
 
           Row() {
-            Text('商品名称 *').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
-            TextInput({ placeholder: '请输入商品名称' })
+            Text('作品名称 *').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
+            TextInput({ placeholder: '请输入作品名称' })
               .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
               .backgroundColor(Color.Transparent).layoutWeight(1)
               .onChange((v: string) => { this.name = v })
@@ -54,8 +55,8 @@ struct ProductPublish {
           Divider().color(Colors.DIVIDER).margin({ left: 16 })
 
           Row() {
-            Text('商品描述').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
-            TextInput({ placeholder: '简要描述商品特点' })
+            Text('作品描述').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
+            TextInput({ placeholder: '简要描述作品特点' })
               .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
               .backgroundColor(Color.Transparent).layoutWeight(1)
               .onChange((v: string) => { this.description = v })
@@ -74,41 +75,54 @@ struct ProductPublish {
           .width('100%').padding({ left: 16, right: 16, top: 14, bottom: 14 }).backgroundColor(Colors.BG_WHITE)
           .onClick(() => { this.showCategoryPicker() })
 
-          // 价格
-          Text('价格与库存')
-            .fontSize(13).fontColor(Colors.TEXT_SECONDARY).width('100%')
-            .padding({ left: 16, right: 16, top: 20, bottom: 8 })
-
-          Row() {
-            Text('售价 *（元）').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
-            TextInput({ placeholder: '例如 1280' })
-              .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
-              .backgroundColor(Color.Transparent).layoutWeight(1).type(InputType.Number)
-              .onChange((v: string) => { this.price = v })
-          }
-          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
-
           Divider().color(Colors.DIVIDER).margin({ left: 16 })
 
+          // 是否售卖开关
           Row() {
-            Text('原价（元）').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
-            TextInput({ placeholder: '划线价，可不填' })
-              .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
-              .backgroundColor(Color.Transparent).layoutWeight(1).type(InputType.Number)
-              .onChange((v: string) => { this.originalPrice = v })
+            Text('是否售卖').fontSize(14).fontColor(Colors.TEXT_PRIMARY).layoutWeight(1)
+            Toggle({ type: ToggleType.Switch, isOn: this.isSellable })
+              .selectedColor(Colors.PRIMARY)
+              .onChange((v: boolean) => { this.isSellable = v })
           }
-          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
+          .width('100%').padding({ left: 16, right: 16, top: 14, bottom: 14 }).backgroundColor(Colors.BG_WHITE)
 
-          Divider().color(Colors.DIVIDER).margin({ left: 16 })
+          // 价格与库存 — 仅在开启售卖时显示
+          if (this.isSellable) {
+            Text('价格与库存')
+              .fontSize(13).fontColor(Colors.TEXT_SECONDARY).width('100%')
+              .padding({ left: 16, right: 16, top: 20, bottom: 8 })
 
-          Row() {
-            Text('库存数量').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
-            TextInput({ placeholder: '1', text: '1' })
-              .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
-              .backgroundColor(Color.Transparent).layoutWeight(1).type(InputType.Number)
-              .onChange((v: string) => { this.stock = v })
+            Row() {
+              Text('售价 *（元）').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
+              TextInput({ placeholder: '例如 1280' })
+                .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
+                .backgroundColor(Color.Transparent).layoutWeight(1).type(InputType.Number)
+                .onChange((v: string) => { this.price = v })
+            }
+            .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
+
+            Divider().color(Colors.DIVIDER).margin({ left: 16 })
+
+            Row() {
+              Text('原价（元）').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
+              TextInput({ placeholder: '划线价，可不填' })
+                .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
+                .backgroundColor(Color.Transparent).layoutWeight(1).type(InputType.Number)
+                .onChange((v: string) => { this.originalPrice = v })
+            }
+            .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
+
+            Divider().color(Colors.DIVIDER).margin({ left: 16 })
+
+            Row() {
+              Text('库存数量').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
+              TextInput({ placeholder: '1', text: '1' })
+                .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
+                .backgroundColor(Color.Transparent).layoutWeight(1).type(InputType.Number)
+                .onChange((v: string) => { this.stock = v })
+            }
+            .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
           }
-          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
 
           // 产地与技艺
           Text('产地与技艺')
@@ -147,11 +161,10 @@ struct ProductPublish {
           .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
 
           // 图片选择
-          Text('商品图片')
+          Text('作品图片')
             .fontSize(13).fontColor(Colors.TEXT_SECONDARY).width('100%')
             .padding({ left: 16, right: 16, top: 20, bottom: 8 })
 
-          // 图片预览网格
           if (this.selectedUris.length > 0 || this.uploadedUrls.length > 0) {
             Grid() {
               ForEach(this.selectedUris, (uri: string, index: number) => {
@@ -160,7 +173,6 @@ struct ProductPublish {
                     Image(uri)
                       .width('100%').height('100%')
                       .objectFit(ImageFit.Cover).borderRadius(6)
-                    // 删除按钮
                     Text('✕')
                       .fontSize(12).fontColor(Color.White)
                       .width(20).height(20).borderRadius(10)
@@ -178,7 +190,6 @@ struct ProductPublish {
             .width('100%').padding({ left: 16, right: 16 })
           }
 
-          // 选择图片按钮
           Row() {
             Text(this.selectedUris.length > 0 ? `已选 ${this.selectedUris.length} 张` : '从相册选择图片')
               .fontSize(14).fontColor(Colors.TEXT_SECONDARY)
@@ -214,7 +225,6 @@ struct ProductPublish {
     })
   }
 
-  // 打开相册选择图片
   private async pickImages(): Promise<void> {
     try {
       const picker = new photoAccessHelper.PhotoViewPicker()
@@ -224,7 +234,6 @@ struct ProductPublish {
       })
       const uris = result.photoUris
       if (uris && uris.length > 0) {
-        // 追加到已选列表
         const newUris: string[] = [...this.selectedUris]
         for (let i = 0; i < uris.length; i++) {
           newUris.push(uris[i])
@@ -238,18 +247,21 @@ struct ProductPublish {
 
   private async handlePublish(): Promise<void> {
     if (!this.name.trim()) {
-      promptAction.showToast({ message: '请输入商品名称' })
+      promptAction.showToast({ message: '请输入作品名称' })
       return
     }
-    const priceNum = parseFloat(this.price)
-    if (isNaN(priceNum) || priceNum <= 0) {
-      promptAction.showToast({ message: '请输入有效价格' })
-      return
+
+    // 仅售卖时需要验证价格
+    if (this.isSellable) {
+      const priceNum = parseFloat(this.price)
+      if (isNaN(priceNum) || priceNum <= 0) {
+        promptAction.showToast({ message: '请输入有效价格' })
+        return
+      }
     }
 
     this.submitting = true
 
-    // 如果有本地选中的图片，先上传
     let finalUrls: string[] = []
     if (this.selectedUris.length > 0) {
       this.uploading = true
@@ -264,31 +276,45 @@ struct ProductPublish {
       }
     }
 
-    // 构建请求
     const body: Record<string, Object> = {}
     body['name'] = this.name.trim()
     body['description'] = this.description.trim()
     body['categoryId'] = this.categoryId
     body['artisanId'] = 1
-    body['price'] = Math.round(priceNum * 100)
-    const origPrice = parseFloat(this.originalPrice)
-    body['originalPrice'] = isNaN(origPrice) ? 0 : Math.round(origPrice * 100)
-    const stockNum = parseInt(this.stock)
-    body['stock'] = isNaN(stockNum) ? 1 : stockNum
+    body['isSellable'] = this.isSellable
+
+    if (this.isSellable) {
+      const priceNum = parseFloat(this.price)
+      body['price'] = Math.round(priceNum * 100)
+      const origPrice = parseFloat(this.originalPrice)
+      body['originalPrice'] = isNaN(origPrice) ? 0 : Math.round(origPrice * 100)
+      const stockNum = parseInt(this.stock)
+      body['stock'] = isNaN(stockNum) ? 1 : stockNum
+    } else {
+      body['price'] = 0
+      body['originalPrice'] = 0
+      body['stock'] = 0
+    }
+
     body['region'] = this.region.trim()
     body['craftType'] = this.craftType.trim()
     body['tags'] = this.tags.trim()
     body['images'] = finalUrls
 
-    // 构建 SKU（默认一个）
-    const skus: Record<string, Object>[] = []
-    const sku: Record<string, Object> = {}
-    sku['name'] = this.name.trim()
-    sku['price'] = Math.round(priceNum * 100)
-    sku['stock'] = isNaN(stockNum) ? 1 : stockNum
-    sku['image'] = finalUrls.length > 0 ? finalUrls[0] : ''
-    skus.push(sku)
-    body['skus'] = skus
+    if (this.isSellable) {
+      const priceNum = parseFloat(this.price)
+      const stockNum = parseInt(this.stock)
+      const skus: Record<string, Object>[] = []
+      const sku: Record<string, Object> = {}
+      sku['name'] = this.name.trim()
+      sku['price'] = Math.round(priceNum * 100)
+      sku['stock'] = isNaN(stockNum) ? 1 : stockNum
+      sku['image'] = finalUrls.length > 0 ? finalUrls[0] : ''
+      skus.push(sku)
+      body['skus'] = skus
+    } else {
+      body['skus'] = []
+    }
 
     const resp = await ProductService.publishProduct(body)
     this.submitting = false

@@ -35,5 +35,6 @@ export interface Product {
   rating: number         // 评分 1-5
   tags: string[]
   isCollect: boolean
+  isSellable: boolean    // 是否可售卖，false 则纯展示不显示购买入口
   createTime: number
 }

@@ -5,7 +5,7 @@ import { ApiClient } from './ApiClient'
 import { MockProducts, getRecommendProducts, getProductsByCategory, getProductById } from '../mock/MockProducts'
 
 // 开发阶段使用 Mock 数据，后端联调时设为 false
-const USE_MOCK = false
+const USE_MOCK = true
 
 // Mock 延迟
 function delay(ms: number = 300): Promise<void> {

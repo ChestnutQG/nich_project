@@ -1,72 +1,58 @@
-// 主页 — 底部Tab导航 + 首页内容
+// 主页 — 非遗文化内容 Feed 流
+// 顶部导航 + 分类 chip + 作品卡片
+// 左上角头像点击弹出侧边栏（从左侧滑入）
 import { router } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
 import { Product } from '../model/Product'
-import { Artisan } from '../model/Artisan'
 import { Category } from '../model/Category'
-import { BannerItem, Banner } from '../components/Banner'
-import { SearchBar } from '../components/SearchBar'
-import { ProductCard } from '../components/ProductCard'
-import { ArtisanCard } from '../components/ArtisanCard'
 import { ProductService } from '../service/ProductService'
-import { CartService, CartItem } from '../service/CartService'
+import { CartService } from '../service/CartService'
 import { ApiClient } from '../service/ApiClient'
 import { MockCategories } from '../mock/MockCategories'
-import { getHotArtisans } from '../mock/MockArtisans'
 import { User } from '../model/User'
 
 @Entry
 @Component
 struct Index {
-  @State currentTab: number = 0
-  @State cartCount: number = CartService.getCartCount()
-  @State cartItems: CartItem[] = []
-  @State cartAllChecked: boolean = true
-  @State cartLoading: boolean = false
+  // Feed 数据
+  @State feedProducts: Product[] = []
+  @State feedLoading: boolean = true
+  @State feedRefreshing: boolean = false
 
-  // 首页数据
-  @State banners: BannerItem[] = [
-    {
-      image: 'https://picsum.photos/seed/banner01/750/320',
-      title: '匠心传承 · 非遗好物季',
-      productId: 'p001'
-    },
-    {
-      image: 'https://picsum.photos/seed/banner02/750/320',
-      title: '遇见手艺 · 匠人故事',
-      productId: 'p002'
-    },
-    {
-      image: 'https://picsum.photos/seed/banner03/750/320',
-      title: '新中式生活美学专场',
-      productId: 'p004'
-    }
-  ]
-  @State hotArtisans: Artisan[] = getHotArtisans()
-  @State recommendProducts: Product[] = []
-  @State loading: boolean = true
-  @State userName: string = '非遗爱好者'
+  // 用户数据（侧边栏用）
   @State userAvatar: string = ''
+  @State userName: string = '非遗爱好者'
   @State userPhone: string = ''
   @State userCollectCount: number = 0
   @State userFollowCount: number = 0
   @State userOrderCount: number = 0
+  @State cartCount: number = CartService.getCartCount()
 
-  private tabTitles: string[] = ['首页', '分类', '百科', '购物车', '我的']
-  private tabIcons: string[] = ['🏠', '📂', '📚', '🛒', '👤']
+  // 侧边栏状态
+  @State showSideBar: boolean = false
+  @State drawerOffset: number = -100  // -100 隐藏（左侧外），0 完全显示
+
+  // 分类 chip 数据
+  private categories: Category[] = MockCategories
 
   aboutToAppear(): void {
-    this.loadRecommendProducts()
+    this.loadFeedData()
     this.loadUserData()
   }
 
-  async loadRecommendProducts(): Promise<void> {
+  onPageShow(): void {
+    this.cartCount = CartService.getCartCount()
+    this.loadUserData()
+  }
+
+  async loadFeedData(): Promise<void> {
+    this.feedLoading = true
     const resp = await ProductService.fetchRecommendProducts()
     if (resp.code === 0) {
-      this.recommendProducts = resp.data
+      this.feedProducts = resp.data
     }
-    this.loading = false
+    this.feedLoading = false
   }
 
   async loadUserData(): Promise<void> {
@@ -81,652 +67,278 @@ struct Index {
     }
   }
 
-  onPageShow(): void {
-    this.cartCount = CartService.getCartCount()
-    this.loadUserData()
-    if (this.currentTab === 3) {
-      this.loadCartData()
-    }
-  }
-
-  async loadCartData(): Promise<void> {
-    this.cartLoading = true
-    const resp = await CartService.fetchCartList()
-    if (resp.code === 0) {
-      this.cartItems = resp.data
-      this.cartAllChecked = this.cartItems.length > 0 && this.cartItems.every((i: CartItem) => i.checked)
-      this.cartCount = CartService.getCartCount()
-    }
-    this.cartLoading = false
-  }
-
-  calcCartTotal(): number {
-    let sum = 0
-    this.cartItems.filter((i: CartItem) => i.checked).forEach((i: CartItem) => { sum += i.price * i.quantity })
-    return sum
-  }
-
-  calcCheckedCount(): number {
-    return this.cartItems.filter((i: CartItem) => i.checked).length
-  }
-
-  build() {
-    Tabs({ index: this.currentTab }) {
-      // Tab 0: 首页
-      TabContent() {
-        this.HomeContent()
-      }.tabBar(this.TabBar(0))
-
-      // Tab 1: 分类
-      TabContent() {
-        this.CategoryContent()
-      }.tabBar(this.TabBar(1))
-
-      // Tab 2: 非遗百科
-      TabContent() {
-        this.WikiContent()
-      }.tabBar(this.TabBar(2))
-
-      // Tab 3: 购物车
-      TabContent() {
-        this.CartContent()
-      }.tabBar(this.TabBar(3))
-
-      // Tab 4: 我的
-      TabContent() {
-        this.ProfileContent()
-      }.tabBar(this.TabBar(4))
-    }
-    .barHeight(56)
-    .barPosition(BarPosition.End)
-    .onChange((index: number) => {
-      this.currentTab = index
-      if (index === 3) {
-        this.loadCartData()
-      }
+  private openDrawer(): void {
+    this.showSideBar = true
+    animateTo({ duration: 250, curve: Curve.EaseOut }, () => {
+      this.drawerOffset = 0
     })
   }
 
-  @Builder
-  TabBar(index: number) {
-    Column() {
-      Text(this.tabIcons[index])
-        .fontSize(22)
-      Text(this.tabTitles[index])
-        .fontSize(10)
-        .margin({ top: 2 })
-        .fontColor(this.currentTab === index ? Colors.PRIMARY : Colors.TEXT_HINT)
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Center)
+  private closeDrawer(): void {
+    animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
+      this.drawerOffset = -100
+    })
+    // 动画结束后隐藏遮罩
+    setTimeout(() => {
+      this.showSideBar = false
+    }, 220)
   }
 
-  // ============ 首页内容 ============
-  @Builder
-  HomeContent() {
-    Scroll() {
+  build() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      // 主内容区
       Column() {
-        // 搜索栏
-        SearchBar({
-          placeholder: '搜非遗好物、匠人、技艺...',
-          onTap: () => router.pushUrl({ url: Constants.PAGE_SEARCH })
-        })
-
-        // Banner 轮播
-        Banner({
-          banners: this.banners,
-          onItemClick: (item: BannerItem) => {
-            if (item.productId) {
-              router.pushUrl({ url: Constants.PAGE_PRODUCT_DETAIL, params: { productId: item.productId } })
-            }
-          }
-        })
-
-        // 分类入口
-        this.CategoryGrid()
-
-        // 热门匠人推荐
-        this.HotArtisanSection()
-
-        // 推荐商品
-        this.RecommendSection()
-
-        // 底部安全区
-        Row().height(16)
-      }
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(Colors.BG_PAPER)
-    .scrollBar(BarState.Off)
-  }
-
-  // 分类入口网格
-  @Builder
-  CategoryGrid() {
-    Column() {
-      Row() {
-        Text('非遗分类')
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(Colors.TEXT_PRIMARY)
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16 })
-
-      Grid() {
-        ForEach(MockCategories, (cat: Category) => {
-          GridItem() {
-            Column() {
-              Text(cat.icon)
-                .fontSize(28)
-              Text(cat.name)
-                .fontSize(11)
-                .fontColor(Colors.TEXT_PRIMARY)
-                .margin({ top: 4 })
-            }
-            .width('100%')
-            .padding({ top: 10, bottom: 10 })
-            .borderRadius(8)
-            .backgroundColor(Colors.BG_CARD)
-          }
-        })
-      }
-      .columnsTemplate('1fr 1fr 1fr 1fr 1fr')
-      .rowsGap(10)
-      .columnsGap(10)
-      .width('100%')
-      .padding({ left: 16, right: 16 })
-      .height(180)
-    }
-    .margin({ top: 8 })
-  }
-
-  // 热门匠人推荐
-  @Builder
-  HotArtisanSection() {
-    Column() {
-      Row() {
-        Text('热门匠人')
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(Colors.TEXT_PRIMARY)
-
-        Blank()
-
-        Text('更多 >')
-          .fontSize(12)
-          .fontColor(Colors.TEXT_HINT)
-          .onClick(() => router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST }))
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16 })
-      .margin({ top: 20, bottom: 10 })
-
-      Row() {
-        ForEach(this.hotArtisans, (artisan: Artisan) => {
-          ArtisanCard({
-            artisan: artisan,
-            onItemClick: (a: Artisan) => {
-              router.pushUrl({ url: Constants.PAGE_ARTISAN_DETAIL, params: { artisanId: a.id } })
-            }
-          })
-        })
-      }
-      .padding({ left: 16, right: 16 })
-    }
-  }
-
-  // 推荐商品列表
-  @Builder
-  RecommendSection() {
-    Column() {
-      Row() {
-        Text('为你推荐')
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(Colors.TEXT_PRIMARY)
-
-        Blank()
-
-        Text('更多 >')
-          .fontSize(12)
-          .fontColor(Colors.TEXT_HINT)
-          .onClick(() => router.pushUrl({ url: Constants.PAGE_PRODUCT_LIST }))
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16 })
-      .margin({ top: 20, bottom: 10 })
-
-      if (this.loading) {
+        // 顶部导航栏
         Row() {
-          LoadingProgress().width(24).height(24).color(Colors.PRIMARY)
-          Text('正在加载...').fontSize(14).fontColor(Colors.TEXT_HINT).margin({ left: 8 })
-        }
-        .width('100%')
-        .height(120)
-        .justifyContent(FlexAlign.Center)
-      } else if (this.recommendProducts.length === 0) {
-        Text('暂无推荐商品')
-          .fontSize(13)
-          .fontColor(Colors.TEXT_HINT)
-          .width('100%')
-          .textAlign(TextAlign.Center)
-          .padding({ top: 30, bottom: 30 })
-      } else {
-        Grid() {
-          ForEach(this.recommendProducts, (product: Product) => {
-            GridItem() {
-              ProductCard({
-                product: product,
-                onItemClick: (p: Product) => {
-                  router.pushUrl({ url: Constants.PAGE_PRODUCT_DETAIL, params: { productId: p.id } })
-                }
-              })
-            }
-          })
-        }
-        .columnsTemplate('1fr 1fr')
-        .columnsGap(10)
-        .rowsGap(10)
-        .width('100%')
-        .padding({ left: 16, right: 16 })
-      }
-    }
-  }
-
-  // ============ 分类 Tab ============
-  @Builder
-  CategoryContent() {
-    Scroll() {
-      Column() {
-        ForEach(MockCategories, (cat: Category) => {
-          Row() {
-            Text(cat.icon)
-              .fontSize(28)
-              .margin({ right: 12 })
-
-            Text(cat.name)
-              .fontSize(16)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(Colors.TEXT_PRIMARY)
-              .layoutWeight(1)
-
-            if (cat.children && cat.children.length > 0) {
-              Row() {
-                ForEach(cat.children, (sub: Category) => {
-                  Text(sub.name)
-                    .fontSize(11)
-                    .fontColor(Colors.TEXT_SECONDARY)
-                    .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-                    .borderRadius(12)
-                    .backgroundColor(Colors.PRIMARY_BG)
-                    .margin({ left: 6 })
-                })
-              }
-            }
-
-            Image($r('sys.media.ohos_ic_public_arrow_right'))
-              .width(16)
-              .height(16)
-              .fillColor(Colors.TEXT_HINT)
-              .margin({ left: 8 })
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-          .borderRadius(8)
-          .backgroundColor(Colors.BG_CARD)
-          .margin({ left: 16, right: 16, top: 6, bottom: 6 })
-          .onClick(() => {
-            router.pushUrl({ url: Constants.PAGE_PRODUCT_LIST, params: { categoryId: cat.id, categoryName: cat.name } })
-          })
-        })
-
-        Row().height(20)
-      }
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(Colors.BG_PAPER)
-    .scrollBar(BarState.Off)
-  }
-
-  // ============ 非遗百科 Tab ============
-  @Builder
-  WikiContent() {
-    Column() {
-      Text('非遗百科')
-        .fontSize(18)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(Colors.TEXT_PRIMARY)
-        .width('100%')
-        .padding({ left: 16, top: 16, bottom: 8 })
-        .backgroundColor(Colors.BG_PAPER)
-
-      Scroll() {
-        Column() {
-          this.WikiCard('什么是非物质文化遗产？', '中国非物质文化遗产是指各族人民世代相传并视为其文化遗产组成部分的各种传统文化表现形式，以及与传统文化表现形式相关的实物和场所。', 'https://picsum.photos/seed/wiki01/750/300')
-
-          this.WikiCard('十大类别', '我国非遗分为十大类别：传统技艺、传统美术、传统医药、民俗、传统戏剧、传统音乐、传统舞蹈、曲艺、传统体育游艺与杂技、民间文学。', 'https://picsum.photos/seed/wiki02/750/300')
-
-          this.WikiCard('传承人制度', '非遗传承人是指直接参与非物质文化遗产传承，且具有公认的代表性、权威性和影响力的传承者，分为县级、省级、国家级三个等级。', 'https://picsum.photos/seed/wiki03/750/300')
-
-          this.WikiCard('保护与创新', '在保护非遗文化核心价值的同时，通过与现代设计、时尚、科技融合，让非遗走入现代生活，焕发新的生命力。', 'https://picsum.photos/seed/wiki04/750/300')
-
-          Row().height(16)
-        }
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .backgroundColor(Colors.BG_PAPER)
-      .scrollBar(BarState.Off)
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(Colors.BG_PAPER)
-  }
-
-  @Builder
-  WikiCard(title: string, desc: string, image: string) {
-    Column() {
-      Image(image)
-        .width('100%')
-        .height(150)
-        .objectFit(ImageFit.Cover)
-        .borderRadius({ topLeft: 8, topRight: 8 })
-
-      Column() {
-        Text(title)
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(Colors.TEXT_PRIMARY)
-          .width('100%')
-
-        Text(desc)
-          .fontSize(13)
-          .fontColor(Colors.TEXT_SECONDARY)
-          .maxLines(3)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
-          .margin({ top: 8 })
-          .lineHeight(20)
-      }
-      .width('100%')
-      .padding(14)
-    }
-    .width('100%')
-    .borderRadius(8)
-    .backgroundColor(Colors.BG_CARD)
-    .margin({ left: 16, right: 16, top: 10 })
-  }
-
-  // ============ 购物车 Tab ============
-  @Builder
-  CartContent() {
-    Column() {
-      Text('购物车')
-        .fontSize(18)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(Colors.TEXT_PRIMARY)
-        .width('100%')
-        .padding({ left: 16, top: 16, bottom: 8 })
-        .backgroundColor(Colors.BG_PAPER)
-
-      if (this.cartLoading) {
-        Row() {
-          LoadingProgress().width(24).height(24).color(Colors.PRIMARY)
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-      } else if (this.cartItems.length === 0) {
-        Column() {
-          Text('🛒').fontSize(48).margin({ bottom: 12 })
-          Text('购物车还是空的').fontSize(14).fontColor(Colors.TEXT_HINT)
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-      } else {
-        Scroll() {
-          Column() {
-            ForEach(this.cartItems, (item: CartItem) => {
-              Row() {
-                // 勾选框
-                Text(item.checked ? '☑️' : '⬜')
-                  .fontSize(22)
-                  .margin({ right: 10 })
-                  .onClick(async () => {
-                    item.checked = !item.checked
-                    this.cartAllChecked = this.cartItems.every((i: CartItem) => i.checked)
-                    await CartService.updateChecked(item.skuId, item.checked)
-                  })
-
-                // 商品图片
-                Image(item.productImage)
-                  .width(80)
-                  .height(80)
-                  .borderRadius(8)
-                  .objectFit(ImageFit.Cover)
-
-                // 商品信息
-                Column() {
-                  Text(item.productName)
-                    .fontSize(14)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(Colors.TEXT_PRIMARY)
-                    .maxLines(2)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                  Text(item.artisanName)
-                    .fontSize(11)
-                    .fontColor(Colors.TEXT_SECONDARY)
-                    .margin({ top: 4 })
-
-                  Text(item.skuName)
-                    .fontSize(10)
-                    .fontColor(Colors.TEXT_HINT)
-                    .margin({ top: 1 })
-
-                  Row() {
-                    Text(`¥${(item.price / 100).toFixed(2)}`)
-                      .fontSize(15)
-                      .fontWeight(FontWeight.Bold)
-                      .fontColor(Colors.PRIMARY)
-
-                    Blank()
-
-                    // 数量调整
-                    Row() {
-                      Text('-')
-                        .fontSize(18)
-                        .fontColor(Colors.TEXT_PRIMARY)
-                        .width(28)
-                        .textAlign(TextAlign.Center)
-                        .onClick(async () => {
-                          if (item.quantity > 1) {
-                            item.quantity--
-                            await CartService.updateQuantity(item.skuId, item.quantity)
-                          }
-                        })
-                      Text(`${item.quantity}`)
-                        .fontSize(14)
-                        .fontColor(Colors.TEXT_PRIMARY)
-                        .width(36)
-                        .textAlign(TextAlign.Center)
-                      Text('+')
-                        .fontSize(18)
-                        .fontColor(Colors.TEXT_PRIMARY)
-                        .width(28)
-                        .textAlign(TextAlign.Center)
-                        .onClick(async () => {
-                          item.quantity++
-                          await CartService.updateQuantity(item.skuId, item.quantity)
-                        })
-                    }
-                    .borderRadius(4)
-                    .border({ width: 1, color: Colors.DIVIDER })
-                  }
-                  .width('100%')
-                  .margin({ top: 8 })
-                }
-                .layoutWeight(1)
-                .margin({ left: 10 })
-                .alignItems(HorizontalAlign.Start)
-              }
-              .width('100%')
-              .padding(12)
-              .borderRadius(8)
-              .backgroundColor(Colors.BG_CARD)
-              .margin({ left: 16, right: 16, top: 10 })
-            })
-          }
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .backgroundColor(Colors.BG_PAPER)
-        .scrollBar(BarState.Off)
-      }
-
-      // 底部结算栏
-      if (this.cartItems.length > 0) {
-        Row() {
-          Row() {
-            Text(this.cartAllChecked ? '☑️' : '⬜')
-              .fontSize(22)
-              .margin({ right: 6 })
-              .onClick(async () => {
-                this.cartAllChecked = !this.cartAllChecked
-                this.cartItems.forEach((i: CartItem) => i.checked = this.cartAllChecked)
-                await CartService.updateAllChecked(this.cartAllChecked)
-              })
-            Text('全选')
-              .fontSize(13)
-              .fontColor(Colors.TEXT_SECONDARY)
-          }
-
-          Blank()
-
-          Column() {
-            Text(`合计: ¥${(this.calcCartTotal() / 100).toFixed(2)}`)
-              .fontSize(16)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(Colors.PRIMARY)
-            Text('不含运费')
-              .fontSize(10)
-              .fontColor(Colors.TEXT_HINT)
-          }
-          .alignItems(HorizontalAlign.End)
-          .margin({ right: 12 })
-
-          Button(`结算(${this.calcCheckedCount()})`)
-            .fontSize(14)
-            .backgroundColor(this.calcCheckedCount() > 0 ? Colors.PRIMARY : Colors.TEXT_HINT)
-            .borderRadius(20)
-            .height(36)
-            .width(100)
-            .enabled(this.calcCheckedCount() > 0)
-            .onClick(() => {
-              router.pushUrl({ url: Constants.PAGE_ORDER_CONFIRM })
-            })
-        }
-        .width('100%')
-        .height(56)
-        .padding({ left: 16, right: 16 })
-        .backgroundColor(Colors.BG_WHITE)
-      }
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(Colors.BG_PAPER)
-  }
-
-  // ============ 我的 Tab ============
-  @Builder
-  ProfileContent() {
-    Scroll() {
-      Column() {
-        // 顶部用户信息区
-        Row() {
+          // 头像按钮 — 有头像则显示头像，否则显示默认图标
           if (this.userAvatar) {
             Image(this.userAvatar)
-              .width(56)
-              .height(56)
-              .borderRadius(28)
+              .width(28)
+              .height(28)
+              .borderRadius(14)
               .objectFit(ImageFit.Cover)
+              .margin({ right: 12 })
+              .onClick(() => { this.openDrawer() })
           } else {
-            Text(this.userName.charAt(0))
-              .fontSize(24)
-              .fontColor(Colors.BG_WHITE)
-              .width(56)
-              .height(56)
-              .borderRadius(28)
-              .backgroundColor(Colors.PRIMARY_LIGHT)
-              .textAlign(TextAlign.Center)
-              .lineHeight(56)
+            Text('👤')
+              .fontSize(22)
+              .margin({ right: 12 })
+              .onClick(() => { this.openDrawer() })
           }
 
-          Column() {
-            Text(this.userName)
-              .fontSize(16)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(Colors.TEXT_PRIMARY)
-
-            Text(this.userPhone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'))
-              .fontSize(12)
-              .fontColor(Colors.TEXT_SECONDARY)
-              .margin({ top: 4 })
-          }
-          .margin({ left: 12 })
-          .alignItems(HorizontalAlign.Start)
+          Text('锤子铺')
+            .fontSize(22)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(Colors.TEXT_PRIMARY)
 
           Blank()
 
-          Text('编辑资料 >')
-            .fontSize(12)
-            .fontColor(Colors.TEXT_HINT)
-            .onClick(() => router.pushUrl({ url: Constants.PAGE_PROFILE_EDIT }))
+          // 发布入口
+          Text('发布')
+            .fontSize(14)
+            .fontColor(Colors.PRIMARY)
+            .margin({ right: 16 })
+            .onClick(() => {
+              router.pushUrl({ url: Constants.PAGE_PRODUCT_PUBLISH })
+            })
+
+          // 搜索
+          Text('🔍')
+            .fontSize(22)
+            .onClick(() => router.pushUrl({ url: Constants.PAGE_SEARCH }))
         }
         .width('100%')
-        .padding(20)
-        .backgroundColor(Colors.BG_CARD)
-        .borderRadius(8)
-        .margin({ left: 16, right: 16, top: 20 })
+        .padding({ left: 16, right: 16, top: 12, bottom: 8 })
+        .backgroundColor(Colors.BG_WHITE)
 
-        // 数据统计
-        Row() {
-          this.StatItem('收藏', `${this.userCollectCount}`, () => router.pushUrl({ url: Constants.PAGE_PRODUCT_LIST }))
-          this.StatItem('关注', `${this.userFollowCount}`, () => router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST }))
-          this.StatItem('订单', `${this.userOrderCount}`, () => router.pushUrl({ url: Constants.PAGE_ORDER_LIST }))
+        // 分类 chip 横滚
+        Scroll() {
+          Row() {
+            ForEach(this.categories, (cat: Category) => {
+              Text(cat.icon + ' ' + cat.name)
+                .fontSize(12)
+                .fontColor(Colors.TEXT_SECONDARY)
+                .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+                .borderRadius(14)
+                .border({ width: 1, color: Colors.DIVIDER })
+                .margin({ right: 8 })
+                .backgroundColor(Colors.BG_WHITE)
+                .onClick(() => {
+                  router.pushUrl({
+                    url: Constants.PAGE_PRODUCT_LIST,
+                    params: { categoryId: cat.id, categoryName: cat.name }
+                  })
+                })
+            })
+          }
+          .padding({ left: 16, right: 16, top: 4, bottom: 4 })
         }
+        .scrollable(ScrollDirection.Horizontal)
+        .scrollBar(BarState.Off)
         .width('100%')
-        .padding({ top: 16, bottom: 16 })
-        .backgroundColor(Colors.BG_CARD)
-        .borderRadius(8)
-        .margin({ left: 16, right: 16, top: 12 })
+        .height(40)
+        .backgroundColor(Colors.BG_WHITE)
+        .border({ width: { bottom: 0.5 }, color: Colors.DIVIDER })
 
-        // 功能菜单
+        // Feed 列表
+        if (this.feedProducts.length === 0 && !this.feedLoading) {
+          Column() {
+            Text('暂无内容')
+              .fontSize(16)
+              .fontColor(Colors.TEXT_HINT)
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .justifyContent(FlexAlign.Center)
+        } else {
+          Refresh({ refreshing: $$this.feedRefreshing }) {
+            List() {
+              ForEach(this.feedProducts, (product: Product) => {
+                ListItem() {
+                  this.FeedCard(product)
+                }
+                .width('100%')
+              })
+            }
+            .width('100%')
+            .height('100%')
+            .padding({ left: 16, right: 16 })
+            .scrollBar(BarState.Off)
+          }
+          .layoutWeight(1)
+          .onRefreshing(() => {
+            this.feedRefreshing = true
+            this.loadFeedData().then(() => {
+              this.feedRefreshing = false
+            })
+          })
+        }
+
+        if (this.feedLoading) {
+          LoadingProgress()
+            .width(28)
+            .height(28)
+            .color(Colors.PRIMARY)
+            .margin({ top: 8, bottom: 12 })
+        }
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor(Colors.BG_PAPER)
+
+      // 侧边栏遮罩 + 面板
+      if (this.showSideBar) {
+        // 半透明遮罩（点击关闭）
+        Column()
+          .width('100%')
+          .height('100%')
+          .backgroundColor('#55000000')
+          .onClick(() => { this.closeDrawer() })
+
+        // 侧边栏面板（从左侧滑入）
         Column() {
-          this.MenuItem('📦', '发布商品', () => router.pushUrl({ url: Constants.PAGE_PRODUCT_PUBLISH }))
-          this.MenuItem('📋', '我的订单', () => router.pushUrl({ url: Constants.PAGE_ORDER_LIST }))
-          this.MenuItem('📍', '收货地址', () => router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST }))
-          this.MenuItem('❤️', '我的收藏', () => router.pushUrl({ url: Constants.PAGE_PRODUCT_LIST }))
-          this.MenuItem('🧑‍🎨', '关注的匠人', () => router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST }))
-          this.MenuItem('🔔', '消息通知', () => {})
-          this.MenuItem('⚙️', '设置', () => {})
-        }
-        .width('100%')
-        .backgroundColor(Colors.BG_CARD)
-        .borderRadius(8)
-        .margin({ left: 16, right: 16, top: 12 })
+          Scroll() {
+            Column() {
+              // 用户信息区
+              Row() {
+                if (this.userAvatar) {
+                  Image(this.userAvatar)
+                    .width(56)
+                    .height(56)
+                    .borderRadius(28)
+                    .objectFit(ImageFit.Cover)
+                } else {
+                  Text(this.userName.charAt(0))
+                    .fontSize(24)
+                    .fontColor(Colors.BG_WHITE)
+                    .width(56)
+                    .height(56)
+                    .borderRadius(28)
+                    .backgroundColor(Colors.PRIMARY)
+                    .textAlign(TextAlign.Center)
+                    .lineHeight(56)
+                }
 
-        Row().height(20)
+                Column() {
+                  Text(this.userName)
+                    .fontSize(16)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(Colors.TEXT_PRIMARY)
+
+                  Text(this.userPhone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'))
+                    .fontSize(12)
+                    .fontColor(Colors.TEXT_SECONDARY)
+                    .margin({ top: 4 })
+                }
+                .margin({ left: 12 })
+                .alignItems(HorizontalAlign.Start)
+
+                Blank()
+
+                Text('编辑 >')
+                  .fontSize(12)
+                  .fontColor(Colors.TEXT_HINT)
+                  .onClick(() => {
+                    this.closeDrawer()
+                    router.pushUrl({ url: Constants.PAGE_PROFILE_EDIT })
+                  })
+              }
+              .width('100%')
+              .padding({ left: 16, right: 16, top: 40, bottom: 20 })
+              .backgroundColor(Colors.BG_WHITE)
+
+              // 统计数据
+              Row() {
+                this.StatItem('收藏', `${this.userCollectCount}`, () => {
+                  this.closeDrawer()
+                  router.pushUrl({ url: Constants.PAGE_PRODUCT_LIST })
+                })
+                this.StatItem('关注', `${this.userFollowCount}`, () => {
+                  this.closeDrawer()
+                  router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST })
+                })
+                this.StatItem('订单', `${this.userOrderCount}`, () => {
+                  this.closeDrawer()
+                  router.pushUrl({ url: Constants.PAGE_ORDER_LIST })
+                })
+              }
+              .width('100%')
+              .padding({ top: 16, bottom: 16 })
+              .backgroundColor(Colors.BG_WHITE)
+              .margin({ top: 1 })
+
+              // 菜单列表
+              Column() {
+                this.MenuItem('🛒', `购物车 (${this.cartCount})`, () => {
+                  this.closeDrawer()
+                  router.pushUrl({ url: Constants.PAGE_CART })
+                })
+                this.MenuItem('📦', '发布作品', () => {
+                  this.closeDrawer()
+                  router.pushUrl({ url: Constants.PAGE_PRODUCT_PUBLISH })
+                })
+                this.MenuItem('📋', '我的订单', () => {
+                  this.closeDrawer()
+                  router.pushUrl({ url: Constants.PAGE_ORDER_LIST })
+                })
+                this.MenuItem('📍', '收货地址', () => {
+                  this.closeDrawer()
+                  router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST })
+                })
+                this.MenuItem('❤️', '我的收藏', () => {
+                  this.closeDrawer()
+                  router.pushUrl({ url: Constants.PAGE_PRODUCT_LIST })
+                })
+                this.MenuItem('🧑‍🎨', '关注的匠人', () => {
+                  this.closeDrawer()
+                  router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST })
+                })
+                this.MenuItem('🔔', '消息通知', () => {
+                  this.closeDrawer()
+                })
+                this.MenuItem('⚙️', '设置', () => {
+                  this.closeDrawer()
+                })
+              }
+              .width('100%')
+              .backgroundColor(Colors.BG_WHITE)
+              .margin({ top: 1 })
+
+              Row().height(20)
+            }
+          }
+          .width('100%')
+          .height('100%')
+          .scrollBar(BarState.Off)
+        }
+        .width('78%')
+        .height('100%')
+        .backgroundColor(Colors.BG_PAPER)
+        .offset({ x: `${this.drawerOffset}%` })
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(Colors.BG_PAPER)
-    .scrollBar(BarState.Off)
   }
 
   @Builder
@@ -767,5 +379,50 @@ struct Index {
     .width('100%')
     .padding({ left: 16, right: 16, top: 14, bottom: 14 })
     .onClick(onClick)
+  }
+
+  // Feed 卡片（无价格，突出文化内容）
+  @Builder
+  FeedCard(product: Product) {
+    Column() {
+      Image(product.images[0])
+        .width('100%')
+        .height(200)
+        .objectFit(ImageFit.Cover)
+
+      Text(product.name)
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(Colors.TEXT_PRIMARY)
+        .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width('100%')
+        .margin({ top: 10 })
+
+      Row() {
+        Text(product.artisanName)
+          .fontSize(12)
+          .fontColor(Colors.TEXT_SECONDARY)
+
+        Blank()
+
+        Text(product.craftType)
+          .fontSize(11)
+          .fontColor(Colors.PRIMARY)
+          .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+          .borderRadius(4)
+          .backgroundColor(Colors.PRIMARY_BG)
+      }
+      .width('100%')
+      .margin({ top: 8 })
+    }
+    .width('100%')
+    .padding(12)
+    .borderRadius(8)
+    .backgroundColor(Colors.BG_WHITE)
+    .margin({ top: 10 })
+    .onClick(() => {
+      router.pushUrl({ url: Constants.PAGE_PRODUCT_DETAIL, params: { productId: product.id } })
+    })
   }
 }

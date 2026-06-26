@@ -8,7 +8,6 @@ export class Constants {
   // 页面路由
   static readonly PAGE_INDEX = 'pages/Index'
   static readonly PAGE_SEARCH = 'pages/Search'
-  static readonly PAGE_CATEGORY = 'pages/Category'
   static readonly PAGE_PRODUCT_LIST = 'pages/ProductList'
   static readonly PAGE_PRODUCT_DETAIL = 'pages/ProductDetail'
   static readonly PAGE_CART = 'pages/Cart'
@@ -16,13 +15,11 @@ export class Constants {
   static readonly PAGE_ORDER_LIST = 'pages/OrderList'
   static readonly PAGE_ORDER_DETAIL = 'pages/OrderDetail'
   static readonly PAGE_LOGIN = 'pages/Login'
-  static readonly PAGE_PROFILE = 'pages/Profile'
   static readonly PAGE_ADDRESS_LIST = 'pages/AddressList'
   static readonly PAGE_ARTISAN_LIST = 'pages/ArtisanList'
   static readonly PAGE_ARTISAN_DETAIL = 'pages/ArtisanDetail'
-  static readonly PAGE_WIKI_INDEX = 'pages/WikiIndex'
-  static readonly PAGE_WIKI_DETAIL = 'pages/WikiDetail'
   static readonly PAGE_PRODUCT_PUBLISH = 'pages/ProductPublish'
+  static readonly PAGE_PROFILE = 'pages/Profile'
   static readonly PAGE_PROFILE_EDIT = 'pages/ProfileEdit'
 
   // 非遗传承认证等级
