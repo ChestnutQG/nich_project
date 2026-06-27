@@ -4,6 +4,7 @@ import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
 import { Artisan } from '../model/Artisan'
 import { ArtisanService } from '../service/ArtisanService'
+import { FollowService } from '../service/FollowService'
 import { NavBar } from '../components/NavBar'
 
 @Entry
@@ -21,6 +22,21 @@ struct ArtisanList {
       this.artisans = resp.data
     } else {
       promptAction.showToast({ message: resp.message || '加载失败' })
+    }
+  }
+
+  // 关注 / 取消关注
+  async toggleFollow(artisan: Artisan): Promise<void> {
+    const willFollow = !artisan.isFollowed
+    const resp = willFollow
+      ? await FollowService.follow(artisan.id)
+      : await FollowService.unfollow(artisan.id)
+    if (resp.code === 0) {
+      artisan.isFollowed = willFollow
+      artisan.followersCount += willFollow ? 1 : -1
+      this.artisans = [...this.artisans]   // 触发列表刷新
+    } else {
+      promptAction.showToast({ message: resp.message || '操作失败' })
     }
   }
 
@@ -72,9 +88,7 @@ struct ArtisanList {
                 .borderRadius(14)
                 .height(28)
                 .padding({ left: 12, right: 12 })
-                .onClick(() => {
-                  artisan.isFollowed = !artisan.isFollowed
-                })
+                .onClick(() => { this.toggleFollow(artisan) })
             }
             .width('100%')
             .padding(14)

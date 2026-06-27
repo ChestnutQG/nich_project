@@ -152,6 +152,14 @@ struct ProductDetail {
             .padding({ left: 16, right: 16, top: 14, bottom: 14 })
             .backgroundColor(Colors.BG_WHITE)
             .margin({ top: 10 })
+            .onClick(() => {
+              if (this.product && this.product.artisanId) {
+                router.pushUrl({
+                  url: Constants.PAGE_ARTISAN_DETAIL,
+                  params: { artisanId: this.product.artisanId }
+                })
+              }
+            })
 
             // ===== 作品标题与描述 =====
             Column() {

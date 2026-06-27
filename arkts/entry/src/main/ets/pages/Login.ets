@@ -21,6 +21,7 @@ struct Login {
   @State logging: boolean = false
   @State isRegister: boolean = false
   @State username: string = ''
+  @State remember: boolean = true
 
   private testAccounts: TestAccount[] = [
     { label: '管理员', phone: '13800000001', password: '123456' },
@@ -132,6 +133,24 @@ struct Login {
           .border({ width: 1, color: Colors.DIVIDER })
           .margin({ top: 16 })
 
+          // 记住登录
+          Row() {
+            Checkbox()
+              .select(this.remember)
+              .selectedColor(Colors.PRIMARY)
+              .width(20)
+              .height(20)
+              .onChange((value: boolean) => { this.remember = value })
+            Text('记住登录')
+              .fontSize(13)
+              .fontColor(Colors.TEXT_SECONDARY)
+              .margin({ left: 6 })
+              .onClick(() => { this.remember = !this.remember })
+            Blank()
+          }
+          .width('100%')
+          .margin({ top: 16 })
+
           Button(this.isRegister ? '注 册' : '登 录')
             .fontSize(16)
             .fontWeight(FontWeight.Medium)
@@ -158,9 +177,9 @@ struct Login {
               this.logging = true
               let resp: ApiResponse<LoginResult>
               if (this.isRegister) {
-                resp = await AuthService.register(this.username, this.phone, this.password)
+                resp = await AuthService.register(this.username, this.phone, this.password, this.remember)
               } else {
-                resp = await AuthService.login(this.phone, this.password)
+                resp = await AuthService.login(this.phone, this.password, this.remember)
               }
               this.logging = false
 

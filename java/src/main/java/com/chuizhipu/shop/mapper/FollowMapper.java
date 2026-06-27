@@ -4,6 +4,8 @@ import com.chuizhipu.shop.entity.Follow;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 @Mapper
 public interface FollowMapper {
 
@@ -15,4 +17,7 @@ public interface FollowMapper {
 
     /** 用户关注总数 */
     int countByUserId(@Param("userId") Long userId);
+
+    /** 用户关注的匠人 id 列表 */
+    List<Long> selectArtisanIdsByUserId(@Param("userId") Long userId);
 }

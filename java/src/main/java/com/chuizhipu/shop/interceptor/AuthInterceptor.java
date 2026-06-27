@@ -67,6 +67,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         // 需登录的路径（GET 也不能公开）
         if (path.startsWith("/api/cart")) return false;
         if (path.startsWith("/api/favorites")) return false;
+        if (path.startsWith("/api/follows")) return false;
         if (path.startsWith("/api/orders") && "GET".equalsIgnoreCase(method)) return false;
         if (path.startsWith("/api/addresses") && "GET".equalsIgnoreCase(method)) return false;
         if (path.equals("/api/users/me")) return false;

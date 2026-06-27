@@ -70,6 +70,7 @@ struct Cart {
                   .margin({ right: 10 })
                   .onClick(async () => {
                     item.isChecked = !item.isChecked
+                    this.items = [...this.items]   // 触发列表刷新
                     this.allChecked = this.items.every((i: CartItem) => i.isChecked)
                     await CartService.updateChecked(item.id, item.isChecked ? 1 : 0)
                   })
@@ -101,6 +102,7 @@ struct Cart {
                         .onClick(async () => {
                           if (item.quantity > 1) {
                             item.quantity--
+                            this.items = [...this.items]   // 触发列表刷新
                             await CartService.updateQuantity(item.id, item.quantity)
                           }
                         })
@@ -110,6 +112,7 @@ struct Cart {
                         .width(28).textAlign(TextAlign.Center)
                         .onClick(async () => {
                           item.quantity++
+                          this.items = [...this.items]   // 触发列表刷新
                           await CartService.updateQuantity(item.id, item.quantity)
                         })
                     }
@@ -137,6 +140,7 @@ struct Cart {
               .onClick(async () => {
                 this.allChecked = !this.allChecked
                 this.items.forEach((i: CartItem) => i.isChecked = this.allChecked)
+                this.items = [...this.items]   // 触发列表刷新
                 await CartService.updateAllChecked(this.allChecked ? 1 : 0)
               })
             Text('全选').fontSize(13).fontColor(Colors.TEXT_SECONDARY)

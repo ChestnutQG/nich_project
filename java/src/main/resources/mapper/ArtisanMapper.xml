@@ -47,4 +47,10 @@
         SELECT * FROM t_artisan WHERE id = #{id}
     </select>
 
+    <update id="incrFollowers">
+        UPDATE t_artisan
+        SET followers_count = GREATEST(followers_count + #{delta}, 0)
+        WHERE id = #{id}
+    </update>
+
 </mapper>

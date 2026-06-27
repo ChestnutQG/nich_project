@@ -153,7 +153,7 @@ struct Profile {
             this.MenuItem('👨‍⚖️', '陪审邀请', () => router.pushUrl({ url: Constants.PAGE_JURY_INVITATIONS }))
             this.MenuItem('📍', '收货地址', () => router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST }))
             this.MenuItem('❤️', '我的收藏', () => router.pushUrl({ url: Constants.PAGE_FAVORITE_LIST }))
-            this.MenuItem('🧑‍🎨', '关注的匠人', () => router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST }))
+            this.MenuItem('🧑‍🎨', '关注的匠人', () => router.pushUrl({ url: Constants.PAGE_FOLLOW_LIST }))
           }
           .width('100%')
           .backgroundColor(Colors.BG_WHITE)

@@ -19,4 +19,8 @@
         SELECT COUNT(*) FROM t_follow WHERE user_id = #{userId}
     </select>
 
+    <select id="selectArtisanIdsByUserId" resultType="long">
+        SELECT artisan_id FROM t_follow WHERE user_id = #{userId} ORDER BY id DESC
+    </select>
+
 </mapper>

@@ -12,7 +12,7 @@ import { CartService } from '../service/CartService'
 import { AuthService } from '../service/AuthService'
 import { CategoryService } from '../service/CategoryService'
 import { User } from '../model/User'
-import { getToken, ensureTokenLoaded } from '../service/ApiClient'
+import { getToken, ensureTokenLoaded, clearToken } from '../service/ApiClient'
 
 @Entry
 @Component
@@ -80,7 +80,8 @@ struct Index {
       this.userFollowCount = resp.data.followCount || 0
       this.userOrderCount = resp.data.orderCount || 0
     } else {
-      // token 过期或其他错误，清空登录态
+      // token 过期或失效（如后端重启），清掉记住的登录，避免卡在假登录态
+      await clearToken()
       this.isLoggedIn = false
       this.resetUserState()
     }
@@ -303,7 +304,7 @@ struct Index {
                 })
                 this.StatItem('关注', `${this.userFollowCount}`, () => {
                   this.closeDrawer()
-                  router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST })
+                  router.pushUrl({ url: Constants.PAGE_FOLLOW_LIST })
                 })
                 this.StatItem('订单', `${this.userOrderCount}`, () => {
                   this.closeDrawer()
@@ -347,7 +348,7 @@ struct Index {
                 })
                 this.MenuItem('🧑‍🎨', '关注的匠人', () => {
                   this.closeDrawer()
-                  router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST })
+                  router.pushUrl({ url: Constants.PAGE_FOLLOW_LIST })
                 })
                 this.MenuItem('🔔', '消息通知', () => { this.closeDrawer() })
                 this.MenuItem('⚙️', '设置', () => { this.closeDrawer() })

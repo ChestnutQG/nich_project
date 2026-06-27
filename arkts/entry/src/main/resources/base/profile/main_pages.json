@@ -15,6 +15,7 @@
     "pages/ProductPublish",
     "pages/Profile",
     "pages/ProfileEdit",
-    "pages/FavoriteList"
+    "pages/FavoriteList",
+    "pages/FollowList"
   ]
 }

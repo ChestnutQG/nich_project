@@ -23,6 +23,8 @@ struct OrderConfirm {
 
   private productId: string = ''
   private skuId: string = ''
+  // 从购物车进入时，记录被结算的购物车项 id，下单成功后删除
+  private cartItemIds: string[] = []
 
   private calcTotalAmount(): number {
     let sum = 0
@@ -40,7 +42,6 @@ struct OrderConfirm {
   }
 
   aboutToAppear(): void {
-    this.loadAddress()
     const params = router.getParams() as Record<string, string>
     if (params && params['productId']) {
       // 从商品详情页过来，按 productId 加载
@@ -54,16 +55,28 @@ struct OrderConfirm {
   }
 
   onPageShow(): void {
-    // 从地址页选择/新增后返回时刷新
-    this.loadAddress()
+    // 从地址页“选择”返回时带回了地址 id，则用选中的；否则首次进入加载默认
+    const picked = AppStorage.get<string>('orderSelectedAddressId')
+    if (picked) {
+      AppStorage.delete('orderSelectedAddressId')
+      this.loadAddress(picked)
+    } else if (!this.address) {
+      this.loadAddress()
+    }
   }
 
-  // 加载默认收货地址（没有默认则取第一条）
-  async loadAddress(): Promise<void> {
+  // 加载收货地址：传 preferId 则优先选中该地址，否则取默认（无默认取第一条）
+  async loadAddress(preferId?: string): Promise<void> {
     const resp = await AddressService.fetchList()
     if (resp.code === 0 && resp.data.length > 0) {
-      const def = resp.data.find((a: Address) => a.isDefault)
-      this.address = def ? def : resp.data[0]
+      if (preferId) {
+        const picked = resp.data.find((a: Address) => a.id === preferId)
+        const def = resp.data.find((a: Address) => a.isDefault)
+        this.address = picked ? picked : (def ? def : resp.data[0])
+      } else {
+        const def = resp.data.find((a: Address) => a.isDefault)
+        this.address = def ? def : resp.data[0]
+      }
     } else {
       this.address = null
     }
@@ -99,6 +112,7 @@ struct OrderConfirm {
     const resp = await CartService.fetchCartList()
     if (resp.code === 0 && resp.data) {
       const items: OrderItem[] = []
+      const ids: string[] = []
       for (let i = 0; i < resp.data.length; i++) {
         const ci = resp.data[i]
         if (ci.isChecked) {
@@ -112,9 +126,11 @@ struct OrderConfirm {
             quantity: ci.quantity
           }
           items.push(item)
+          ids.push(ci.id)
         }
       }
       this.cartItems = items
+      this.cartItemIds = ids
     }
     this.loading = false
   }
@@ -174,7 +190,7 @@ struct OrderConfirm {
             .padding(16)
             .backgroundColor(Colors.BG_WHITE)
             .onClick(() => {
-              router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST })
+              router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST, params: { mode: 'select' } })
             })
 
             // 商品信息
@@ -315,6 +331,11 @@ struct OrderConfirm {
     this.submitting = false
 
     if (resp.code === 0) {
+      // 购物车结算的，下单成功后把对应商品从购物车移除
+      for (const id of this.cartItemIds) {
+        await CartService.removeItem(id)
+      }
+      this.cartItemIds = []
       promptAction.showToast({ message: '下单成功' })
       router.pushUrl({ url: Constants.PAGE_ORDER_LIST })
     } else {

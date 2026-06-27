@@ -22,29 +22,58 @@ const KEY_TOKEN = 'token'
 const KEY_USER_ID = 'userId'
 const KEY_USER_ROLE = 'userRole'
 
-// 初始化（仅内存，不持久化 token — 每次启动需重新登录）
-async function initPrefs(): Promise<void> {
-  if (prefsInitialized) return
-  // 不从磁盘恢复 token，每次启动都是干净状态
-  prefsInitialized = true
-}
+// 持久化 token 用的 Preferences（“记住登录”）
+let prefsStore: preferences.Preferences | null = null
 
+// 首次访问时从磁盘恢复已保存的 token（实现“记住登录”）
 export async function ensureTokenLoaded(): Promise<void> {
-  await initPrefs()
+  if (prefsInitialized) return
+  try {
+    prefsStore = await preferences.getPreferences(getContext(), PREF_NAME)
+    const saved = prefsStore.getSync(KEY_TOKEN, '') as string
+    if (saved) {
+      authToken = saved
+    }
+  } catch (err) {
+    // 读取失败则保持未登录状态
+  }
+  prefsInitialized = true
 }
 
 export function getToken(): string {
   return authToken
 }
 
-export async function saveToken(token: string): Promise<void> {
+// remember=true 时把 token 写入磁盘，下次启动自动登录；false 则只存内存
+export async function saveToken(token: string, remember: boolean = true): Promise<void> {
+  // 先确保 Preferences 已就绪（避免随后的恢复逻辑覆盖新 token）
+  await ensureTokenLoaded()
   authToken = token
-  await initPrefs()
+  if (prefsStore) {
+    try {
+      if (remember) {
+        prefsStore.putSync(KEY_TOKEN, token)
+      } else {
+        prefsStore.deleteSync(KEY_TOKEN)
+      }
+      await prefsStore.flush()
+    } catch (err) {
+      // 持久化失败不影响本次内存登录
+    }
+  }
 }
 
 export async function clearToken(): Promise<void> {
   authToken = ''
-  await initPrefs()
+  await ensureTokenLoaded()
+  if (prefsStore) {
+    try {
+      prefsStore.deleteSync(KEY_TOKEN)
+      await prefsStore.flush()
+    } catch (err) {
+      // 忽略
+    }
+  }
 }
 
 async function ensureBaseUrl(): Promise<void> {
@@ -76,7 +105,7 @@ export class ApiClient {
 
   static async get<T>(path: string, params?: Record<string, string>): Promise<ApiResponse<T>> {
     try {
-      await initPrefs()
+      await ensureTokenLoaded()
       await ensureBaseUrl()
       const req = http.createHttp()
       let url = `${baseUrl}${path}`
@@ -101,7 +130,7 @@ export class ApiClient {
 
   static async post<T>(path: string, body: object): Promise<ApiResponse<T>> {
     try {
-      await initPrefs()
+      await ensureTokenLoaded()
       await ensureBaseUrl()
       const req = http.createHttp()
       const resp = await req.request(`${baseUrl}${path}`, {
@@ -120,7 +149,7 @@ export class ApiClient {
 
   static async put<T>(path: string, body: object): Promise<ApiResponse<T>> {
     try {
-      await initPrefs()
+      await ensureTokenLoaded()
       await ensureBaseUrl()
       const req = http.createHttp()
       const resp = await req.request(`${baseUrl}${path}`, {
@@ -139,7 +168,7 @@ export class ApiClient {
 
   static async del<T>(path: string): Promise<ApiResponse<T>> {
     try {
-      await initPrefs()
+      await ensureTokenLoaded()
       await ensureBaseUrl()
       const req = http.createHttp()
       const resp = await req.request(`${baseUrl}${path}`, {

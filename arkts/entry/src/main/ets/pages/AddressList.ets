@@ -1,5 +1,5 @@
 // 收货地址管理页
-import { promptAction } from '@kit.ArkUI'
+import { promptAction, router } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { Address } from '../model/Address'
 import { NavBar } from '../components/NavBar'
@@ -11,6 +11,7 @@ import { AddressService, AddressPayload } from '../service/AddressService'
 struct AddressList {
   @State addresses: Address[] = []
   @State loading: boolean = true
+  @State selectMode: boolean = false   // 从订单确认页进入时为“选择地址”模式
 
   // 新增/编辑表单
   @State showForm: boolean = false
@@ -25,7 +26,15 @@ struct AddressList {
   @State saving: boolean = false
 
   aboutToAppear(): void {
+    const params = router.getParams() as Record<string, string>
+    this.selectMode = params != null && params['mode'] === 'select'
     this.loadAddresses()
+  }
+
+  // 选中某条地址，回传给订单确认页
+  private pickAddress(addr: Address): void {
+    AppStorage.setOrCreate('orderSelectedAddressId', addr.id)
+    router.back()
   }
 
   async loadAddresses(): Promise<void> {
@@ -42,7 +51,7 @@ struct AddressList {
   build() {
     Stack() {
       Column() {
-        NavBar({ title: '收货地址', showBack: true })
+        NavBar({ title: this.selectMode ? '选择收货地址' : '收货地址', showBack: true })
 
         if (this.addresses.length === 0 && !this.loading) {
           EmptyState({ message: '还没有收货地址', iconText: '📍' })
@@ -78,32 +87,37 @@ struct AddressList {
                     .margin({ top: 6 })
                     .width('100%')
 
-                  Row() {
-                    if (!addr.isDefault) {
-                      Text('设为默认')
+                  if (!this.selectMode) {
+                    Row() {
+                      if (!addr.isDefault) {
+                        Text('设为默认')
+                          .fontSize(12)
+                          .fontColor(Colors.TEXT_HINT)
+                          .onClick(() => { this.setDefault(addr) })
+                      }
+                      Blank()
+                      Text('编辑')
                         .fontSize(12)
                         .fontColor(Colors.TEXT_HINT)
-                        .onClick(() => { this.setDefault(addr) })
+                        .onClick(() => { this.openForm(addr) })
+                      Text('删除')
+                        .fontSize(12)
+                        .fontColor('#C23B33')
+                        .margin({ left: 20 })
+                        .onClick(() => { this.deleteAddress(addr) })
                     }
-                    Blank()
-                    Text('编辑')
-                      .fontSize(12)
-                      .fontColor(Colors.TEXT_HINT)
-                      .onClick(() => { this.openForm(addr) })
-                    Text('删除')
-                      .fontSize(12)
-                      .fontColor('#C23B33')
-                      .margin({ left: 20 })
-                      .onClick(() => { this.deleteAddress(addr) })
+                    .width('100%')
+                    .margin({ top: 10 })
                   }
-                  .width('100%')
-                  .margin({ top: 10 })
                 }
                 .width('100%')
                 .padding(16)
                 .borderRadius(8)
                 .backgroundColor(Colors.BG_WHITE)
                 .margin({ left: 16, right: 16, top: 10 })
+                .onClick(() => {
+                  if (this.selectMode) { this.pickAddress(addr) }
+                })
               })
             }
           }

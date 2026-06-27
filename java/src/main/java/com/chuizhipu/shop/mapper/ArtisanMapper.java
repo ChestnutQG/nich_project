@@ -21,4 +21,7 @@ public interface ArtisanMapper {
 
     /** 匠人详情 */
     Artisan selectById(@Param("id") Long id);
+
+    /** 关注数增减（delta 为 +1 / -1） */
+    int incrFollowers(@Param("id") Long id, @Param("delta") int delta);
 }

@@ -19,20 +19,20 @@ interface EmptyReq {}
 
 export class AuthService {
 
-  static async login(phone: string, password: string): Promise<ApiResponse<LoginResult>> {
+  static async login(phone: string, password: string, remember: boolean = true): Promise<ApiResponse<LoginResult>> {
     const body: LoginReq = { phone, password }
     const resp = await ApiClient.post<LoginResult>('/users/login', body)
     if (resp.code === 0 && resp.data?.token) {
-      await saveToken(resp.data.token)
+      await saveToken(resp.data.token, remember)
     }
     return resp
   }
 
-  static async register(username: string, phone: string, password: string): Promise<ApiResponse<LoginResult>> {
+  static async register(username: string, phone: string, password: string, remember: boolean = true): Promise<ApiResponse<LoginResult>> {
     const body: RegisterReq = { username, phone, password }
     const resp = await ApiClient.post<LoginResult>('/users/register', body)
     if (resp.code === 0 && resp.data?.token) {
-      await saveToken(resp.data.token)
+      await saveToken(resp.data.token, remember)
     }
     return resp
   }

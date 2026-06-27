@@ -5,6 +5,7 @@ import { Constants } from '../common/Constants'
 import { Artisan } from '../model/Artisan'
 import { Product } from '../model/Product'
 import { ArtisanService } from '../service/ArtisanService'
+import { FollowService } from '../service/FollowService'
 import { NavBar } from '../components/NavBar'
 import { ProductCard } from '../components/ProductCard'
 
@@ -34,6 +35,22 @@ struct ArtisanDetail {
     const worksResp = await ArtisanService.fetchProducts(this.artisanId)
     if (worksResp.code === 0) {
       this.works = worksResp.data
+    }
+  }
+
+  // 关注 / 取消关注
+  async toggleFollow(): Promise<void> {
+    if (!this.artisan) return
+    const willFollow = !this.artisan.isFollowed
+    const resp = willFollow
+      ? await FollowService.follow(this.artisan.id)
+      : await FollowService.unfollow(this.artisan.id)
+    if (resp.code === 0) {
+      this.artisan.isFollowed = willFollow
+      this.artisan.followersCount += willFollow ? 1 : -1
+      promptAction.showToast({ message: willFollow ? '已关注' : '已取消关注' })
+    } else {
+      promptAction.showToast({ message: resp.message || '操作失败' })
     }
   }
 
@@ -164,9 +181,7 @@ struct ArtisanDetail {
             .borderRadius(24)
             .height(44)
             .layoutWeight(1)
-            .onClick(() => {
-              this.artisan!.isFollowed = !this.artisan!.isFollowed
-            })
+            .onClick(() => { this.toggleFollow() })
 
           Button('联系匠人')
             .fontSize(15)
