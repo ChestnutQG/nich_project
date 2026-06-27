@@ -16,6 +16,11 @@ struct Cart {
     this.loadCart()
   }
 
+  onPageShow(): void {
+    // 从商品详情加购后返回，刷新最新购物车
+    this.loadCart()
+  }
+
   async loadCart(): Promise<void> {
     this.loading = true
     const resp = await CartService.fetchCartList()

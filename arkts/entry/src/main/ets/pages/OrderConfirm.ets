@@ -11,20 +11,12 @@ import { Product } from '../model/Product'
 import { ProductService } from '../service/ProductService'
 import { OrderService } from '../service/OrderService'
 import { CartService } from '../service/CartService'
+import { AddressService } from '../service/AddressService'
 
 @Entry
 @Component
 struct OrderConfirm {
-  @State address: Address = {
-    id: 'addr001',
-    name: '张明',
-    phone: '13912345678',
-    province: '北京市',
-    city: '北京市',
-    district: '朝阳区',
-    detail: '建国路88号SOHO现代城A座1201',
-    isDefault: true
-  }
+  @State address: Address | null = null
   @State submitting: boolean = false
   @State loading: boolean = true
   @State cartItems: OrderItem[] = []
@@ -39,7 +31,8 @@ struct OrderConfirm {
   }
 
   private calcDiscountAmount(): number {
-    return 5000
+    // 暂无优惠券/活动体系，优惠固定为 0
+    return 0
   }
 
   private calcPayAmount(): number {
@@ -47,6 +40,7 @@ struct OrderConfirm {
   }
 
   aboutToAppear(): void {
+    this.loadAddress()
     const params = router.getParams() as Record<string, string>
     if (params && params['productId']) {
       // 从商品详情页过来，按 productId 加载
@@ -56,6 +50,22 @@ struct OrderConfirm {
     } else {
       // 从购物车过来，直接从 CartService 取选中的商品
       this.loadFromCart()
+    }
+  }
+
+  onPageShow(): void {
+    // 从地址页选择/新增后返回时刷新
+    this.loadAddress()
+  }
+
+  // 加载默认收货地址（没有默认则取第一条）
+  async loadAddress(): Promise<void> {
+    const resp = await AddressService.fetchList()
+    if (resp.code === 0 && resp.data.length > 0) {
+      const def = resp.data.find((a: Address) => a.isDefault)
+      this.address = def ? def : resp.data[0]
+    } else {
+      this.address = null
     }
   }
 
@@ -128,25 +138,32 @@ struct OrderConfirm {
                 .fontSize(22)
                 .margin({ right: 10 })
 
-              Column() {
-                Row() {
-                  Text(this.address.name)
-                    .fontSize(15)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(Colors.TEXT_PRIMARY)
-                  Text(this.address.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'))
+              if (this.address) {
+                Column() {
+                  Row() {
+                    Text(this.address!.name)
+                      .fontSize(15)
+                      .fontWeight(FontWeight.Medium)
+                      .fontColor(Colors.TEXT_PRIMARY)
+                    Text(this.address!.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'))
+                      .fontSize(13)
+                      .fontColor(Colors.TEXT_SECONDARY)
+                      .margin({ left: 16 })
+                  }
+                  Text(`${this.address!.province}${this.address!.city}${this.address!.district} ${this.address!.detail}`)
                     .fontSize(13)
                     .fontColor(Colors.TEXT_SECONDARY)
-                    .margin({ left: 16 })
+                    .margin({ top: 4 })
+                    .maxLines(2)
                 }
-                Text(`${this.address.province}${this.address.city}${this.address.district} ${this.address.detail}`)
-                  .fontSize(13)
-                  .fontColor(Colors.TEXT_SECONDARY)
-                  .margin({ top: 4 })
-                  .maxLines(2)
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start)
+              } else {
+                Text('请添加收货地址')
+                  .fontSize(15)
+                  .fontColor(Colors.TEXT_HINT)
+                  .layoutWeight(1)
               }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Start)
 
               Image($r('sys.media.ohos_ic_public_arrow_right'))
                 .width(14)
@@ -156,6 +173,9 @@ struct OrderConfirm {
             .width('100%')
             .padding(16)
             .backgroundColor(Colors.BG_WHITE)
+            .onClick(() => {
+              router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST })
+            })
 
             // 商品信息
             Column() {
@@ -266,6 +286,15 @@ struct OrderConfirm {
   }
 
   private async handleSubmit(): Promise<void> {
+    if (!this.address) {
+      promptAction.showToast({ message: '请先添加收货地址' })
+      return
+    }
+    if (this.cartItems.length === 0) {
+      promptAction.showToast({ message: '没有可下单的商品' })
+      return
+    }
+    const addr: Address = this.address!
     this.submitting = true
 
     // 构建订单
@@ -278,7 +307,7 @@ struct OrderConfirm {
       discountAmount: this.calcDiscountAmount(),
       freight: 0,
       payAmount: this.calcPayAmount(),
-      address: this.address,
+      address: addr,
       createTime: Date.now()
     }
 

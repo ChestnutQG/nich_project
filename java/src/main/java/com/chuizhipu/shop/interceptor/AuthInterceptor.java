@@ -22,8 +22,16 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         String path = request.getRequestURI();
 
-        // 公开路由 — 无需登录
+        // 公开路由 — 无需登录，但仍尽力解析 token，
+        // 这样已登录用户访问商品详情等公开接口时也能拿到个性化字段（如收藏状态 isCollect）
         if (isPublicPath(path, request.getMethod())) {
+            String header = request.getHeader("Authorization");
+            if (header != null && header.startsWith("Bearer ")) {
+                Long uid = TokenUtil.getUserId(header.substring(7));
+                if (uid != null) {
+                    request.setAttribute("currentUserId", uid);
+                }
+            }
             return true;
         }
 
@@ -58,6 +66,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         // 需登录的路径（GET 也不能公开）
         if (path.startsWith("/api/cart")) return false;
+        if (path.startsWith("/api/favorites")) return false;
         if (path.startsWith("/api/orders") && "GET".equalsIgnoreCase(method)) return false;
         if (path.startsWith("/api/addresses") && "GET".equalsIgnoreCase(method)) return false;
         if (path.equals("/api/users/me")) return false;

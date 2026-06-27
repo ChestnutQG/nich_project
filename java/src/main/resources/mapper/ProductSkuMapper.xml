@@ -9,6 +9,12 @@
         WHERE product_id = #{productId}
     </select>
 
+    <select id="selectById" resultType="com.chuizhipu.shop.entity.ProductSku">
+        SELECT id, product_id AS productId, name, price, stock, image
+        FROM t_product_sku
+        WHERE id = #{skuId}
+    </select>
+
     <select id="selectByProductIds" resultType="com.chuizhipu.shop.entity.ProductSku">
         SELECT id, product_id AS productId, name, price, stock, image
         FROM t_product_sku

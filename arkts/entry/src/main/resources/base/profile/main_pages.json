@@ -14,6 +14,7 @@
     "pages/ArtisanDetail",
     "pages/ProductPublish",
     "pages/Profile",
-    "pages/ProfileEdit"
+    "pages/ProfileEdit",
+    "pages/FavoriteList"
   ]
 }

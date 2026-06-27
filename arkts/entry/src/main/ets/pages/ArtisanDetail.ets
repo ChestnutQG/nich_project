@@ -1,11 +1,10 @@
 // 匠人详情页
-import { router } from '@kit.ArkUI'
+import { router, promptAction } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
 import { Artisan } from '../model/Artisan'
 import { Product } from '../model/Product'
-import { getArtisanById } from '../mock/MockArtisans'
-import { getProductsByCategory } from '../mock/MockProducts'
+import { ArtisanService } from '../service/ArtisanService'
 import { NavBar } from '../components/NavBar'
 import { ProductCard } from '../components/ProductCard'
 
@@ -14,19 +13,27 @@ import { ProductCard } from '../components/ProductCard'
 struct ArtisanDetail {
   @State artisan: Artisan | undefined = undefined
   @State works: Product[] = []
+  private artisanId: string = ''
 
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, string>
     if (params && params['artisanId']) {
-      this.artisan = getArtisanById(params['artisanId'])
-      // 加载对应分类的作品
-      if (this.artisan) {
-        const all = getProductsByCategory('c001')
-        this.works = all.filter(p => p.artisanId === this.artisan!.id)
-        if (this.works.length === 0) {
-          this.works = all.slice(0, 3)
-        }
-      }
+      this.artisanId = params['artisanId']
+      this.loadArtisan()
+    }
+  }
+
+  async loadArtisan(): Promise<void> {
+    const detailResp = await ArtisanService.fetchDetail(this.artisanId)
+    if (detailResp.code === 0 && detailResp.data) {
+      this.artisan = detailResp.data
+    } else {
+      promptAction.showToast({ message: detailResp.message || '匠人信息加载失败' })
+      return
+    }
+    const worksResp = await ArtisanService.fetchProducts(this.artisanId)
+    if (worksResp.code === 0) {
+      this.works = worksResp.data
     }
   }
 

@@ -6,6 +6,8 @@ import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
 import { NavBar } from '../components/NavBar'
 import { ProductService } from '../service/ProductService'
+import { CategoryService } from '../service/CategoryService'
+import { Category } from '../model/Category'
 import { ApiClient } from '../service/ApiClient'
 
 @Entry
@@ -27,9 +29,21 @@ struct ProductPublish {
   @State submitting: boolean = false
   @State uploading: boolean = false
 
-  private categories: Record<number, string> = {
-    1: '传统技艺', 2: '传统美术', 3: '传统医药', 4: '民俗', 5: '传统戏剧',
-    6: '传统音乐', 7: '传统舞蹈', 8: '曲艺', 9: '传统体育游艺', 10: '民间文学'
+  @State private categoryList: Category[] = []
+
+  aboutToAppear(): void {
+    this.loadCategories()
+  }
+
+  async loadCategories(): Promise<void> {
+    const resp = await CategoryService.fetchCategories()
+    if (resp.code === 0 && resp.data.length > 0) {
+      this.categoryList = resp.data
+      // 默认选中第一个分类
+      const first = resp.data[0]
+      this.categoryId = parseInt(first.id)
+      this.selectedCategoryName = first.name
+    }
   }
 
   build() {
@@ -216,12 +230,25 @@ struct ProductPublish {
   }
 
   private showCategoryPicker(): void {
-    AlertDialog.show({
-      title: '选择非遗分类',
-      message: '1-传统技艺  2-传统美术  3-传统医药  4-民俗  5-传统戏剧\n6-传统音乐  7-传统舞蹈  8-曲艺  9-传统体育  10-民间文学',
-      autoCancel: true,
-      alignment: DialogAlignment.Bottom,
-      primaryButton: { value: '确定', action: () => {} }
+    if (this.categoryList.length === 0) {
+      promptAction.showToast({ message: '分类加载中，请稍候' })
+      return
+    }
+    const names: string[] = this.categoryList.map((c: Category) => c.name)
+    // 当前选中项在列表中的位置
+    let selectedIndex = this.categoryList.findIndex((c: Category) => c.name === this.selectedCategoryName)
+    if (selectedIndex < 0) selectedIndex = 0
+    TextPickerDialog.show({
+      range: names,
+      selected: selectedIndex,
+      onAccept: (result: TextPickerResult) => {
+        const idx = result.index as number
+        const picked = this.categoryList[idx]
+        if (picked) {
+          this.categoryId = parseInt(picked.id)
+          this.selectedCategoryName = picked.name
+        }
+      }
     })
   }
 

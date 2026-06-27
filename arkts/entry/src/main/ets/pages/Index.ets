@@ -10,7 +10,7 @@ import { Category } from '../model/Category'
 import { ProductService } from '../service/ProductService'
 import { CartService } from '../service/CartService'
 import { AuthService } from '../service/AuthService'
-import { MockCategories } from '../mock/MockCategories'
+import { CategoryService } from '../service/CategoryService'
 import { User } from '../model/User'
 import { getToken, ensureTokenLoaded } from '../service/ApiClient'
 
@@ -33,12 +33,20 @@ struct Index {
   @State showSideBar: boolean = false
   @State drawerOffset: number = -100
 
-  private categories: Category[] = MockCategories
+  @State categories: Category[] = []
 
   aboutToAppear(): void {
     this.loadFeedData()
+    this.loadCategories()
     this.loadUserData()
     CartService.loadCartCount().then((c: number) => { this.cartCount = c })
+  }
+
+  async loadCategories(): Promise<void> {
+    const resp = await CategoryService.fetchCategories()
+    if (resp.code === 0) {
+      this.categories = resp.data
+    }
   }
 
   onPageShow(): void {
@@ -291,7 +299,7 @@ struct Index {
               Row() {
                 this.StatItem('收藏', `${this.userCollectCount}`, () => {
                   this.closeDrawer()
-                  router.pushUrl({ url: Constants.PAGE_PRODUCT_LIST })
+                  router.pushUrl({ url: Constants.PAGE_FAVORITE_LIST })
                 })
                 this.StatItem('关注', `${this.userFollowCount}`, () => {
                   this.closeDrawer()
@@ -335,19 +343,11 @@ struct Index {
                 })
                 this.MenuItem('❤️', '我的收藏', () => {
                   this.closeDrawer()
-                  router.pushUrl({ url: Constants.PAGE_PRODUCT_LIST })
+                  router.pushUrl({ url: Constants.PAGE_FAVORITE_LIST })
                 })
                 this.MenuItem('🧑‍🎨', '关注的匠人', () => {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_ARTISAN_LIST })
-                })
-                this.MenuItem('👤', '个人中心', () => {
-                  this.closeDrawer()
-                  if (this.isLoggedIn) {
-                    router.pushUrl({ url: Constants.PAGE_PROFILE })
-                  } else {
-                    router.pushUrl({ url: Constants.PAGE_LOGIN })
-                  }
                 })
                 this.MenuItem('🔔', '消息通知', () => { this.closeDrawer() })
                 this.MenuItem('⚙️', '设置', () => { this.closeDrawer() })

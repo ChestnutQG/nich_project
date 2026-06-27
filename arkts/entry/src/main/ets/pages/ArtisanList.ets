@@ -1,15 +1,28 @@
 // 匠人列表页
-import { router } from '@kit.ArkUI'
+import { router, promptAction } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
 import { Artisan } from '../model/Artisan'
-import { MockArtisans } from '../mock/MockArtisans'
+import { ArtisanService } from '../service/ArtisanService'
 import { NavBar } from '../components/NavBar'
 
 @Entry
 @Component
 struct ArtisanList {
-  @State artisans: Artisan[] = MockArtisans
+  @State artisans: Artisan[] = []
+
+  aboutToAppear(): void {
+    this.loadArtisans()
+  }
+
+  async loadArtisans(): Promise<void> {
+    const resp = await ArtisanService.fetchList()
+    if (resp.code === 0) {
+      this.artisans = resp.data
+    } else {
+      promptAction.showToast({ message: resp.message || '加载失败' })
+    }
+  }
 
   build() {
     Column() {

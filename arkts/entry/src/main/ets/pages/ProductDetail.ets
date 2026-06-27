@@ -6,6 +6,7 @@ import { Constants } from '../common/Constants'
 import { Product, Sku, CraftStep } from '../model/Product'
 import { ProductService } from '../service/ProductService'
 import { CartService, CartItem } from '../service/CartService'
+import { FavoriteService } from '../service/FavoriteService'
 import { RatingStars } from '../components/RatingStars'
 
 // 评论数据模型
@@ -68,6 +69,21 @@ struct ProductDetail {
       this.selectedSku = resp.data.skus[0]
     }
     this.loading = false
+  }
+
+  // 收藏 / 取消收藏
+  async toggleCollect(): Promise<void> {
+    if (!this.product) return
+    const willCollect = !this.product.isCollect
+    const resp = willCollect
+      ? await FavoriteService.add(this.product.id)
+      : await FavoriteService.remove(this.product.id)
+    if (resp.code === 0) {
+      this.product.isCollect = willCollect
+      promptAction.showToast({ message: willCollect ? '已收藏' : '已取消收藏' })
+    } else {
+      promptAction.showToast({ message: resp.message || '操作失败' })
+    }
   }
 
   build() {
@@ -389,9 +405,7 @@ struct ProductDetail {
                     Text(this.product!.isCollect ? '❤️' : '🤍')
                       .fontSize(15)
                       .margin({ right: 6 })
-                      .onClick(() => {
-                        if (this.product) { this.product.isCollect = !this.product.isCollect }
-                      })
+                      .onClick(() => { this.toggleCollect() })
                     Text(`支持匠人 · ¥${((this.selectedSku?.price || 0) / 100).toFixed(2)}`)
                       .fontSize(12)
                       .fontColor(Colors.TEXT_HINT)
@@ -438,17 +452,25 @@ struct ProductDetail {
                         .layoutWeight(1)
                         .margin({ right: 8 })
                         .onClick(async () => {
-                          await CartService.addToCart(
-                            this.product!.id,
-                            this.selectedSku!.id,
+                          if (!this.product || !this.selectedSku) {
+                            promptAction.showToast({ message: '请先选择规格' })
+                            return
+                          }
+                          const resp = await CartService.addToCart(
+                            this.product.id,
+                            this.selectedSku.id,
                             1,
-                            this.product!.name,
-                            this.product!.images[0],
-                            this.product!.artisanName,
-                            this.selectedSku!.name,
-                            this.selectedSku!.price
+                            this.product.name,
+                            this.product.images[0],
+                            this.product.artisanName,
+                            this.selectedSku.name,
+                            this.selectedSku.price
                           )
-                          promptAction.showToast({ message: '已加入购物车' })
+                          if (resp.code === 0) {
+                            promptAction.showToast({ message: '已加入购物车' })
+                          } else {
+                            promptAction.showToast({ message: resp.message || '加入购物车失败' })
+                          }
                         })
 
                       Button('立即购买')
