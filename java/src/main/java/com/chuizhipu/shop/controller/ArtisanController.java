@@ -45,6 +45,14 @@ public class ArtisanController {
         return R.ok(list);
     }
 
+    /** GET /api/artisans/search — 搜索匠人（按名称/技艺/简介） */
+    @GetMapping("/search")
+    public R search(@RequestParam String keyword,
+                    @RequestParam(required = false) Long userId) {
+        List<ArtisanVO> list = artisanService.searchArtisans(keyword, userId);
+        return R.ok(list);
+    }
+
     /** GET /api/artisans/{id} — 匠人详情 */
     @GetMapping("/{id}")
     public R detail(@PathVariable Long id,

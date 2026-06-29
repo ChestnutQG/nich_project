@@ -4,11 +4,13 @@ import com.chuizhipu.shop.common.EntityUtils;
 import com.chuizhipu.shop.entity.Product;
 import com.chuizhipu.shop.entity.ProductSku;
 import com.chuizhipu.shop.mapper.FavoriteMapper;
+import com.chuizhipu.shop.mapper.FollowMapper;
 import com.chuizhipu.shop.mapper.ProductMapper;
 import com.chuizhipu.shop.mapper.ProductSkuMapper;
 import com.chuizhipu.shop.vo.CraftStepVO;
 import com.chuizhipu.shop.vo.ProductVO;
 import com.chuizhipu.shop.vo.SkuVO;
+import com.chuizhipu.shop.websocket.ChatWebSocketHandler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,13 +23,22 @@ public class ProductService {
     private final ProductMapper productMapper;
     private final ProductSkuMapper skuMapper;
     private final FavoriteMapper favoriteMapper;
+    private final FollowMapper followMapper;
+    private final MessageService messageService;
+    private final ChatWebSocketHandler chatHandler;
 
     public ProductService(ProductMapper productMapper,
                           ProductSkuMapper skuMapper,
-                          FavoriteMapper favoriteMapper) {
+                          FavoriteMapper favoriteMapper,
+                          FollowMapper followMapper,
+                          MessageService messageService,
+                          ChatWebSocketHandler chatHandler) {
         this.productMapper = productMapper;
         this.skuMapper = skuMapper;
         this.favoriteMapper = favoriteMapper;
+        this.followMapper = followMapper;
+        this.messageService = messageService;
+        this.chatHandler = chatHandler;
     }
 
     /** 首页推荐 */
@@ -86,7 +97,86 @@ public class ProductService {
             skus.forEach(sku -> sku.setProductId(product.getId()));
             skuMapper.insertBatch(skus);
         }
+
+        // 通知关注该匠人的用户：匠人上新
+        try {
+            notifyFollowersNewProduct(product);
+        } catch (Exception e) {
+            // 通知失败不影响发布
+        }
+
         return product.getId();
+    }
+
+    /** 更新商品（带降价通知） */
+    @Transactional
+    public void updateProduct(Product product) {
+        // 查旧价格以判断是否降价
+        Product old = productMapper.selectById(product.getId());
+        boolean priceDropped = old != null && old.getPrice() != null &&
+                product.getPrice() != null && product.getPrice() < old.getPrice();
+
+        productMapper.update(product);
+
+        // 降价通知收藏者
+        if (priceDropped) {
+            try {
+                notifyFavoritesPriceDrop(product, old.getPrice());
+            } catch (Exception e) {
+                // ignore
+            }
+        }
+    }
+
+    /** 匠人上新 → 通知关注者 */
+    private void notifyFollowersNewProduct(Product product) {
+        if (product.getArtisanId() == null) return;
+        List<Long> followerUserIds = followMapper.selectUserIdsByArtisanId(product.getArtisanId());
+        if (followerUserIds == null || followerUserIds.isEmpty()) return;
+        String msg = "您关注的匠人「" + (product.getArtisanName() != null ? product.getArtisanName() : "") +
+                "」发布了新作品《" + product.getName() + "》，快来看看吧！";
+        for (Long userId : followerUserIds) {
+            try {
+                messageService.sendNotification(userId, msg, "artisan_new", product.getId());
+                wsPush(userId, "artisan_new", msg, product.getId());
+            } catch (Exception e) {
+                // skip individual failures
+            }
+        }
+    }
+
+    /** 降价 → 通知收藏者 */
+    private void notifyFavoritesPriceDrop(Product product, Long oldPrice) {
+        Long productId = product.getId();
+        List<Long> userIds = favoriteMapper.selectUserIdsByProductId(productId);
+        if (userIds == null || userIds.isEmpty()) return;
+        long diff = oldPrice - product.getPrice();
+        String diffStr = diff >= 100 ? (diff / 100) + "元" : diff + "分";
+        String msg = "您收藏的商品《" + product.getName() + "》降价了！从 ¥" +
+                String.format("%.2f", oldPrice / 100.0) + " 降至 ¥" +
+                String.format("%.2f", product.getPrice() / 100.0) +
+                "（降了 " + diffStr + "），赶紧去看看！";
+        for (Long userId : userIds) {
+            try {
+                messageService.sendNotification(userId, msg, "price_drop", productId);
+                wsPush(userId, "price_drop", msg, productId);
+            } catch (Exception e) {
+                // skip individual failures
+            }
+        }
+    }
+
+    private void wsPush(Long userId, String type, String content, Long relatedId) {
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("type", "notification");
+            payload.put("notificationType", type);
+            payload.put("content", content);
+            payload.put("relatedId", relatedId);
+            chatHandler.pushToUser(userId, payload);
+        } catch (Exception e) {
+            // ignore
+        }
     }
 
     // ---- Entity → VO 转换 ----

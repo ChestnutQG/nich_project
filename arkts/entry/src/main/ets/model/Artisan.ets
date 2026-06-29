@@ -2,6 +2,7 @@
 
 export interface Artisan {
   id: string
+  userId: string       // 对应用户登录ID，用于聊天
   name: string
   avatar: string
   title: string          // 头衔，如"国家级非遗传承人"

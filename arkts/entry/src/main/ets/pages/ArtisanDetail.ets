@@ -6,6 +6,7 @@ import { Artisan } from '../model/Artisan'
 import { Product } from '../model/Product'
 import { ArtisanService } from '../service/ArtisanService'
 import { FollowService } from '../service/FollowService'
+import { AuthService } from '../service/AuthService'
 import { NavBar } from '../components/NavBar'
 import { ProductCard } from '../components/ProductCard'
 
@@ -183,14 +184,37 @@ struct ArtisanDetail {
             .layoutWeight(1)
             .onClick(() => { this.toggleFollow() })
 
-          Button('联系匠人')
+          Button('💬 联系匠人')
             .fontSize(15)
-            .backgroundColor(Colors.BG_CARD)
-            .fontColor(Colors.TEXT_PRIMARY)
+            .backgroundColor(Colors.PRIMARY)
+            .fontColor(Color.White)
             .borderRadius(24)
             .height(44)
             .layoutWeight(1)
             .margin({ left: 12 })
+            .onClick(async () => {
+              if (!this.artisan) return
+              // 获取当前用户ID
+              const userResp = await AuthService.getUserInfo()
+              if (userResp.code !== 0 || !userResp.data) {
+                promptAction.showToast({ message: '请先登录' })
+                return
+              }
+              const myId = Number(userResp.data.id)
+              const artisanUserId = Number(this.artisan!.userId)
+              if (myId === artisanUserId) {
+                promptAction.showToast({ message: '不能和自己聊天哦' })
+                return
+              }
+              router.pushUrl({
+                url: Constants.PAGE_CHAT_DETAIL,
+                params: {
+                  peerId: artisanUserId,
+                  peerName: this.artisan!.name,
+                  currentUserId: myId
+                }
+              })
+            })
         }
         .width('100%')
         .padding({ left: 16, right: 16, top: 10, bottom: 10 })

@@ -22,4 +22,7 @@ public interface FavoriteMapper {
 
     /** 用户收藏总数 */
     int countByUserId(@Param("userId") Long userId);
+
+    /** 收藏某个商品的所有用户 ID（用于降价通知） */
+    List<Long> selectUserIdsByProductId(@Param("productId") Long productId);
 }

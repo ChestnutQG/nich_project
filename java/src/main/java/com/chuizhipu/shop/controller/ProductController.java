@@ -158,6 +158,47 @@ public class ProductController {
         }
     }
 
+    /** PUT /api/products/{id} — 更新商品（价格降低时自动通知收藏者） */
+    @PutMapping("/{id}")
+    public R updateProduct(@PathVariable Long id, @RequestBody ProductUpdateReq req) {
+        Product product = new Product();
+        product.setId(id);
+        if (req.getName() != null) product.setName(req.getName());
+        if (req.getDescription() != null) product.setDescription(req.getDescription());
+        if (req.getPrice() != null) product.setPrice(req.getPrice());
+        if (req.getOriginalPrice() != null) product.setOriginalPrice(req.getOriginalPrice());
+        if (req.getStock() != null) product.setStock(req.getStock());
+        if (req.getImages() != null) product.setImages(com.chuizhipu.shop.common.EntityUtils.toJson(req.getImages()));
+        if (req.getTags() != null) product.setTags(req.getTags());
+        productService.updateProduct(product);
+        return R.ok(null);
+    }
+
+    public static class ProductUpdateReq {
+        private String name;
+        private String description;
+        private List<String> images;
+        private Long price;
+        private Long originalPrice;
+        private Integer stock;
+        private String tags;
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public List<String> getImages() { return images; }
+        public void setImages(List<String> images) { this.images = images; }
+        public Long getPrice() { return price; }
+        public void setPrice(Long price) { this.price = price; }
+        public Long getOriginalPrice() { return originalPrice; }
+        public void setOriginalPrice(Long originalPrice) { this.originalPrice = originalPrice; }
+        public Integer getStock() { return stock; }
+        public void setStock(Integer stock) { this.stock = stock; }
+        public String getTags() { return tags; }
+        public void setTags(String tags) { this.tags = tags; }
+    }
+
     public static class SkuReq {
         private String name;
         private Long price;

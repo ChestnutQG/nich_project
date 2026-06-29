@@ -18,4 +18,7 @@ public interface UserMapper {
     int updateById(User user);
 
     List<User> selectAll();
+
+    /** 按昵称/手机号搜索用户 */
+    List<User> selectByKeyword(@Param("keyword") String keyword);
 }

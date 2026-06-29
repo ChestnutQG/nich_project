@@ -20,6 +20,8 @@
     "pages/DisputeList",
     "pages/DisputeApply",
     "pages/DisputeDetail",
-    "pages/JuryInvitations"
+    "pages/JuryInvitations",
+    "pages/MessageCenter",
+    "pages/ChatDetail"
   ]
 }

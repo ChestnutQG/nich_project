@@ -13,6 +13,7 @@ USE chuizhi_shop;
 SET NAMES utf8mb4;
 
 -- 先删旧表（按依赖顺序），方便重复执行
+DROP TABLE IF EXISTS t_message;
 DROP TABLE IF EXISTS t_jury_vote;
 DROP TABLE IF EXISTS t_jury_invitation;
 DROP TABLE IF EXISTS t_dispute;
@@ -275,6 +276,23 @@ CREATE TABLE t_jury_vote (
     FOREIGN KEY (voter_id) REFERENCES t_user(id),
     UNIQUE KEY uk_dispute_voter (dispute_id, voter_id)
 ) COMMENT '陪审投票';
+
+-- 15. 消息表（聊天 + 通知）
+CREATE TABLE t_message (
+    id               BIGINT AUTO_INCREMENT PRIMARY KEY,
+    conversation_id  VARCHAR(64)  COMMENT '会话ID（聊天消息用，格式: smallerId_largerId）',
+    sender_id        BIGINT       NOT NULL COMMENT '发送者ID（0=系统）',
+    receiver_id      BIGINT       NOT NULL COMMENT '接收者ID',
+    content          TEXT         NOT NULL COMMENT '消息内容',
+    message_type     VARCHAR(20)  NOT NULL DEFAULT 'chat' COMMENT 'chat=聊天 notification=通知',
+    notification_type VARCHAR(30) COMMENT 'dispute_new|dispute_status|dispute_resolved|jury_invite|system',
+    related_id       BIGINT       COMMENT '关联ID（维权ID/订单ID等）',
+    is_read          TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '是否已读',
+    created_at       DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_conversation (conversation_id),
+    INDEX idx_receiver_unread (receiver_id, is_read, created_at),
+    INDEX idx_sender (sender_id)
+) COMMENT '消息（聊天+通知）';
 
 -- ==========================================
 -- 示例数据

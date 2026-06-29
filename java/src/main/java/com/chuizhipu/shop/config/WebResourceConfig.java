@@ -21,7 +21,8 @@ public class WebResourceConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/ping", "/api/users/login", "/api/users/register");
+                .excludePathPatterns("/api/ping", "/api/users/login", "/api/users/register")
+                .excludePathPatterns("/ws/**");
     }
 
     @Override

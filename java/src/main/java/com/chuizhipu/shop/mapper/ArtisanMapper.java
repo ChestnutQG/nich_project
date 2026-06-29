@@ -24,4 +24,11 @@ public interface ArtisanMapper {
 
     /** 关注数增减（delta 为 +1 / -1） */
     int incrFollowers(@Param("id") Long id, @Param("delta") int delta);
+
+    /** 按名称/技艺搜索匠人 */
+    List<Artisan> selectByName(@Param("keyword") String keyword,
+                                @Param("offset") int offset,
+                                @Param("limit") int limit);
+
+    long countByName(@Param("keyword") String keyword);
 }

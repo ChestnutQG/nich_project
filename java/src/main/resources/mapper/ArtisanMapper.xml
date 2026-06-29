@@ -54,4 +54,20 @@
         WHERE id = #{id}
     </update>
 
+    <select id="selectByName" resultMap="artisanMap">
+        SELECT * FROM t_artisan
+        WHERE name LIKE CONCAT('%', #{keyword}, '%')
+           OR craft_type LIKE CONCAT('%', #{keyword}, '%')
+           OR intro LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY level DESC, followers_count DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByName" resultType="long">
+        SELECT COUNT(*) FROM t_artisan
+        WHERE name LIKE CONCAT('%', #{keyword}, '%')
+           OR craft_type LIKE CONCAT('%', #{keyword}, '%')
+           OR intro LIKE CONCAT('%', #{keyword}, '%')
+    </select>
+
 </mapper>

@@ -85,18 +85,23 @@
           AND (p.name LIKE CONCAT('%', #{keyword}, '%')
                OR p.craft_type LIKE CONCAT('%', #{keyword}, '%')
                OR p.region LIKE CONCAT('%', #{keyword}, '%')
-               OR p.tags LIKE CONCAT('%', #{keyword}, '%'))
+               OR p.tags LIKE CONCAT('%', #{keyword}, '%')
+               OR a.name LIKE CONCAT('%', #{keyword}, '%')
+               OR p.description LIKE CONCAT('%', #{keyword}, '%'))
         ORDER BY p.sales DESC
         LIMIT #{offset}, #{size}
     </select>
 
     <select id="countSearch" resultType="long">
-        SELECT COUNT(*) FROM t_product
-        WHERE audit_status = 'approved' AND is_on_sale = 1
-          AND (name LIKE CONCAT('%', #{keyword}, '%')
-               OR craft_type LIKE CONCAT('%', #{keyword}, '%')
-               OR region LIKE CONCAT('%', #{keyword}, '%')
-               OR tags LIKE CONCAT('%', #{keyword}, '%'))
+        SELECT COUNT(*) FROM t_product p
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1
+          AND (p.name LIKE CONCAT('%', #{keyword}, '%')
+               OR p.craft_type LIKE CONCAT('%', #{keyword}, '%')
+               OR p.region LIKE CONCAT('%', #{keyword}, '%')
+               OR p.tags LIKE CONCAT('%', #{keyword}, '%')
+               OR a.name LIKE CONCAT('%', #{keyword}, '%')
+               OR p.description LIKE CONCAT('%', #{keyword}, '%'))
     </select>
 
     <!-- 根据匠人查商品 — 只查已通过的 -->
@@ -139,5 +144,19 @@
                update_time = NOW()
         WHERE id = #{id}
     </update>
+
+    <update id="update">
+        UPDATE t_product
+        SET name = #{name}, description = #{description}, price = #{price},
+            original_price = #{originalPrice}, stock = #{stock},
+            images = #{images}, tags = #{tags}, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectArtisanUserIdByProductId" resultType="long">
+        SELECT a.user_id FROM t_product p
+        JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.id = #{productId}
+    </select>
 
 </mapper>

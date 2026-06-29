@@ -2,6 +2,7 @@ package com.chuizhipu.shop.service;
 
 import com.chuizhipu.shop.entity.*;
 import com.chuizhipu.shop.mapper.*;
+import com.chuizhipu.shop.websocket.ChatWebSocketHandler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,16 +17,21 @@ public class DisputeService {
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final UserMapper userMapper;
+    private final MessageService messageService;
+    private final ChatWebSocketHandler chatHandler;
 
     public DisputeService(DisputeMapper disputeMapper, JuryInvitationMapper invitationMapper,
                           JuryVoteMapper voteMapper, OrderMapper orderMapper,
-                          OrderItemMapper orderItemMapper, UserMapper userMapper) {
+                          OrderItemMapper orderItemMapper, UserMapper userMapper,
+                          MessageService messageService, ChatWebSocketHandler chatHandler) {
         this.disputeMapper = disputeMapper;
         this.invitationMapper = invitationMapper;
         this.voteMapper = voteMapper;
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.userMapper = userMapper;
+        this.messageService = messageService;
+        this.chatHandler = chatHandler;
     }
 
     /** 创建纠纷 */
@@ -50,6 +56,12 @@ public class DisputeService {
 
         // 订单状态改为退款中
         orderMapper.updateStatus(orderId, 4);
+
+        // 通知被申请人（卖家）
+        sendDisputeNotification(dispute.getRespondentId(),
+                "您有一个新的维权申请，订单号: " + order.getOrderNo() + "，请及时处理",
+                "dispute_new", dispute.getId());
+
         return dispute.getId();
     }
 
@@ -83,6 +95,17 @@ public class DisputeService {
         invitationMapper.batchInsert(invitations);
 
         disputeMapper.updateStatus(disputeId, "voting");
+
+        // 通知纠纷双方：已进入投票阶段
+        String msg = "您的维权已进入陪审团投票阶段，请等待投票结果";
+        sendDisputeNotification(dispute.getInitiatorId(), msg, "dispute_status", disputeId);
+        sendDisputeNotification(dispute.getRespondentId(), msg, "dispute_status", disputeId);
+
+        // 通知陪审员
+        for (Long jurorId : selected) {
+            sendDisputeNotification(jurorId,
+                    "您被邀请参与维权陪审，请前往投票", "jury_invite", disputeId);
+        }
     }
 
     /** 投票 */
@@ -112,9 +135,14 @@ public class DisputeService {
             }
         }
 
+        // 通知纠纷双方投票进度
+        int totalVotes = voteMapper.countByDisputeId(disputeId);
+        String voteMsg = "您的维权已有 " + totalVotes + " 位陪审员投票";
+        sendDisputeNotification(dispute.getInitiatorId(), voteMsg, "dispute_status", disputeId);
+        sendDisputeNotification(dispute.getRespondentId(), voteMsg, "dispute_status", disputeId);
+
         // 检查投票是否足够（≥10 人或全部受邀人已投票）
-        int total = voteMapper.countByDisputeId(disputeId);
-        if (total >= 10 || total >= invitations.size()) {
+        if (totalVotes >= 10 || totalVotes >= invitations.size()) {
             resolveDispute(disputeId);
         }
     }
@@ -140,6 +168,13 @@ public class DisputeService {
         } else {
             orderMapper.updateStatus(dispute.getOrderId(), 3); // 回到已完成
         }
+
+        // 通知纠纷双方裁决结果
+        String resultText = "buyer_win".equals(result) ? "买家胜诉（支持票: " + buyerVotes + "，反对票: " + sellerVotes + "）" :
+                "卖家胜诉（支持票: " + buyerVotes + "，反对票: " + sellerVotes + "）";
+        String notifyMsg = "维权裁决结果: " + resultText;
+        sendDisputeNotification(dispute.getInitiatorId(), notifyMsg, "dispute_resolved", disputeId);
+        sendDisputeNotification(dispute.getRespondentId(), notifyMsg, "dispute_resolved", disputeId);
     }
 
     /** 自动处理超时纠纷（定时任务） */
@@ -211,6 +246,29 @@ public class DisputeService {
             orderMapper.updateStatus(dispute.getOrderId(), 5);
         } else {
             orderMapper.updateStatus(dispute.getOrderId(), 3);
+        }
+
+        // 通知纠纷双方
+        String resultText = "buyer_win".equals(result) ? "买家胜诉" : "卖家胜诉";
+        String notifyMsg = "管理员已直接裁决维权: " + resultText;
+        sendDisputeNotification(dispute.getInitiatorId(), notifyMsg, "dispute_resolved", disputeId);
+        sendDisputeNotification(dispute.getRespondentId(), notifyMsg, "dispute_resolved", disputeId);
+    }
+
+    /** 发送维权通知（持久化 + WebSocket 实时推送） */
+    private void sendDisputeNotification(Long receiverId, String content,
+                                          String notificationType, Long relatedId) {
+        try {
+            messageService.sendNotification(receiverId, content, notificationType, relatedId);
+            // WebSocket 实时推送
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("type", "notification");
+            payload.put("notificationType", notificationType);
+            payload.put("content", content);
+            payload.put("relatedId", relatedId);
+            chatHandler.pushToUser(receiverId, payload);
+        } catch (Exception e) {
+            // 通知发送失败不应阻断主流程
         }
     }
 

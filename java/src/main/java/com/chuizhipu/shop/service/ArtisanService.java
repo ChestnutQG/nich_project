@@ -45,6 +45,12 @@ public class ArtisanService {
         return toVO(artisan, userId);
     }
 
+    /** 搜索匠人 */
+    public List<ArtisanVO> searchArtisans(String keyword, Long userId) {
+        List<Artisan> list = artisanMapper.selectByName(keyword, 0, 20);
+        return toVOList(list, userId);
+    }
+
     private List<ArtisanVO> toVOList(List<Artisan> list, Long userId) {
         if (list.isEmpty()) return Collections.emptyList();
         return list.stream().map(a -> toVO(a, userId)).collect(Collectors.toList());
@@ -53,6 +59,7 @@ public class ArtisanService {
     private ArtisanVO toVO(Artisan a, Long userId) {
         ArtisanVO vo = new ArtisanVO();
         vo.setId(EntityUtils.strId(a.getId()));
+        vo.setUserId(EntityUtils.strId(a.getUserId()));
         vo.setName(a.getName());
         vo.setAvatar(a.getAvatar());
         vo.setTitle(a.getTitle());

@@ -30,4 +30,8 @@
         SELECT COUNT(*) FROM t_favorite WHERE user_id = #{userId}
     </select>
 
+    <select id="selectUserIdsByProductId" resultType="long">
+        SELECT user_id FROM t_favorite WHERE product_id = #{productId}
+    </select>
+
 </mapper>

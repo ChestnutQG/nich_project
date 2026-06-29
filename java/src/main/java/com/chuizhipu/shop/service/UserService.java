@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Service
 public class UserService {
@@ -88,5 +89,10 @@ public class UserService {
 
     public void updateProfile(User user) {
         userMapper.updateById(user);
+    }
+
+    /** 按昵称/手机号搜索用户 */
+    public List<User> searchUsers(String keyword) {
+        return userMapper.selectByKeyword(keyword);
     }
 }

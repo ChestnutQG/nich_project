@@ -1,9 +1,11 @@
-// 搜索页
+// 搜索页 — 搜索商品 + 匠人
 import { router } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
 import { Product } from '../model/Product'
+import { Artisan } from '../model/Artisan'
 import { ProductService } from '../service/ProductService'
+import { ArtisanService } from '../service/ArtisanService'
 import { NavBar } from '../components/NavBar'
 import { ProductCard } from '../components/ProductCard'
 
@@ -12,6 +14,7 @@ import { ProductCard } from '../components/ProductCard'
 struct SearchPage {
   @State keyword: string = ''
   @State results: Product[] = []
+  @State artisanResults: Artisan[] = []
   @State searching: boolean = false
   @State history: string[] = ['苏绣', '紫砂壶', '青花瓷', '银饰', '歙砚']
   private hotKeywords: string[] = ['景德镇陶瓷', '苏绣团扇', '宜兴紫砂', '苗银饰品', '手工宣纸', '蜡染']
@@ -24,9 +27,18 @@ struct SearchPage {
       this.history.forEach((h: string) => { newHistory.push(h) })
       this.history = newHistory.slice(0, 10)
     }
-    const resp = await ProductService.searchProducts(this.keyword)
-    if (resp.code === 0) {
-      this.results = resp.data
+    // 同时搜索商品和匠人
+    const results = await Promise.all([
+      ProductService.searchProducts(this.keyword),
+      ArtisanService.searchArtisans(this.keyword)
+    ])
+    const productResp = results[0]
+    const artisanResp = results[1]
+    if (productResp.code === 0) {
+      this.results = productResp.data
+    }
+    if (artisanResp.code === 0) {
+      this.artisanResults = artisanResp.data
     }
     this.searching = false
   }
@@ -56,25 +68,97 @@ struct SearchPage {
       .padding({ left: 16, right: 16 })
       .backgroundColor(Colors.BG_WHITE)
 
-      if (this.results.length > 0) {
+      if (this.results.length > 0 || this.artisanResults.length > 0) {
         Scroll() {
-          Grid() {
-            ForEach(this.results, (product: Product) => {
-              GridItem() {
-                ProductCard({
-                  product: product,
-                  onItemClick: (p: Product) => {
-                    router.pushUrl({ url: Constants.PAGE_PRODUCT_DETAIL, params: { productId: p.id } })
+          Column() {
+            // 匠人搜索结果
+            if (this.artisanResults.length > 0) {
+              Text('相关匠人')
+                .fontSize(14)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(Colors.TEXT_PRIMARY)
+                .width('100%')
+                .padding({ left: 16, right: 16, top: 16, bottom: 8 })
+
+              ForEach(this.artisanResults, (artisan: Artisan) => {
+                Row() {
+                  if (artisan.avatar) {
+                    Image(artisan.avatar)
+                      .width(44)
+                      .height(44)
+                      .borderRadius(22)
+                      .objectFit(ImageFit.Cover)
+                  } else {
+                    Text(artisan.name.charAt(0))
+                      .fontSize(18)
+                      .fontColor(Colors.BG_WHITE)
+                      .width(44)
+                      .height(44)
+                      .borderRadius(22)
+                      .backgroundColor(Colors.PRIMARY)
+                      .textAlign(TextAlign.Center)
+                      .lineHeight(44)
+                  }
+
+                  Column() {
+                    Text(artisan.name)
+                      .fontSize(15)
+                      .fontWeight(FontWeight.Medium)
+                      .fontColor(Colors.TEXT_PRIMARY)
+                    Text(`${artisan.craftType} · ${artisan.title}`)
+                      .fontSize(12)
+                      .fontColor(Colors.TEXT_SECONDARY)
+                      .margin({ top: 2 })
+                  }
+                  .margin({ left: 10 })
+                  .alignItems(HorizontalAlign.Start)
+                  .layoutWeight(1)
+
+                  Text(`${artisan.followersCount} 关注`)
+                    .fontSize(11)
+                    .fontColor(Colors.TEXT_HINT)
+                }
+                .width('100%')
+                .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+                .backgroundColor(Colors.BG_WHITE)
+                .border({ width: { bottom: 0.5 }, color: Colors.DIVIDER })
+                .onClick(() => {
+                  router.pushUrl({
+                    url: Constants.PAGE_ARTISAN_DETAIL,
+                    params: { artisanId: artisan.id }
+                  })
+                })
+              })
+            }
+
+            // 商品搜索结果
+            if (this.results.length > 0) {
+              Text(this.artisanResults.length > 0 ? '相关商品' : '搜索结果')
+                .fontSize(14)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(Colors.TEXT_PRIMARY)
+                .width('100%')
+                .padding({ left: 16, right: 16, top: 16, bottom: 8 })
+
+              Grid() {
+                ForEach(this.results, (product: Product) => {
+                  GridItem() {
+                    ProductCard({
+                      product: product,
+                      onItemClick: (p: Product) => {
+                        router.pushUrl({ url: Constants.PAGE_PRODUCT_DETAIL, params: { productId: p.id } })
+                      }
+                    })
                   }
                 })
               }
-            })
+              .columnsTemplate('1fr 1fr')
+              .columnsGap(10)
+              .rowsGap(10)
+              .width('100%')
+              .padding({ left: 16, right: 16, bottom: 16 })
+            }
           }
-          .columnsTemplate('1fr 1fr')
-          .columnsGap(10)
-          .rowsGap(10)
-          .width('100%')
-          .padding(16)
         }
         .width('100%')
         .layoutWeight(1)

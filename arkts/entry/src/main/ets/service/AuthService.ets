@@ -47,4 +47,10 @@ export class AuthService {
     await clearToken()
     return { code: 0, message: 'ok', data: null }
   }
+
+  /** 搜索用户（按昵称/手机号，用于找人聊天） */
+  static async searchUsers(keyword: string): Promise<ApiResponse<User[]>> {
+    const params: Record<string, string> = { 'keyword': keyword }
+    return await ApiClient.get<User[]>('/users/search', params)
+  }
 }

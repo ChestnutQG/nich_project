@@ -12,6 +12,8 @@ import { CartService } from '../service/CartService'
 import { AuthService } from '../service/AuthService'
 import { CategoryService } from '../service/CategoryService'
 import { User } from '../model/User'
+import { MessageService } from '../service/MessageService'
+import { WebSocketManager, WsMessage } from '../service/WebSocketManager'
 import { getToken, ensureTokenLoaded, clearToken } from '../service/ApiClient'
 
 @Entry
@@ -29,6 +31,9 @@ struct Index {
   @State userOrderCount: number = 0
   @State cartCount: number = CartService.getCartCount()
   @State isLoggedIn: boolean = false
+  @State unreadMsgCount: number = 0
+  private pollTimer: number = -1
+  private wsManager: WebSocketManager = new WebSocketManager()
 
   @State showSideBar: boolean = false
   @State drawerOffset: number = -100
@@ -40,6 +45,52 @@ struct Index {
     this.loadCategories()
     this.loadUserData()
     CartService.loadCartCount().then((c: number) => { this.cartCount = c })
+    this.connectWsAndPoll()
+  }
+
+  onPageShow(): void {
+    CartService.loadCartCount().then((c: number) => { this.cartCount = c })
+    this.loadUserData()
+    this.loadUnreadCount()
+    this.connectWsAndPoll()
+  }
+
+  onPageHide(): void {
+    this.stopPolling()
+    // 不主动断 WS，后台也能收推送
+  }
+
+  connectWsAndPoll(): void {
+    this.startPolling()
+  }
+
+  // WebSocket 实时推送连接（登录后调用）
+  connectWs(): void {
+    if (!this.isLoggedIn) return
+    // 先重置再注册，避免切换账号后旧 handler 残留
+    this.wsManager.reset()
+    this.wsManager.onMessage((msg: WsMessage) => {
+      if (msg.type === 'notification') {
+        this.loadUnreadCount()
+      }
+    })
+    this.wsManager.connect()
+  }
+
+  startPolling(): void {
+    if (this.pollTimer !== -1) {
+      return
+    }
+    this.pollTimer = setInterval(() => {
+      this.loadUnreadCount()
+    }, 30000) // 30 秒兜底轮询
+  }
+
+  stopPolling(): void {
+    if (this.pollTimer !== -1) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = -1
+    }
   }
 
   async loadCategories(): Promise<void> {
@@ -47,11 +98,6 @@ struct Index {
     if (resp.code === 0) {
       this.categories = resp.data
     }
-  }
-
-  onPageShow(): void {
-    CartService.loadCartCount().then((c: number) => { this.cartCount = c })
-    this.loadUserData()
   }
 
   async loadFeedData(): Promise<void> {
@@ -79,11 +125,24 @@ struct Index {
       this.userCollectCount = resp.data.collectCount || 0
       this.userFollowCount = resp.data.followCount || 0
       this.userOrderCount = resp.data.orderCount || 0
+      // 登录态确认后，开启 WebSocket 实时推送
+      this.connectWs()
     } else {
       // token 过期或失效（如后端重启），清掉记住的登录，避免卡在假登录态
       await clearToken()
       this.isLoggedIn = false
       this.resetUserState()
+    }
+  }
+
+  async loadUnreadCount(): Promise<void> {
+    if (!this.isLoggedIn) {
+      this.unreadMsgCount = 0
+      return
+    }
+    const resp = await MessageService.getUnreadCount()
+    if (resp.code === 0 && resp.data) {
+      this.unreadMsgCount = resp.data.total || 0
     }
   }
 
@@ -119,21 +178,31 @@ struct Index {
       Column() {
         // 顶部导航栏
         Row() {
-          // 头像按钮 — 有头像则显示头像，否则显示默认图标
-          if (this.userAvatar) {
-            Image(this.userAvatar)
-              .width(28)
-              .height(28)
-              .borderRadius(14)
-              .objectFit(ImageFit.Cover)
-              .margin({ right: 12 })
-              .onClick(() => { this.openDrawer() })
-          } else {
-            Text('👤')
-              .fontSize(22)
-              .margin({ right: 12 })
-              .onClick(() => { this.openDrawer() })
+          // 头像按钮 — 有头像则显示头像，否则显示默认图标；未读消息红点
+          Stack() {
+            if (this.userAvatar) {
+              Image(this.userAvatar)
+                .width(28)
+                .height(28)
+                .borderRadius(14)
+                .objectFit(ImageFit.Cover)
+            } else {
+              Text('👤')
+                .fontSize(22)
+            }
+            // 未读消息红点
+            if (this.unreadMsgCount > 0) {
+              Row()
+                .width(10)
+                .height(10)
+                .borderRadius(5)
+                .backgroundColor('#E74C3C')
+                .border({ width: 1.5, color: Colors.BG_WHITE })
+                .position({ x: 18, y: -2 })
+            }
           }
+          .margin({ right: 12 })
+          .onClick(() => { this.openDrawer() })
 
           Text('锤子铺')
             .fontSize(22)
@@ -350,7 +419,43 @@ struct Index {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_FOLLOW_LIST })
                 })
-                this.MenuItem('🔔', '消息通知', () => { this.closeDrawer() })
+                // 消息通知 — 带红点提醒
+                Row() {
+                  Text('🔔')
+                    .fontSize(20)
+                    .margin({ right: 12 })
+
+                  Text('消息通知')
+                    .fontSize(15)
+                    .fontColor(Colors.TEXT_PRIMARY)
+                    .layoutWeight(1)
+
+                  if (this.unreadMsgCount > 0) {
+                    Row()
+                      .width(9)
+                      .height(9)
+                      .borderRadius(5)
+                      .backgroundColor('#E74C3C')
+                      .margin({ right: 8 })
+                    Text(`${this.unreadMsgCount}`)
+                      .fontSize(12)
+                      .fontColor(Colors.BG_WHITE)
+                      .backgroundColor('#E74C3C')
+                      .borderRadius(10)
+                      .padding({ left: 7, right: 7, top: 2, bottom: 2 })
+                  }
+
+                  Image($r('sys.media.ohos_ic_public_arrow_right'))
+                    .width(14)
+                    .height(14)
+                    .fillColor(Colors.TEXT_HINT)
+                }
+                .width('100%')
+                .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+                .onClick(() => {
+                  this.closeDrawer()
+                  router.pushUrl({ url: Constants.PAGE_MESSAGE_CENTER })
+                })
                 this.MenuItem('⚙️', '设置', () => { this.closeDrawer() })
 
                 // 登录 / 退出
@@ -366,6 +471,8 @@ struct Index {
                   .onClick(async () => {
                     this.closeDrawer()
                     await AuthService.logout()
+                    this.wsManager.reset()
+                    this.unreadMsgCount = 0
                     this.resetUserState()
                     this.isLoggedIn = false
                     promptAction.showToast({ message: '已退出' })

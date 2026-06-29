@@ -31,6 +31,12 @@ public class UserController {
         return R.ok(user);
     }
 
+    /** GET /api/users/search — 搜索用户（按昵称/手机号） */
+    @GetMapping("/search")
+    public R search(@RequestParam String keyword) {
+        return R.ok(userService.searchUsers(keyword));
+    }
+
     /** GET /api/users/{id} */
     @GetMapping("/{id}")
     public R detail(@PathVariable Long id) {

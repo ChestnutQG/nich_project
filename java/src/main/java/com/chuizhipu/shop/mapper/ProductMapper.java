@@ -43,4 +43,10 @@ public interface ProductMapper {
 
     /** 审核商品 */
     int updateAuditStatus(@Param("id") Long id, @Param("auditStatus") String auditStatus);
+
+    /** 更新商品信息 */
+    int update(Product product);
+
+    /** 查商品所属匠人的 user_id */
+    Long selectArtisanUserIdByProductId(@Param("productId") Long productId);
 }

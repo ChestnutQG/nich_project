@@ -8,6 +8,7 @@ import java.util.List;
 public class ArtisanVO {
 
     private String id;
+    private String userId;
     private String name;
     private String avatar;
     private String title;
@@ -23,6 +24,8 @@ public class ArtisanVO {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getAvatar() { return avatar; }

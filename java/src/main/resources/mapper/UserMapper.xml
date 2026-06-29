@@ -47,4 +47,18 @@
         FROM t_user u ORDER BY u.id
     </select>
 
+    <select id="selectByKeyword" resultType="com.chuizhipu.shop.entity.User">
+        SELECT u.id, u.nickname, u.avatar, u.phone, u.password,
+               u.role, u.credit_score AS creditScore, u.status,
+               (SELECT COUNT(*) FROM t_favorite f WHERE f.user_id = u.id) AS collectCount,
+               (SELECT COUNT(*) FROM t_follow fw WHERE fw.user_id = u.id) AS followCount,
+               (SELECT COUNT(*) FROM t_order o WHERE o.user_id = u.id) AS orderCount,
+               u.create_time AS createTime, u.update_time AS updateTime
+        FROM t_user u
+        WHERE u.nickname LIKE CONCAT('%', #{keyword}, '%')
+           OR u.phone LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY u.id
+        LIMIT 20
+    </select>
+
 </mapper>

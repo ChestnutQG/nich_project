@@ -23,4 +23,8 @@
         SELECT artisan_id FROM t_follow WHERE user_id = #{userId} ORDER BY id DESC
     </select>
 
+    <select id="selectUserIdsByArtisanId" resultType="long">
+        SELECT user_id FROM t_follow WHERE artisan_id = #{artisanId}
+    </select>
+
 </mapper>

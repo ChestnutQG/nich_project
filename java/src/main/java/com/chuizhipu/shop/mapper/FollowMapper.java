@@ -20,4 +20,7 @@ public interface FollowMapper {
 
     /** 用户关注的匠人 id 列表 */
     List<Long> selectArtisanIdsByUserId(@Param("userId") Long userId);
+
+    /** 关注某个匠人的所有用户 ID（用于上新通知） */
+    List<Long> selectUserIdsByArtisanId(@Param("artisanId") Long artisanId);
 }

@@ -7,6 +7,7 @@ import { CartService } from '../service/CartService'
 import { AuthService } from '../service/AuthService'
 import { ensureTokenLoaded } from '../service/ApiClient'
 import { User } from '../model/User'
+import { MessageService } from '../service/MessageService'
 import { NavBar } from '../components/NavBar'
 
 @Entry
@@ -22,10 +23,37 @@ struct Profile {
   @State userCollectCount: number = 0
   @State userFollowCount: number = 0
   @State userOrderCount: number = 0
+  @State unreadMsgCount: number = 0
+  private pollTimer: number = -1
 
   aboutToAppear(): void {
     this.loadUserData()
     CartService.loadCartCount().then((c: number) => { this.cartCount = c })
+    this.loadUnreadCount()
+    this.startPolling()
+  }
+
+  onPageShow(): void {
+    this.loadUnreadCount()
+    this.startPolling()
+  }
+
+  onPageHide(): void {
+    this.stopPolling()
+  }
+
+  startPolling(): void {
+    if (this.pollTimer !== -1) return
+    this.pollTimer = setInterval(() => {
+      this.loadUnreadCount()
+    }, 10000)
+  }
+
+  stopPolling(): void {
+    if (this.pollTimer !== -1) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = -1
+    }
   }
 
   async loadUserData(): Promise<void> {
@@ -47,6 +75,13 @@ struct Profile {
       this.user = null
       this.resetUserState()
       router.pushUrl({ url: Constants.PAGE_LOGIN })
+    }
+  }
+
+  async loadUnreadCount(): Promise<void> {
+    const resp = await MessageService.getUnreadCount()
+    if (resp.code === 0 && resp.data) {
+      this.unreadMsgCount = resp.data.total || 0
     }
   }
 
@@ -151,6 +186,42 @@ struct Profile {
             this.MenuItem('📋', '我的订单', () => router.pushUrl({ url: Constants.PAGE_ORDER_LIST }))
             this.MenuItem('⚖️', '我的维权', () => router.pushUrl({ url: Constants.PAGE_DISPUTE_LIST }))
             this.MenuItem('👨‍⚖️', '陪审邀请', () => router.pushUrl({ url: Constants.PAGE_JURY_INVITATIONS }))
+            // 消息通知 — 带红点提醒
+            Row() {
+              Text('🔔')
+                .fontSize(20)
+                .margin({ right: 12 })
+
+              Text('消息通知')
+                .fontSize(15)
+                .fontColor(Colors.TEXT_PRIMARY)
+                .layoutWeight(1)
+
+              if (this.unreadMsgCount > 0) {
+                Row()
+                  .width(9)
+                  .height(9)
+                  .borderRadius(5)
+                  .backgroundColor('#E74C3C')
+                  .margin({ right: 8 })
+                Text(`${this.unreadMsgCount}`)
+                  .fontSize(12)
+                  .fontColor(Colors.BG_WHITE)
+                  .backgroundColor('#E74C3C')
+                  .borderRadius(10)
+                  .padding({ left: 7, right: 7, top: 2, bottom: 2 })
+              }
+
+              Image($r('sys.media.ohos_ic_public_arrow_right'))
+                .width(14)
+                .height(14)
+                .fillColor(Colors.TEXT_HINT)
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+            .onClick(() => {
+              router.pushUrl({ url: Constants.PAGE_MESSAGE_CENTER })
+            })
             this.MenuItem('📍', '收货地址', () => router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST }))
             this.MenuItem('❤️', '我的收藏', () => router.pushUrl({ url: Constants.PAGE_FAVORITE_LIST }))
             this.MenuItem('🧑‍🎨', '关注的匠人', () => router.pushUrl({ url: Constants.PAGE_FOLLOW_LIST }))

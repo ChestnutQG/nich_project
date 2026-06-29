@@ -58,4 +58,14 @@ export class ArtisanService {
     }
     return { code: resp.code, message: resp.message, data: [] }
   }
+
+  // 搜索匠人（按名称/技艺）
+  static async searchArtisans(keyword: string): Promise<ApiResponse<Artisan[]>> {
+    const params: Record<string, string> = { 'keyword': keyword }
+    const resp = await ApiClient.get<Artisan[]>('/artisans/search', params)
+    if (resp.code === 0 && resp.data) {
+      return { code: 0, message: 'ok', data: resp.data }
+    }
+    return { code: resp.code, message: resp.message, data: [] }
+  }
 }

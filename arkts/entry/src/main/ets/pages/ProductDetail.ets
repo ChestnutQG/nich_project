@@ -7,6 +7,8 @@ import { Product, Sku, CraftStep } from '../model/Product'
 import { ProductService } from '../service/ProductService'
 import { CartService, CartItem } from '../service/CartService'
 import { FavoriteService } from '../service/FavoriteService'
+import { AuthService } from '../service/AuthService'
+import { ArtisanService } from '../service/ArtisanService'
 import { RatingStars } from '../components/RatingStars'
 
 // 评论数据模型
@@ -139,6 +141,39 @@ struct ProductDetail {
               Blank()
 
               Row() {
+                Text('💬 联系')
+                  .fontSize(12)
+                  .fontColor(Colors.BG_WHITE)
+                  .backgroundColor(Colors.PRIMARY)
+                  .borderRadius(10)
+                  .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+                  .margin({ right: 10 })
+                  .onClick(async () => {
+                    if (!this.product || !this.product.artisanId) return
+                    const userResp = await AuthService.getUserInfo()
+                    if (userResp.code !== 0 || !userResp.data) {
+                      promptAction.showToast({ message: '请先登录' })
+                      return
+                    }
+                    const artResp = await ArtisanService.fetchDetail(this.product!.artisanId)
+                    if (artResp.code === 0 && artResp.data) {
+                      const myId = Number(userResp.data.id)
+                      const artUserId = Number(artResp.data.userId)
+                      if (myId === artUserId) {
+                        promptAction.showToast({ message: '这是你自己的作品哦' })
+                        return
+                      }
+                      router.pushUrl({
+                        url: Constants.PAGE_CHAT_DETAIL,
+                        params: {
+                          peerId: artUserId,
+                          peerName: this.product!.artisanName,
+                          currentUserId: myId
+                        }
+                      })
+                    }
+                  })
+
                 Text('匠人主页')
                   .fontSize(12)
                   .fontColor(Colors.PRIMARY)
@@ -146,20 +181,20 @@ struct ProductDetail {
                   .width(12)
                   .height(12)
                   .fillColor(Colors.PRIMARY)
+                  .onClick(() => {
+                    if (this.product && this.product.artisanId) {
+                      router.pushUrl({
+                        url: Constants.PAGE_ARTISAN_DETAIL,
+                        params: { artisanId: this.product.artisanId }
+                      })
+                    }
+                  })
               }
             }
             .width('100%')
             .padding({ left: 16, right: 16, top: 14, bottom: 14 })
             .backgroundColor(Colors.BG_WHITE)
             .margin({ top: 10 })
-            .onClick(() => {
-              if (this.product && this.product.artisanId) {
-                router.pushUrl({
-                  url: Constants.PAGE_ARTISAN_DETAIL,
-                  params: { artisanId: this.product.artisanId }
-                })
-              }
-            })
 
             // ===== 作品标题与描述 =====
             Column() {
