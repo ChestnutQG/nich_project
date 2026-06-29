@@ -8,8 +8,8 @@ const DOMAIN = 0x0000;
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
-    // 预加载用户设置（主题/字体/语言），尽早同步到 AppStorage
-    SettingsService.ensureInit().catch(() => {});
+    // 同步初始化设置，必须在 loadContent 前完成，确保 @StorageLink 拿到存档值
+    SettingsService.init();
   }
 
   onDestroy(): void {
