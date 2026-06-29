@@ -81,7 +81,7 @@ public class ProductController {
         if (req.getPrice() == null || req.getPrice() <= 0) {
             return R.error("价格不能为空");
         }
-        Long id = productService.publishProduct(req.toProduct(), req.toSkuList());
+        Long id = productService.publishProduct(userId, req.toProduct(), req.toSkuList());
         return R.ok(id);
     }
 

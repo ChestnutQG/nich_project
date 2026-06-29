@@ -9,11 +9,12 @@ import { CartService, CartItem } from '../service/CartService'
 import { FavoriteService } from '../service/FavoriteService'
 import { AuthService } from '../service/AuthService'
 import { ArtisanService } from '../service/ArtisanService'
+import { CommentService } from '../service/CommentService'
 import { RatingStars } from '../components/RatingStars'
 import { Theme } from '../common/Theme'
 import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
-// 评论数据模型
+// 评论数据模型（字段与后端返回一致）
 interface Comment {
   id: string
   userName: string
@@ -22,31 +23,6 @@ interface Comment {
   time: string
 }
 
-// 模拟评论
-const MOCK_COMMENTS: Comment[] = [
-  {
-    id: 'cmt1',
-    userName: '非遗文化爱好者',
-    avatar: '',
-    content: '太美了！每一针每一线都是文化的传承，苏绣真的是我们民族的瑰宝。请问这个团扇的丝线用的是几丝的？',
-    time: '3天前'
-  },
-  {
-    id: 'cmt2',
-    userName: '手艺人小张',
-    avatar: '',
-    content: '看到沈老师的作品真的很感动，我学苏绣三年了，双面绣到现在都做不好。向老一辈手艺人致敬！',
-    time: '5天前'
-  },
-  {
-    id: 'cmt3',
-    userName: '传统文化爱好者',
-    avatar: '',
-    content: '去年在苏州博物馆看到过类似的作品，实物比照片震撼太多了，那种丝线的光泽感照片拍不出来。',
-    time: '1周前'
-  }
-]
-
 @Entry
 @Component
 struct ProductDetail {
@@ -54,7 +30,7 @@ struct ProductDetail {
   @State selectedSku: Sku | undefined = undefined
   @State loading: boolean = true
   @State showBuySection: boolean = false
-  @State comments: Comment[] = MOCK_COMMENTS
+  @State comments: Comment[] = []
   @State commentText: string = ''
   private productId: string = ''
 
@@ -75,6 +51,7 @@ struct ProductDetail {
     if (params && params['productId']) {
       this.productId = params['productId']
       this.loadProduct()
+      this.loadComments()
     }
   }
 
@@ -85,6 +62,27 @@ struct ProductDetail {
       this.selectedSku = resp.data.skus[0]
     }
     this.loading = false
+  }
+
+  // 加载评论
+  async loadComments(): Promise<void> {
+    const resp = await CommentService.fetchComments(this.productId)
+    if (resp.code === 0) {
+      this.comments = resp.data
+    }
+  }
+
+  // 发表评论
+  async submitComment(): Promise<void> {
+    const text = this.commentText.trim()
+    if (!text) return
+    const resp = await CommentService.addComment(this.productId, text)
+    if (resp.code === 0) {
+      this.commentText = ''
+      this.loadComments()
+    } else {
+      promptAction.showToast({ message: resp.message || this.t('评论失败', 'Failed') })
+    }
   }
 
   // 收藏 / 取消收藏
@@ -134,7 +132,7 @@ struct ProductDetail {
 
             // ===== 匠人信息 =====
             Row() {
-              Image('https://picsum.photos/seed/art01/48/48')
+              Image(this.product!.artisanAvatar || 'https://picsum.photos/seed/craft/48/48')
                 .width(44)
                 .height(44)
                 .borderRadius(22)
@@ -411,7 +409,7 @@ struct ProductDetail {
 
               // 评论输入区
               Row() {
-                TextInput({ placeholder: this.t('写下你的想法…', 'Write your thoughts...') })
+                TextInput({ placeholder: this.t('写下你的想法…', 'Write your thoughts...'), text: this.commentText })
                   .fontSize(this.fs(13))
                   .placeholderColor(Theme.textHint(this.theme))
                   .backgroundColor(Theme.bg(this.theme))
@@ -424,19 +422,7 @@ struct ProductDetail {
                   .fontSize(this.fs(13))
                   .fontColor(this.commentText.trim() ? Theme.primary(this.theme) : Theme.textHint(this.theme))
                   .margin({ left: 10 })
-                  .onClick(() => {
-                    if (this.commentText.trim()) {
-                      const newComment: Comment = {
-                        id: `cmt${Date.now()}`,
-                        userName: '非遗爱好者',
-                        avatar: '',
-                        content: this.commentText.trim(),
-                        time: '刚刚'
-                      }
-                      this.comments = [newComment, ...this.comments]
-                      this.commentText = ''
-                    }
-                  })
+                  .onClick(() => { this.submitComment() })
               }
               .width('100%')
               .padding({ left: 16, right: 16, top: 8, bottom: 16 })

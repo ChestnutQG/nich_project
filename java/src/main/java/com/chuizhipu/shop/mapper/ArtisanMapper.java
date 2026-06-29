@@ -22,6 +22,12 @@ public interface ArtisanMapper {
     /** 匠人详情 */
     Artisan selectById(@Param("id") Long id);
 
+    /** 按关联用户查匠人档案 */
+    Artisan selectByUserId(@Param("userId") Long userId);
+
+    /** 新增匠人档案（自动回填 id） */
+    int insert(Artisan artisan);
+
     /** 关注数增减（delta 为 +1 / -1） */
     int incrFollowers(@Param("id") Long id, @Param("delta") int delta);
 

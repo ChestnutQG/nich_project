@@ -317,7 +317,6 @@ struct ProductPublish {
     body['name'] = this.name.trim()
     body['description'] = this.description.trim()
     body['categoryId'] = this.categoryId
-    body['artisanId'] = 1
     body['isSellable'] = this.isSellable
 
     if (this.isSellable) {

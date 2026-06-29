@@ -14,6 +14,7 @@ public class ProductVO {
     private String categoryName;
     private String artisanId;
     private String artisanName;
+    private String artisanAvatar;
     private List<String> images;
     private String videoUrl;       // 视频URL
     private Long price;            // 现价（分）
@@ -46,6 +47,8 @@ public class ProductVO {
     public void setArtisanId(String artisanId) { this.artisanId = artisanId; }
     public String getArtisanName() { return artisanName; }
     public void setArtisanName(String artisanName) { this.artisanName = artisanName; }
+    public String getArtisanAvatar() { return artisanAvatar; }
+    public void setArtisanAvatar(String artisanAvatar) { this.artisanAvatar = artisanAvatar; }
     public List<String> getImages() { return images; }
     public void setImages(List<String> images) { this.images = images; }
     public String getVideoUrl() { return videoUrl; }

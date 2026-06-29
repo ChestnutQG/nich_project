@@ -48,6 +48,17 @@
         SELECT * FROM t_artisan WHERE id = #{id}
     </select>
 
+    <select id="selectByUserId" resultMap="artisanMap">
+        SELECT * FROM t_artisan WHERE user_id = #{userId} LIMIT 1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_artisan
+            (user_id, name, avatar, title, level, province, city, craft_type, intro, works_count, followers_count)
+        VALUES
+            (#{userId}, #{name}, #{avatar}, #{title}, #{level}, #{province}, #{city}, #{craftType}, #{intro}, #{worksCount}, #{followersCount})
+    </insert>
+
     <update id="incrFollowers">
         UPDATE t_artisan
         SET followers_count = GREATEST(followers_count + #{delta}, 0)

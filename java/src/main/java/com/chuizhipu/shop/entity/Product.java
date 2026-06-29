@@ -31,6 +31,7 @@ public class Product {
     // ---- 关联（非数据库字段，手动填充） ----
     private String categoryName;
     private String artisanName;
+    private String artisanAvatar;
     private java.util.List<ProductSku> skus;
     private Boolean isCollect;
 
@@ -80,6 +81,8 @@ public class Product {
     public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
     public String getArtisanName() { return artisanName; }
     public void setArtisanName(String artisanName) { this.artisanName = artisanName; }
+    public String getArtisanAvatar() { return artisanAvatar; }
+    public void setArtisanAvatar(String artisanAvatar) { this.artisanAvatar = artisanAvatar; }
     public java.util.List<ProductSku> getSkus() { return skus; }
     public void setSkus(java.util.List<ProductSku> skus) { this.skus = skus; }
     public Boolean getIsCollect() { return isCollect; }

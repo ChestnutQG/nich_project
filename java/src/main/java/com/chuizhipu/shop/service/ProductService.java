@@ -1,12 +1,16 @@
 package com.chuizhipu.shop.service;
 
 import com.chuizhipu.shop.common.EntityUtils;
+import com.chuizhipu.shop.entity.Artisan;
 import com.chuizhipu.shop.entity.Product;
 import com.chuizhipu.shop.entity.ProductSku;
+import com.chuizhipu.shop.entity.User;
+import com.chuizhipu.shop.mapper.ArtisanMapper;
 import com.chuizhipu.shop.mapper.FavoriteMapper;
 import com.chuizhipu.shop.mapper.FollowMapper;
 import com.chuizhipu.shop.mapper.ProductMapper;
 import com.chuizhipu.shop.mapper.ProductSkuMapper;
+import com.chuizhipu.shop.mapper.UserMapper;
 import com.chuizhipu.shop.vo.CraftStepVO;
 import com.chuizhipu.shop.vo.ProductVO;
 import com.chuizhipu.shop.vo.SkuVO;
@@ -26,19 +30,25 @@ public class ProductService {
     private final FollowMapper followMapper;
     private final MessageService messageService;
     private final ChatWebSocketHandler chatHandler;
+    private final ArtisanMapper artisanMapper;
+    private final UserMapper userMapper;
 
     public ProductService(ProductMapper productMapper,
                           ProductSkuMapper skuMapper,
                           FavoriteMapper favoriteMapper,
                           FollowMapper followMapper,
                           MessageService messageService,
-                          ChatWebSocketHandler chatHandler) {
+                          ChatWebSocketHandler chatHandler,
+                          ArtisanMapper artisanMapper,
+                          UserMapper userMapper) {
         this.productMapper = productMapper;
         this.skuMapper = skuMapper;
         this.favoriteMapper = favoriteMapper;
         this.followMapper = followMapper;
         this.messageService = messageService;
         this.chatHandler = chatHandler;
+        this.artisanMapper = artisanMapper;
+        this.userMapper = userMapper;
     }
 
     /** 首页推荐 */
@@ -85,9 +95,10 @@ public class ProductService {
         return toVOList(products, userId);
     }
 
-    /** 发布商品 */
+    /** 发布商品 — 匠人按发布者本人解析，避免都挂到同一个匠人 */
     @Transactional
-    public Long publishProduct(Product product, List<ProductSku> skus) {
+    public Long publishProduct(Long userId, Product product, List<ProductSku> skus) {
+        product.setArtisanId(resolveArtisanId(userId, product));
         product.setSales(0);
         product.setRating(5.0);
         product.setIsOnSale(1);
@@ -106,6 +117,27 @@ public class ProductService {
         }
 
         return product.getId();
+    }
+
+    /** 取发布者对应的匠人 id：已有匠人档案则用本人的，否则用用户信息自动建一个 */
+    private Long resolveArtisanId(Long userId, Product product) {
+        Artisan exist = artisanMapper.selectByUserId(userId);
+        if (exist != null) {
+            return exist.getId();
+        }
+        User u = userMapper.selectById(userId);
+        Artisan a = new Artisan();
+        a.setUserId(userId);
+        a.setName(u != null && u.getNickname() != null ? u.getNickname() : "匠人" + userId);
+        a.setAvatar(u != null ? u.getAvatar() : null);
+        a.setTitle("手艺人");
+        a.setLevel(1);
+        a.setCraftType(product.getCraftType());
+        a.setProvince(product.getRegion());
+        a.setWorksCount(0);
+        a.setFollowersCount(0);
+        artisanMapper.insert(a);
+        return a.getId();
     }
 
     /** 更新商品（带降价通知） */
@@ -219,6 +251,7 @@ public class ProductService {
         vo.setCategoryName(p.getCategoryName());
         vo.setArtisanId(EntityUtils.strId(p.getArtisanId()));
         vo.setArtisanName(p.getArtisanName());
+        vo.setArtisanAvatar(p.getArtisanAvatar());
         vo.setImages(EntityUtils.parseStrList(p.getImages()));
         vo.setVideoUrl(p.getVideoUrl());
         vo.setAuditStatus(p.getAuditStatus());

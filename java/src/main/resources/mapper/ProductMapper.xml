@@ -11,6 +11,7 @@
         <result property="categoryName" column="category_name"/>
         <result property="artisanId" column="artisan_id"/>
         <result property="artisanName" column="artisan_name"/>
+        <result property="artisanAvatar" column="artisan_avatar"/>
         <result property="images" column="images"/>
         <result property="videoUrl" column="video_url"/>
         <result property="price" column="price"/>
@@ -68,7 +69,7 @@
 
     <!-- 商品详情 -->
     <select id="selectById" resultMap="productMap">
-        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name, a.avatar AS artisan_avatar
         FROM t_product p
         LEFT JOIN t_category c ON p.category_id = c.id
         LEFT JOIN t_artisan a ON p.artisan_id = a.id

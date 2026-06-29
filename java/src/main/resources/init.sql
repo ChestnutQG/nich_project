@@ -14,6 +14,7 @@ SET NAMES utf8mb4;
 
 -- 先删旧表（按依赖顺序），方便重复执行
 DROP TABLE IF EXISTS t_message;
+DROP TABLE IF EXISTS t_comment;
 DROP TABLE IF EXISTS t_jury_vote;
 DROP TABLE IF EXISTS t_jury_invitation;
 DROP TABLE IF EXISTS t_dispute;
@@ -229,6 +230,20 @@ CREATE TABLE t_follow (
     FOREIGN KEY (artisan_id) REFERENCES t_artisan(id),
     UNIQUE KEY uk_user_artisan (user_id, artisan_id)
 ) COMMENT '关注匠人';
+
+-- ==========================================
+-- 11.1 商品评论表
+-- ==========================================
+CREATE TABLE t_comment (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    product_id  BIGINT NOT NULL COMMENT '商品ID',
+    user_id     BIGINT NOT NULL COMMENT '评论用户ID',
+    content     VARCHAR(500) NOT NULL COMMENT '评论内容',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES t_product(id),
+    FOREIGN KEY (user_id)    REFERENCES t_user(id),
+    INDEX idx_product_id (product_id)
+) COMMENT '商品评论';
 
 -- ==========================================
 -- 12. 纠纷表（小法庭维权）
