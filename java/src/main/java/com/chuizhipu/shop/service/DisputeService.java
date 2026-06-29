@@ -199,6 +199,21 @@ public class DisputeService {
         return invitationMapper.selectByUserId(userId);
     }
 
+    /** 管理员直接裁决纠纷（不经陪审团） */
+    @Transactional
+    public void adminResolve(Long disputeId, String result) {
+        Dispute dispute = disputeMapper.selectById(disputeId);
+        if (dispute == null || "resolved".equals(dispute.getStatus())) return;
+        int buyerVotes = dispute.getBuyerVotes() != null ? dispute.getBuyerVotes() : 0;
+        int sellerVotes = dispute.getSellerVotes() != null ? dispute.getSellerVotes() : 0;
+        disputeMapper.updateResult(disputeId, result, buyerVotes, sellerVotes);
+        if ("buyer_win".equals(result)) {
+            orderMapper.updateStatus(dispute.getOrderId(), 5);
+        } else {
+            orderMapper.updateStatus(dispute.getOrderId(), 3);
+        }
+    }
+
     private Long getSellerId(Long orderId) {
         try {
             return orderItemMapper.selectSellerIdByOrderId(orderId);

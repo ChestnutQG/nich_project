@@ -42,6 +42,12 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#F5F0EB;c
 .badge-user{background:#D6EAF8;color:#2471A3}
 .badge-active{background:#D5F5E3;color:#1E8449}
 .badge-frozen{background:#F8D7DA;color:#721C24}
+.badge-pending{background:#FFF3CD;color:#856404}
+.badge-voted{background:#D5F5E3;color:#1E8449}
+.jurors-panel{background:#faf8f5;border-radius:6px;padding:10px 14px;margin-top:8px;display:none}
+.jurors-panel.open{display:block}
+.juror-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #eee;font-size:13px}
+.juror-row:last-child{border-bottom:none}
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
 .modal-box{background:#fff;border-radius:8px;padding:24px;width:360px;max-width:90%}
 .modal-box h3{margin-bottom:16px;font-size:16px}
@@ -131,155 +137,190 @@ function toast(msg,type){const t=document.createElement('div');t.className='toas
 async function loadStats(){
   const d=await api('GET','/admin/stats');
   if(d.code===0){
-    document.getElementById('statsRow').innerHTML=`
-      <div class="stat-card"><div class="num">${d.data.negotiatingDisputes||0}</div><div class="label">协商中纠纷</div></div>
-      <div class="stat-card"><div class="num">${d.data.votingDisputes||0}</div><div class="label">投票中纠纷</div></div>
-      <div class="stat-card"><div class="num">${d.data.resolvedDisputes||0}</div><div class="label">已裁决纠纷</div></div>
-      <div class="stat-card"><div class="num">${d.data.pendingProducts||0}</div><div class="label">待审核商品</div></div>
-    `;
+    document.getElementById('statsRow').innerHTML=
+      '<div class="stat-card"><div class="num">'+(d.data.negotiatingDisputes||0)+'</div><div class="label">协商中纠纷</div></div>'+
+      '<div class="stat-card"><div class="num">'+(d.data.votingDisputes||0)+'</div><div class="label">投票中纠纷</div></div>'+
+      '<div class="stat-card"><div class="num">'+(d.data.resolvedDisputes||0)+'</div><div class="label">已裁决纠纷</div></div>'+
+      '<div class="stat-card"><div class="num">'+(d.data.pendingProducts||0)+'</div><div class="label">待审核商品</div></div>';
   }
 }
 
 // ---- 纠纷管理 ----
 async function loadDisputes(){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',i===0)});
   const d=await api('GET','/admin/disputes');
   const a=document.getElementById('contentArea');
   if(d.code!==0||!d.data||d.data.length===0){
     a.innerHTML='<div class="card" style="text-align:center;color:#888;padding:40px">暂无纠纷记录</div>';return;
   }
-  a.innerHTML=d.data.map(dp=>{
-    const statusLabel={'negotiating':'协商中','voting':'投票中','resolved':'已裁决'}[dp.status]||dp.status;
-    const statusCls='badge-'+dp.status;
-    const resultText=dp.result==='buyer_win'?'买家胜诉':dp.result==='seller_win'?'卖家胜诉':'';
-    const resultCls=dp.result==='buyer_win'?'badge-buyer':'badge-seller';
-    return `<div class="card">
-      <div class="row">
-        <div>
-          <span class="title">${escapeHtml(dp.orderNo||'')} ${escapeHtml(dp.productName||'')}</span>
-          <span class="badge ${statusCls}">${statusLabel}</span>
-          ${dp.result?`<span class="badge ${resultCls}">${resultText}</span>`:''}
-        </div>
-        <div class="sub">${dp.buyerVotes||0} vs ${dp.sellerVotes||0} 票</div>
-      </div>
-      <div class="meta">申请人: ${escapeHtml(dp.initiatorName||'')} · 被申请人: ${escapeHtml(dp.respondentName||'')}</div>
-      <div class="meta">原因: ${escapeHtml(dp.reason||'')}</div>
-      <div class="meta">创建: ${dp.createdAt||''}</div>
-    </div>`
+  a.innerHTML=d.data.map(function(dp){
+    var statusLabel={'negotiating':'协商中','voting':'投票中','resolved':'已裁决'}[dp.status]||dp.status;
+    var statusCls='badge-'+dp.status;
+    var resultText=dp.result==='buyer_win'?'买家胜诉':dp.result==='seller_win'?'卖家胜诉':'';
+    var resultCls=dp.result==='buyer_win'?'badge-buyer':'badge-seller';
+    var notResolved=dp.status!=='resolved';
+    return '<div class="card" id="dispute-'+dp.id+'">'+
+      '<div class="row">'+
+        '<div>'+
+          '<span class="title">'+escapeHtml(dp.orderNo||'')+' '+escapeHtml(dp.productName||'')+'</span>'+
+          ' <span class="badge '+statusCls+'">'+statusLabel+'</span>'+
+          (dp.result?' <span class="badge '+resultCls+'">'+resultText+'</span>':'')+
+        '</div>'+
+        '<div class="sub">'+ (dp.buyerVotes||0) +' vs '+ (dp.sellerVotes||0) +' 票</div>'+
+      '</div>'+
+      '<div class="meta">申请人: '+escapeHtml(dp.initiatorName||'')+' · 被申请人: '+escapeHtml(dp.respondentName||'')+'</div>'+
+      '<div class="meta">原因: '+escapeHtml(dp.reason||'')+'</div>'+
+      '<div class="meta">创建: '+(dp.createdAt||'')+'</div>'+
+      (notResolved?'<div class="actions">'+
+        '<button class="btn btn-green" onclick="resolveDispute(\''+dp.id+'\',\'buyer_win\')">通过（买家胜诉）</button>'+
+        '<button class="btn btn-red" onclick="resolveDispute(\''+dp.id+'\',\'seller_win\')">驳回（卖家胜诉）</button>'+
+      '</div>':'')+
+      '<button class="btn btn-grey" style="margin-top:8px" onclick="toggleJurors(\''+dp.id+'\')">查看陪审员</button>'+
+      '<div class="jurors-panel" id="jurors-'+dp.id+'"></div>'+
+    '</div>';
   }).join('');
+}
+
+async function resolveDispute(id,result){
+  var label=result==='buyer_win'?'买家胜诉':'卖家胜诉';
+  if(!confirm('确认裁决: '+label+' ?'))return;
+  const d=await api('PUT','/admin/disputes/'+id+'/resolve',{result:result});
+  if(d.code===0){toast(d.data||'已裁决','success');loadDisputes();loadStats()}else{toast(d.message,'error')}
+}
+
+async function toggleJurors(id){
+  var panel=document.getElementById('jurors-'+id);
+  if(panel.classList.contains('open')){panel.classList.remove('open');return}
+  var d=await api('GET','/admin/disputes/'+id+'/jurors');
+  if(d.code!==0||!d.data||d.data.length===0){
+    panel.innerHTML='<div class="juror-row" style="color:#888">暂无陪审员</div>';
+  }else{
+    panel.innerHTML=d.data.map(function(j){
+      var statusLabel={'pending':'待投票','voted':'已投票'}[j.status]||j.status;
+      var statusCls=j.status==='voted'?'badge-voted':'badge-pending';
+      return '<div class="juror-row">'+
+        '<span>'+escapeHtml(j.userName||'')+'</span>'+
+        '<span class="badge '+statusCls+'">'+statusLabel+'</span>'+
+        '<span style="color:#aaa;font-size:12px">'+(j.voteTime||'')+'</span>'+
+      '</div>';
+    }).join('');
+  }
+  panel.classList.add('open');
 }
 
 // ---- 用户管理 ----
 async function loadUsers(){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===1));
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',i===1)});
   const d=await api('GET','/admin/users');
   const a=document.getElementById('contentArea');
   if(d.code!==0){a.innerHTML='<p style="text-align:center;color:#888;margin-top:40px">加载失败</p>';return}
-  a.innerHTML=d.data.map(u=>{
-    const roleCls='badge-'+u.role;
-    const roleLabel={'admin':'管理员','artisan':'传承人','user':'用户'}[u.role]||u.role;
-    const statusCls='badge-'+u.status;
-    const frozenBtn=u.status==='frozen'
-      ?`<button class="btn btn-green" onclick="freezeUser('${u.id}')">解冻</button>`
-      :`<button class="btn btn-orange" onclick="freezeUser('${u.id}')">冻结</button>`;
-    return `<div class="card">
-      <div class="row">
-        <div>
-          <span class="title">${escapeHtml(u.nickname||'')}</span>
-          <span class="badge ${roleCls}">${roleLabel}</span>
-          <span class="badge ${statusCls}">${u.status==='frozen'?'已冻结':'正常'}</span>
-        </div>
-        <div class="sub">信用分: ${u.creditScore||100}</div>
-      </div>
-      <div class="meta">手机: ${u.phone||''} · 收藏${u.collectCount||0} · 关注${u.followCount||0} · 订单${u.orderCount||0}</div>
-      <div class="actions">
-        ${frozenBtn}
-        <button class="btn btn-blue" onclick="showCreditModal('${u.id}',${u.creditScore||100})">调整信用</button>
-        <button class="btn btn-grey" onclick="showRoleModal('${u.id}','${u.role||'user'}')">修改角色</button>
-      </div>
-    </div>`
+  a.innerHTML=d.data.map(function(u){
+    var roleCls='badge-'+u.role;
+    var roleLabel={'admin':'管理员','artisan':'传承人','user':'用户'}[u.role]||u.role;
+    var statusCls='badge-'+u.status;
+    var frozenBtn=u.status==='frozen'
+      ?'<button class="btn btn-green" onclick="freezeUser(\''+u.id+'\')">解冻</button>'
+      :'<button class="btn btn-orange" onclick="freezeUser(\''+u.id+'\')">冻结</button>';
+    return '<div class="card">'+
+      '<div class="row">'+
+        '<div>'+
+          '<span class="title">'+escapeHtml(u.nickname||'')+'</span>'+
+          ' <span class="badge '+roleCls+'">'+roleLabel+'</span>'+
+          ' <span class="badge '+statusCls+'">'+(u.status==='frozen'?'已冻结':'正常')+'</span>'+
+        '</div>'+
+        '<div class="sub">信用分: '+(u.creditScore||100)+'</div>'+
+      '</div>'+
+      '<div class="meta">手机: '+(u.phone||'')+' · 收藏'+(u.collectCount||0)+' · 关注'+(u.followCount||0)+' · 订单'+(u.orderCount||0)+'</div>'+
+      '<div class="actions">'+
+        frozenBtn+
+        '<button class="btn btn-blue" onclick="showCreditModal(\''+u.id+'\','+(u.creditScore||100)+')">调整信用</button>'+
+        '<button class="btn btn-grey" onclick="showRoleModal(\''+u.id+'\',\''+(u.role||'user')+'\')">修改角色</button>'+
+      '</div>'+
+    '</div>';
   }).join('');
 }
 
 async function freezeUser(id){
-  const d=await api('PUT',`/admin/users/${id}/freeze`,{});
+  const d=await api('PUT','/admin/users/'+id+'/freeze',{});
   if(d.code===0){toast(d.data||'操作成功','success');loadUsers()}else{toast(d.message,'error')}
 }
 function showCreditModal(id,currentScore){
   const m=document.getElementById('modalBox');
-  m.innerHTML=`<div class="modal-box"><h3>调整信用分</h3><p style="color:#888;font-size:13px;margin-bottom:8px">当前: ${currentScore}</p><input type="number" id="creditInput" value="${currentScore}" min="0" max="200"><div class="btn-row"><button class="btn btn-grey" onclick="closeModal()">取消</button><button class="btn btn-green" onclick="adjustCredit('${id}')">确认</button></div></div>`;
+  m.innerHTML='<div class="modal-box"><h3>调整信用分</h3><p style="color:#888;font-size:13px;margin-bottom:8px">当前: '+currentScore+'</p><input type="number" id="creditInput" value="'+currentScore+'" min="0" max="200"><div class="btn-row"><button class="btn btn-grey" onclick="closeModal()">取消</button><button class="btn btn-green" onclick="adjustCredit(\''+id+'\')">确认</button></div></div>';
   m.style.display='flex';
 }
 async function adjustCredit(id){
   const v=parseInt(document.getElementById('creditInput').value);
   if(v<0||v>200){toast('信用分范围 0-200','error');return}
-  const d=await api('PUT',`/admin/users/${id}/credit`,{creditScore:v});
+  const d=await api('PUT','/admin/users/'+id+'/credit',{creditScore:v});
   if(d.code===0){toast(d.data||'已更新','success');closeModal();loadUsers()}else{toast(d.message,'error')}
 }
 function showRoleModal(id,currentRole){
   const m=document.getElementById('modalBox');
-  m.innerHTML=`<div class="modal-box"><h3>修改角色</h3><select id="roleSelect"><option value="user" ${currentRole==='user'?'selected':''}>用户</option><option value="artisan" ${currentRole==='artisan'?'selected':''}>传承人</option><option value="admin" ${currentRole==='admin'?'selected':''}>管理员</option></select><div class="btn-row"><button class="btn btn-grey" onclick="closeModal()">取消</button><button class="btn btn-green" onclick="changeRole('${id}')">确认</button></div></div>`;
+  m.innerHTML='<div class="modal-box"><h3>修改角色</h3><select id="roleSelect"><option value="user" '+(currentRole==='user'?'selected':'')+'>用户</option><option value="artisan" '+(currentRole==='artisan'?'selected':'')+'>传承人</option><option value="admin" '+(currentRole==='admin'?'selected':'')+'>管理员</option></select><div class="btn-row"><button class="btn btn-grey" onclick="closeModal()">取消</button><button class="btn btn-green" onclick="changeRole(\''+id+'\')">确认</button></div></div>';
   m.style.display='flex';
 }
 async function changeRole(id){
   const v=document.getElementById('roleSelect').value;
-  const d=await api('PUT',`/admin/users/${id}/role`,{role:v});
+  const d=await api('PUT','/admin/users/'+id+'/role',{role:v});
   if(d.code===0){toast(d.data||'已更新','success');closeModal();loadUsers()}else{toast(d.message,'error')}
 }
 function closeModal(){document.getElementById('modalBox').style.display='none'}
 
 // ---- 商品管理 ----
 async function loadProducts(){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===3));
-  const r=await fetch(`${API}/products?page=1&size=20`);
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',i===3)});
+  const r=await fetch(API+'/products?page=1&size=20');
   const d=await r.json();
   const a=document.getElementById('contentArea');
   if(d.code!==0||!d.data.list||d.data.list.length===0){
     a.innerHTML='<div class="card" style="text-align:center;color:#888;padding:40px">暂无商品</div>';return;
   }
-  a.innerHTML=d.data.list.map(p=>`<div class="card">
-    <div class="row">
-      <span class="title">${escapeHtml(p.name)}</span>
-      <span class="sub">¥${(p.price/100).toFixed(2)}</span>
-    </div>
-    <div class="meta">匠人: ${escapeHtml(p.artisanName||'')} · 技艺: ${escapeHtml(p.craftType||'')} · 产地: ${escapeHtml(p.region||'')} · 销量: ${p.sales||0} · 评分: ${p.rating||5.0}</div>
-    <div class="meta">${(p.images||[]).length} 张图片</div>
-  </div>`).join('');
+  a.innerHTML=d.data.list.map(function(p){
+    return '<div class="card">'+
+      '<div class="row">'+
+        '<span class="title">'+escapeHtml(p.name)+'</span>'+
+        '<span class="sub">¥'+((p.price/100).toFixed(2))+'</span>'+
+      '</div>'+
+      '<div class="meta">匠人: '+escapeHtml(p.artisanName||'')+' · 技艺: '+escapeHtml(p.craftType||'')+' · 产地: '+escapeHtml(p.region||'')+' · 销量: '+(p.sales||0)+' · 评分: '+(p.rating||5.0)+'</div>'+
+      '<div class="meta">'+((p.images||[]).length)+' 张图片</div>'+
+    '</div>';
+  }).join('');
 }
 
 async function loadAudit(){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===2));
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',i===2)});
   const d=await api('GET','/admin/products/pending');
   const a=document.getElementById('contentArea');
   if(d.code!==0||!d.data||d.data.length===0){
     a.innerHTML='<div class="card" style="text-align:center;color:#888;padding:40px">暂无待审核商品</div>';return;
   }
-  a.innerHTML=d.data.map(p=>{
-    const statusLabel={'pending':'待审核','approved':'已通过','rejected':'已驳回'}[p.auditStatus]||p.auditStatus;
-    const statusColor={'pending':'#856404','approved':'#1E8449','rejected':'#721C24'}[p.auditStatus]||'#888';
-    const statusBg={'pending':'#FFF3CD','approved':'#D5F5E3','rejected':'#F8D7DA'}[p.auditStatus]||'#eee';
-    const images=(()=>{try{const r=JSON.parse(p.images||'[]');return Array.isArray(r)?r:[]}catch(e){return[]}})();
-    return `<div class="card">
-      <div class="row">
-        <div>
-          <span class="title">${escapeHtml(p.name)}</span>
-          <span class="badge" style="background:${statusBg};color:${statusColor}">${statusLabel}</span>
-        </div>
-        <div class="sub">¥${(p.price/100).toFixed(2)}</div>
-      </div>
-      <div class="meta">匠人: ${escapeHtml(p.artisanName||'')} · 技艺: ${escapeHtml(p.craftType||'')} · 产地: ${escapeHtml(p.region||'')}</div>
-      <div class="meta">${p.createTime||''}</div>
-      ${images.length>0?`<div class="meta">${images.length} 张图片</div>`:''}
-      ${p.auditStatus==='pending'?`<div class="actions">
-        <button class="btn btn-green" onclick="auditProduct('${p.id}','approved')">通过</button>
-        <button class="btn btn-red" onclick="auditProduct('${p.id}','rejected')">驳回</button>
-      </div>`:''}
-    </div>`
+  a.innerHTML=d.data.map(function(p){
+    var statusLabel={'pending':'待审核','approved':'已通过','rejected':'已驳回'}[p.auditStatus]||p.auditStatus;
+    var statusColor={'pending':'#856404','approved':'#1E8449','rejected':'#721C24'}[p.auditStatus]||'#888';
+    var statusBg={'pending':'#FFF3CD','approved':'#D5F5E3','rejected':'#F8D7DA'}[p.auditStatus]||'#eee';
+    var images=(function(){try{var r=JSON.parse(p.images||'[]');return Array.isArray(r)?r:[]}catch(e){return[]}})();
+    return '<div class="card">'+
+      '<div class="row">'+
+        '<div>'+
+          '<span class="title">'+escapeHtml(p.name)+'</span>'+
+          ' <span class="badge" style="background:'+statusBg+';color:'+statusColor+'">'+statusLabel+'</span>'+
+        '</div>'+
+        '<div class="sub">¥'+((p.price/100).toFixed(2))+'</div>'+
+      '</div>'+
+      '<div class="meta">匠人: '+escapeHtml(p.artisanName||'')+' · 技艺: '+escapeHtml(p.craftType||'')+' · 产地: '+escapeHtml(p.region||'')+'</div>'+
+      '<div class="meta">'+(p.createTime||'')+'</div>'+
+      (images.length>0?'<div class="meta">'+images.length+' 张图片</div>':'')+
+      (p.auditStatus==='pending'?'<div class="actions">'+
+        '<button class="btn btn-green" onclick="auditProduct(\''+p.id+'\',\'approved\')">通过</button>'+
+        '<button class="btn btn-red" onclick="auditProduct(\''+p.id+'\',\'rejected\')">驳回</button>'+
+      '</div>':'')+
+    '</div>';
   }).join('');
 }
 
 async function auditProduct(id,status){
-  const d=await api('PUT',`/admin/products/${id}/audit`,{auditStatus:status});
+  const d=await api('PUT','/admin/products/'+id+'/audit',{auditStatus:status});
   if(d.code===0){toast(d.data||'操作成功','success');loadAudit()}else{toast(d.message,'error')}
 }
 
