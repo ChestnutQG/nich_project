@@ -16,6 +16,10 @@
     "pages/Profile",
     "pages/ProfileEdit",
     "pages/FavoriteList",
-    "pages/FollowList"
+    "pages/FollowList",
+    "pages/DisputeList",
+    "pages/DisputeApply",
+    "pages/DisputeDetail",
+    "pages/JuryInvitations"
   ]
 }

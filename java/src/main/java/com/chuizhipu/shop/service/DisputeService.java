@@ -14,15 +14,17 @@ public class DisputeService {
     private final JuryInvitationMapper invitationMapper;
     private final JuryVoteMapper voteMapper;
     private final OrderMapper orderMapper;
+    private final OrderItemMapper orderItemMapper;
     private final UserMapper userMapper;
 
     public DisputeService(DisputeMapper disputeMapper, JuryInvitationMapper invitationMapper,
                           JuryVoteMapper voteMapper, OrderMapper orderMapper,
-                          UserMapper userMapper) {
+                          OrderItemMapper orderItemMapper, UserMapper userMapper) {
         this.disputeMapper = disputeMapper;
         this.invitationMapper = invitationMapper;
         this.voteMapper = voteMapper;
         this.orderMapper = orderMapper;
+        this.orderItemMapper = orderItemMapper;
         this.userMapper = userMapper;
     }
 
@@ -110,9 +112,9 @@ public class DisputeService {
             }
         }
 
-        // 检查投票是否足够
+        // 检查投票是否足够（≥10 人或全部受邀人已投票）
         int total = voteMapper.countByDisputeId(disputeId);
-        if (total >= 10) {
+        if (total >= 10 || total >= invitations.size()) {
             resolveDispute(disputeId);
         }
     }
@@ -198,8 +200,6 @@ public class DisputeService {
     }
 
     private Long getSellerId(Long orderId) {
-        // 从订单项商品中查 seller：通过 artisan_id 或 product 关联
-        // 简化处理：订单关联 buyer，从 product 查 artisan
-        return null; // 实际从订单中取 respondent
+        return orderItemMapper.selectSellerIdByOrderId(orderId);
     }
 }

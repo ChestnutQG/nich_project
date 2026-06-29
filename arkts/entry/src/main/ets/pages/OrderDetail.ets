@@ -206,7 +206,7 @@ struct OrderDetail {
               .height(40)
               .layoutWeight(1)
               .onClick(() => {
-                router.pushUrl({ url: Constants.PAGE_DISPUTE_APPLY })
+                router.pushUrl({ url: Constants.PAGE_DISPUTE_APPLY, params: { orderId: this.orderId } })
               })
           }
           .width('100%')

@@ -29,6 +29,15 @@
                 #{skuId}, #{skuName}, #{price}, #{quantity})
     </insert>
 
+    <select id="selectSellerIdByOrderId" resultType="long">
+        SELECT a.user_id
+        FROM t_order_item oi
+        JOIN t_product p ON oi.product_id = p.id
+        JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE oi.order_id = #{orderId}
+        LIMIT 1
+    </select>
+
     <insert id="insertBatch">
         INSERT INTO t_order_item (order_id, product_id, product_name, product_image,
                                    sku_id, sku_name, price, quantity)

@@ -122,7 +122,7 @@ struct DisputeDetail {
                 }
                 .width('100%').margin({ top: 12 })
 
-                Text(`买家支持率: ${(this.stats!.buyerRate * 100).toFixed(1)}%`)
+                Text(`买家支持率: ${(this.stats!.buyerRate).toFixed(1)}%`)
                   .fontSize(12).fontColor(Colors.TEXT_HINT).margin({ top: 8 })
               }
               .width('100%').padding(16).backgroundColor(Colors.BG_WHITE).margin({ top: 8 })

@@ -29,11 +29,11 @@
 
     <select id="selectById" resultMap="disputeMap">
         SELECT d.*, o.order_no,
-               oi.product_name,
+               (SELECT oi.product_name FROM t_order_item oi
+                WHERE oi.order_id = o.id LIMIT 1) AS product_name,
                u1.nickname AS initiator_name, u2.nickname AS respondent_name
         FROM t_dispute d
         LEFT JOIN t_order o ON d.order_id = o.id
-        LEFT JOIN t_order_item oi ON o.id = oi.order_id LIMIT 1
         LEFT JOIN t_user u1 ON d.initiator_id = u1.id
         LEFT JOIN t_user u2 ON d.respondent_id = u2.id
         WHERE d.id = #{id}
@@ -41,11 +41,11 @@
 
     <select id="selectByUser" resultMap="disputeMap">
         SELECT d.*, o.order_no,
-               oi.product_name,
+               (SELECT oi.product_name FROM t_order_item oi
+                WHERE oi.order_id = o.id LIMIT 1) AS product_name,
                u1.nickname AS initiator_name, u2.nickname AS respondent_name
         FROM t_dispute d
         LEFT JOIN t_order o ON d.order_id = o.id
-        LEFT JOIN t_order_item oi ON o.id = oi.order_id LIMIT 1
         LEFT JOIN t_user u1 ON d.initiator_id = u1.id
         LEFT JOIN t_user u2 ON d.respondent_id = u2.id
         WHERE d.initiator_id = #{userId} OR d.respondent_id = #{userId}
