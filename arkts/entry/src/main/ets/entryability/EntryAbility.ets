@@ -8,8 +8,8 @@ const DOMAIN = 0x0000;
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
-    // 同步初始化设置，必须在 loadContent 前完成，确保 @StorageLink 拿到存档值
-    SettingsService.init();
+    // 显式传入 this.context，避免 SettingsService 内部 getContext() 在此阶段失效
+    SettingsService.init(this.context);
   }
 
   onDestroy(): void {

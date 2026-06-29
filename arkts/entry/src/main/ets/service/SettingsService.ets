@@ -1,6 +1,6 @@
-// 应用设置服务 — 同步初始化 + 即时写盘，彻底解决重启丢失问题
+// 应用设置服务 — 显式传入 context，避免 getContext() 在 Ability 启动阶段失效
 import { preferences } from '@kit.ArkData'
-import { ConfigurationConstant } from '@kit.AbilityKit'
+import { ConfigurationConstant, common } from '@kit.AbilityKit'
 
 export type ThemeMode = 'light' | 'dark'
 export type FontScale = 'small' | 'normal' | 'large'
@@ -10,29 +10,29 @@ const PREFS_NAME = 'app_settings'
 
 class SettingsServiceImpl {
   private prefs: preferences.Preferences | null = null
+  private ctx: common.UIAbilityContext | null = null
 
-  // 同步初始化，在 EntryAbility.onCreate 中调用（早于任何页面/组件）
-  // getPreferencesSync 直接从磁盘读取，保证 @StorageLink 初始化时拿到存档值
-  init(): void {
+  // 由 EntryAbility.onCreate 显式传入 this.context，早于任何页面初始化
+  init(context: common.UIAbilityContext): void {
+    this.ctx = context
     try {
-      this.prefs = preferences.getPreferencesSync(getContext(), { name: PREFS_NAME })
-      const theme    = this.prefs.getSync('theme',     'light')  as ThemeMode
+      this.prefs = preferences.getPreferencesSync(context, { name: PREFS_NAME })
+      const theme     = this.prefs.getSync('theme',     'light')  as ThemeMode
       const fontScale = this.prefs.getSync('fontScale', 'normal') as FontScale
       const language  = this.prefs.getSync('language',  'zh')     as Language
       AppStorage.setOrCreate<ThemeMode>('theme',     theme)
       AppStorage.setOrCreate<FontScale>('fontScale', fontScale)
       AppStorage.setOrCreate<Language>('language',   language)
       this.applyColorMode(theme)
-    } catch (_) {
-      // 首次安装或读盘失败，使用默认值
+    } catch (e) {
+      // 首次安装无存档，使用默认值
       AppStorage.setOrCreate<ThemeMode>('theme',     'light')
       AppStorage.setOrCreate<FontScale>('fontScale', 'normal')
       AppStorage.setOrCreate<Language>('language',   'zh')
     }
   }
 
-  // 兼容旧调用
-  ensureInit(): void {}
+  ensureInit(): void {} // 兼容旧调用
 
   setTheme(mode: ThemeMode): void {
     AppStorage.set<ThemeMode>('theme', mode)
@@ -50,7 +50,7 @@ class SettingsServiceImpl {
     this.save('language', lang)
   }
 
-  // 在 EntryAbility.onBackground 中调用，确保进入后台时数据已落盘
+  // 进入后台时由 EntryAbility.onBackground 主动调用，确保数据落盘
   flush(): void {
     this.prefs?.flush()
   }
@@ -58,7 +58,7 @@ class SettingsServiceImpl {
   private save(key: string, value: string): void {
     if (!this.prefs) return
     this.prefs.putSync(key, value)
-    this.prefs.flush() // 立即启动异步写盘，用户正常操作下足够在杀进程前完成
+    this.prefs.flush()
   }
 
   private applyColorMode(mode: ThemeMode): void {
@@ -66,7 +66,9 @@ class SettingsServiceImpl {
       const colorMode = mode === 'dark'
         ? ConfigurationConstant.ColorMode.COLOR_MODE_DARK
         : ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT
-      getContext().getApplicationContext().setColorMode(colorMode)
+      // 优先用存储的 context，fallback 到 getContext()
+      const ctx = this.ctx ?? getContext()
+      ctx.getApplicationContext().setColorMode(colorMode)
     } catch (_) {}
   }
 }
