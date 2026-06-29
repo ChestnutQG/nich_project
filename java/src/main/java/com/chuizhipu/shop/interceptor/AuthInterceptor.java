@@ -76,7 +76,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (path.startsWith("/api/jury")) return false;
         if (path.startsWith("/api/admin")) return false;
         if (path.startsWith("/api/messages")) return false;
-        if (path.startsWith("/ws/")) return false;  // WebSocket 有自己的鉴权
+        if (path.startsWith("/api/notifications")) return false;
 
         // 其余 GET 公开（浏览商品、匠人、分类无需登录）
         if ("GET".equalsIgnoreCase(method)) return true;

@@ -1,76 +1,59 @@
-// 消息服务 — 聊天 & 通知 API
+// 私信服务 — 对接 MessageController
 import { ApiClient } from './ApiClient'
 import { ApiResponse } from '../model/ApiResponse'
-import { Message } from '../model/Message'
 
-interface UnreadCount {
-  total: number
-  chat: number
-  notification: number
+// 会话列表项
+export interface Conversation {
+  otherId: string
+  otherName: string
+  otherAvatar: string
+  lastContent: string
+  unread: number
+  time: string
 }
 
-interface SendChatReq {
-  receiverId: number
+// 单条聊天消息
+export interface ChatMessage {
+  id: string
+  fromMe: boolean
+  content: string
+  time: string
+}
+
+interface SendReq {
+  toUserId: number
   content: string
 }
 
 export class MessageService {
 
-  // ==================== 聊天 ====================
-
-  /** 发送聊天消息（HTTP 方式，WebSocket 也可用） */
-  static async sendChatMessage(receiverId: number, content: string): Promise<ApiResponse<Message>> {
-    const body: SendChatReq = { receiverId, content }
-    return await ApiClient.post<Message>('/messages/chat', body)
-  }
-
-  /** 获取与某用户的聊天记录 */
-  static async getChatMessages(peerId: number, page: number = 1, pageSize: number = 50): Promise<ApiResponse<Message[]>> {
-    const params: Record<string, string> = {
-      'page': String(page),
-      'pageSize': String(pageSize)
+  // 会话列表
+  static async fetchConversations(): Promise<ApiResponse<Conversation[]>> {
+    const resp = await ApiClient.get<Conversation[]>('/messages/conversations')
+    if (resp.code === 0 && resp.data) {
+      return { code: 0, message: 'ok', data: resp.data }
     }
-    return await ApiClient.get<Message[]>(`/messages/chat/${peerId}`, params)
+    return { code: resp.code, message: resp.message, data: [] }
   }
 
-  /** 获取会话列表 */
-  static async getConversations(): Promise<ApiResponse<Message[]>> {
-    return await ApiClient.get<Message[]>('/messages/conversations')
-  }
-
-  /** 标记会话已读 */
-  static async markConversationRead(peerId: number): Promise<ApiResponse<null>> {
-    const emptyReq: Record<string, string> = {}
-    return await ApiClient.put<null>(`/messages/chat/${peerId}/read`, emptyReq)
-  }
-
-  // ==================== 通知 ====================
-
-  /** 获取通知列表 */
-  static async getNotifications(page: number = 1, pageSize: number = 20): Promise<ApiResponse<Message[]>> {
-    const params: Record<string, string> = {
-      'page': String(page),
-      'pageSize': String(pageSize)
+  // 与某人的聊天记录（会自动标记已读）
+  static async fetchChat(otherId: string): Promise<ApiResponse<ChatMessage[]>> {
+    const resp = await ApiClient.get<ChatMessage[]>(`/messages/${otherId}`)
+    if (resp.code === 0 && resp.data) {
+      return { code: 0, message: 'ok', data: resp.data }
     }
-    return await ApiClient.get<Message[]>('/messages/notifications', params)
+    return { code: resp.code, message: resp.message, data: [] }
   }
 
-  /** 标记某条通知已读 */
-  static async markNotificationRead(id: number): Promise<ApiResponse<null>> {
-    const emptyReq: Record<string, string> = {}
-    return await ApiClient.put<null>(`/messages/notification/${id}/read`, emptyReq)
+  // 发私信
+  static async send(toUserId: string, content: string): Promise<ApiResponse<number>> {
+    const body: SendReq = { toUserId: parseInt(toUserId), content }
+    return ApiClient.post<number>('/messages', body)
   }
 
-  /** 全部通知标为已读 */
-  static async markAllNotificationsRead(): Promise<ApiResponse<null>> {
-    const emptyReq: Record<string, string> = {}
-    return await ApiClient.put<null>('/messages/notifications/read-all', emptyReq)
-  }
-
-  // ==================== 未读数 ====================
-
-  /** 获取未读消息数（总、聊天、通知） */
-  static async getUnreadCount(): Promise<ApiResponse<UnreadCount>> {
-    return await ApiClient.get<UnreadCount>('/messages/unread-count')
+  // 未读私信总数
+  static async unreadCount(): Promise<number> {
+    const resp = await ApiClient.get<number>('/messages/unread-count')
+    return resp.code === 0 ? (resp.data as number || 0) : 0
   }
 }

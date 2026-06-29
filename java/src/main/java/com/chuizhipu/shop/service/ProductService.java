@@ -14,7 +14,6 @@ import com.chuizhipu.shop.mapper.UserMapper;
 import com.chuizhipu.shop.vo.CraftStepVO;
 import com.chuizhipu.shop.vo.ProductVO;
 import com.chuizhipu.shop.vo.SkuVO;
-import com.chuizhipu.shop.websocket.ChatWebSocketHandler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,8 +27,7 @@ public class ProductService {
     private final ProductSkuMapper skuMapper;
     private final FavoriteMapper favoriteMapper;
     private final FollowMapper followMapper;
-    private final MessageService messageService;
-    private final ChatWebSocketHandler chatHandler;
+    private final NotificationService notificationService;
     private final ArtisanMapper artisanMapper;
     private final UserMapper userMapper;
 
@@ -37,16 +35,14 @@ public class ProductService {
                           ProductSkuMapper skuMapper,
                           FavoriteMapper favoriteMapper,
                           FollowMapper followMapper,
-                          MessageService messageService,
-                          ChatWebSocketHandler chatHandler,
+                          NotificationService notificationService,
                           ArtisanMapper artisanMapper,
                           UserMapper userMapper) {
         this.productMapper = productMapper;
         this.skuMapper = skuMapper;
         this.favoriteMapper = favoriteMapper;
         this.followMapper = followMapper;
-        this.messageService = messageService;
-        this.chatHandler = chatHandler;
+        this.notificationService = notificationService;
         this.artisanMapper = artisanMapper;
         this.userMapper = userMapper;
     }
@@ -168,12 +164,7 @@ public class ProductService {
         String msg = "您关注的匠人「" + (product.getArtisanName() != null ? product.getArtisanName() : "") +
                 "」发布了新作品《" + product.getName() + "》，快来看看吧！";
         for (Long userId : followerUserIds) {
-            try {
-                messageService.sendNotification(userId, msg, "artisan_new", product.getId());
-                wsPush(userId, "artisan_new", msg, product.getId());
-            } catch (Exception e) {
-                // skip individual failures
-            }
+            notificationService.notify(userId, "artisan_new", msg, product.getId());
         }
     }
 
@@ -189,25 +180,7 @@ public class ProductService {
                 String.format("%.2f", product.getPrice() / 100.0) +
                 "（降了 " + diffStr + "），赶紧去看看！";
         for (Long userId : userIds) {
-            try {
-                messageService.sendNotification(userId, msg, "price_drop", productId);
-                wsPush(userId, "price_drop", msg, productId);
-            } catch (Exception e) {
-                // skip individual failures
-            }
-        }
-    }
-
-    private void wsPush(Long userId, String type, String content, Long relatedId) {
-        try {
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("type", "notification");
-            payload.put("notificationType", type);
-            payload.put("content", content);
-            payload.put("relatedId", relatedId);
-            chatHandler.pushToUser(userId, payload);
-        } catch (Exception e) {
-            // ignore
+            notificationService.notify(userId, "price_drop", msg, productId);
         }
     }
 

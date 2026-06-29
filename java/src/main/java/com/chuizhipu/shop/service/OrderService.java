@@ -9,7 +9,6 @@ import com.chuizhipu.shop.mapper.ProductMapper;
 import com.chuizhipu.shop.vo.AddressVO;
 import com.chuizhipu.shop.vo.OrderItemVO;
 import com.chuizhipu.shop.vo.OrderVO;
-import com.chuizhipu.shop.websocket.ChatWebSocketHandler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,17 +24,14 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final ProductMapper productMapper;
-    private final MessageService messageService;
-    private final ChatWebSocketHandler chatHandler;
+    private final NotificationService notificationService;
 
     public OrderService(OrderMapper orderMapper, OrderItemMapper orderItemMapper,
-                       ProductMapper productMapper, MessageService messageService,
-                       ChatWebSocketHandler chatHandler) {
+                       ProductMapper productMapper, NotificationService notificationService) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.productMapper = productMapper;
-        this.messageService = messageService;
-        this.chatHandler = chatHandler;
+        this.notificationService = notificationService;
     }
 
     /** 用户订单列表 */
@@ -132,25 +128,7 @@ public class OrderService {
     }
 
     private void sendNotif(Long userId, String content, String type, Long relatedId) {
-        try {
-            messageService.sendNotification(userId, content, type, relatedId);
-            wsPush(userId, type, content, relatedId);
-        } catch (Exception e) {
-            // ignore
-        }
-    }
-
-    private void wsPush(Long userId, String type, String content, Long relatedId) {
-        try {
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("type", "notification");
-            payload.put("notificationType", type);
-            payload.put("content", content);
-            payload.put("relatedId", relatedId);
-            chatHandler.pushToUser(userId, payload);
-        } catch (Exception e) {
-            // ignore
-        }
+        notificationService.notify(userId, type, content, relatedId);
     }
 
     // ---- Entity → VO ----

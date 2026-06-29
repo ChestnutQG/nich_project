@@ -28,16 +28,16 @@ public class CommentService {
     private final ProductMapper productMapper;
     private final ArtisanMapper artisanMapper;
     private final UserMapper userMapper;
-    private final MessageService messageService;
+    private final NotificationService notificationService;
 
     public CommentService(CommentMapper commentMapper, ProductMapper productMapper,
                           ArtisanMapper artisanMapper, UserMapper userMapper,
-                          MessageService messageService) {
+                          NotificationService notificationService) {
         this.commentMapper = commentMapper;
         this.productMapper = productMapper;
         this.artisanMapper = artisanMapper;
         this.userMapper = userMapper;
-        this.messageService = messageService;
+        this.notificationService = notificationService;
     }
 
     /** 发表评论 */
@@ -62,7 +62,7 @@ public class CommentService {
             User commenter = userMapper.selectById(commenterId);
             String who = commenter != null && commenter.getNickname() != null ? commenter.getNickname() : "有人";
             String msg = who + " 评论了你的作品《" + p.getName() + "》：" + content;
-            messageService.sendNotification(a.getUserId(), msg, "comment", productId);
+            notificationService.notify(a.getUserId(), "comment", msg, productId);
         } catch (Exception ignore) {
             // 通知失败不影响评论
         }

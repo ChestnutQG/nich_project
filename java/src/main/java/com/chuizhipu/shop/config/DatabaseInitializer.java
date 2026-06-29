@@ -5,7 +5,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * 启动时自动创建 t_message 表（如果不存在），无需手动执行 SQL
+ * 启动时自动创建/修正消息相关表（私信、系统通知、商品评论），无需手动执行 SQL。
+ * 兼容旧版（远程 WebSocket 版）的 t_message：检测到旧结构会自动重建为本地结构。
  */
 @Component
 public class DatabaseInitializer {
@@ -19,26 +20,59 @@ public class DatabaseInitializer {
     @PostConstruct
     public void init() {
         try {
+            // 旧版 t_message 含 conversation_id 列，结构与本地 REST 版不兼容 → 删掉重建
+            Integer oldCol = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns " +
+                "WHERE table_schema = DATABASE() AND table_name = 't_message' AND column_name = 'conversation_id'",
+                Integer.class);
+            if (oldCol != null && oldCol > 0) {
+                jdbc.execute("DROP TABLE t_message");
+            }
+
+            // 私信
             jdbc.execute("""
                 CREATE TABLE IF NOT EXISTS t_message (
-                    id               BIGINT AUTO_INCREMENT PRIMARY KEY,
-                    conversation_id  VARCHAR(64)  COMMENT '会话ID',
-                    sender_id        BIGINT       NOT NULL COMMENT '发送者ID（0=系统）',
-                    receiver_id      BIGINT       NOT NULL COMMENT '接收者ID',
-                    content          TEXT         NOT NULL COMMENT '消息内容',
-                    message_type     VARCHAR(20)  NOT NULL DEFAULT 'chat',
-                    notification_type VARCHAR(30),
-                    related_id       BIGINT,
-                    is_read          TINYINT(1)   NOT NULL DEFAULT 0,
-                    created_at       DATETIME     DEFAULT CURRENT_TIMESTAMP,
-                    INDEX idx_conversation (conversation_id),
-                    INDEX idx_receiver_unread (receiver_id, is_read, created_at),
-                    INDEX idx_sender (sender_id)
-                ) COMMENT '消息表'
+                    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    from_user_id BIGINT NOT NULL,
+                    to_user_id   BIGINT NOT NULL,
+                    content      VARCHAR(1000) NOT NULL,
+                    is_read      TINYINT DEFAULT 0,
+                    create_time  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_pair (from_user_id, to_user_id),
+                    INDEX idx_to_read (to_user_id, is_read)
+                ) COMMENT '私信'
             """);
-            System.out.println("✅ t_message 表已就绪");
+
+            // 系统通知
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS t_notification (
+                    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    user_id     BIGINT NOT NULL,
+                    type        VARCHAR(20) NOT NULL,
+                    title       VARCHAR(100) NOT NULL,
+                    content     VARCHAR(500),
+                    ref_id      BIGINT,
+                    is_read     TINYINT DEFAULT 0,
+                    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_user_read (user_id, is_read)
+                ) COMMENT '系统通知'
+            """);
+
+            // 商品评论
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS t_comment (
+                    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    product_id  BIGINT NOT NULL,
+                    user_id     BIGINT NOT NULL,
+                    content     VARCHAR(500) NOT NULL,
+                    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_product_id (product_id)
+                ) COMMENT '商品评论'
+            """);
+
+            System.out.println("✅ 消息/通知/评论表已就绪");
         } catch (Exception e) {
-            System.err.println("⚠️ t_message 表创建失败: " + e.getMessage());
+            System.err.println("⚠️ 消息相关表初始化失败: " + e.getMessage());
         }
     }
 }

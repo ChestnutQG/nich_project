@@ -8,6 +8,7 @@ import { AuthService } from '../service/AuthService'
 import { ensureTokenLoaded } from '../service/ApiClient'
 import { User } from '../model/User'
 import { MessageService } from '../service/MessageService'
+import { NotificationService } from '../service/NotificationService'
 import { NavBar } from '../components/NavBar'
 import { SettingsService } from '../service/SettingsService'
 import { Theme } from '../common/Theme'
@@ -94,10 +95,9 @@ struct Profile {
   }
 
   async loadUnreadCount(): Promise<void> {
-    const resp = await MessageService.getUnreadCount()
-    if (resp.code === 0 && resp.data) {
-      this.unreadMsgCount = resp.data.total || 0
-    }
+    const n = await NotificationService.unreadCount()
+    const m = await MessageService.unreadCount()
+    this.unreadMsgCount = n + m
   }
 
   private resetUserState(): void {

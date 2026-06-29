@@ -4,9 +4,8 @@ import com.chuizhipu.shop.common.R;
 import com.chuizhipu.shop.entity.*;
 import com.chuizhipu.shop.mapper.*;
 import com.chuizhipu.shop.service.DisputeService;
-import com.chuizhipu.shop.service.MessageService;
+import com.chuizhipu.shop.service.NotificationService;
 import com.chuizhipu.shop.service.UserService;
-import com.chuizhipu.shop.websocket.ChatWebSocketHandler;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -23,14 +22,13 @@ public class AdminController {
     private final FollowMapper followMapper;
     private final DisputeService disputeService;
     private final JuryInvitationMapper invitationMapper;
-    private final MessageService messageService;
-    private final ChatWebSocketHandler chatHandler;
+    private final NotificationService notificationService;
 
     public AdminController(UserMapper userMapper, DisputeMapper disputeMapper,
                            OrderMapper orderMapper, ProductMapper productMapper,
                            FavoriteMapper favoriteMapper, FollowMapper followMapper,
                            DisputeService disputeService, JuryInvitationMapper invitationMapper,
-                           MessageService messageService, ChatWebSocketHandler chatHandler) {
+                           NotificationService notificationService) {
         this.userMapper = userMapper;
         this.disputeMapper = disputeMapper;
         this.orderMapper = orderMapper;
@@ -39,8 +37,7 @@ public class AdminController {
         this.followMapper = followMapper;
         this.disputeService = disputeService;
         this.invitationMapper = invitationMapper;
-        this.messageService = messageService;
-        this.chatHandler = chatHandler;
+        this.notificationService = notificationService;
     }
 
     /** GET /api/admin/disputes — 所有纠纷列表 */
@@ -205,13 +202,7 @@ public class AdminController {
         int count = 0;
         for (User user : allUsers) {
             try {
-                messageService.sendNotification(user.getId(), content.trim(), "system", null);
-                // WebSocket 实时推送
-                Map<String, Object> payload = new LinkedHashMap<>();
-                payload.put("type", "notification");
-                payload.put("notificationType", "system");
-                payload.put("content", content.trim());
-                chatHandler.pushToUser(user.getId(), payload);
+                notificationService.notify(user.getId(), "system", content.trim(), null);
                 count++;
             } catch (Exception e) {
                 // skip individual failures

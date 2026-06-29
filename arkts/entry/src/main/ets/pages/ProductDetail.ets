@@ -180,9 +180,8 @@ struct ProductDetail {
                       router.pushUrl({
                         url: Constants.PAGE_CHAT_DETAIL,
                         params: {
-                          peerId: artUserId,
-                          peerName: this.product!.artisanName,
-                          currentUserId: myId
+                          otherId: artResp.data.userId,
+                          otherName: this.product!.artisanName
                         }
                       })
                     }
@@ -369,15 +368,22 @@ struct ProductDetail {
               // 评论列表
               ForEach(this.comments, (cmt: Comment) => {
                 Row() {
-                  // 头像
-                  Text(cmt.userName.charAt(0))
-                    .fontSize(this.fs(14))
-                    .fontColor(Theme.WHITE)
-                    .width(32).height(32)
-                    .borderRadius(16)
-                    .backgroundColor(Theme.gold(this.theme))
-                    .textAlign(TextAlign.Center)
-                    .lineHeight(32)
+                  // 头像：有图显示图片，无图退回名字首字
+                  if (cmt.avatar) {
+                    Image(cmt.avatar)
+                      .width(32).height(32)
+                      .borderRadius(16)
+                      .objectFit(ImageFit.Cover)
+                  } else {
+                    Text(cmt.userName.charAt(0))
+                      .fontSize(this.fs(14))
+                      .fontColor(Theme.WHITE)
+                      .width(32).height(32)
+                      .borderRadius(16)
+                      .backgroundColor(Theme.gold(this.theme))
+                      .textAlign(TextAlign.Center)
+                      .lineHeight(32)
+                  }
 
                   Column() {
                     Row() {

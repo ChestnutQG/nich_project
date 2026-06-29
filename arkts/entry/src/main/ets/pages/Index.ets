@@ -13,7 +13,7 @@ import { AuthService } from '../service/AuthService'
 import { CategoryService } from '../service/CategoryService'
 import { User } from '../model/User'
 import { MessageService } from '../service/MessageService'
-import { WebSocketManager, WsMessage } from '../service/WebSocketManager'
+import { NotificationService } from '../service/NotificationService'
 import { getToken, ensureTokenLoaded, clearToken } from '../service/ApiClient'
 import { Theme } from '../common/Theme'
 import { ThemeMode, FontScale, Language } from '../service/SettingsService'
@@ -35,7 +35,6 @@ struct Index {
   @State isLoggedIn: boolean = false
   @State unreadMsgCount: number = 0
   private pollTimer: number = -1
-  private wsManager: WebSocketManager = new WebSocketManager()
 
   @State showSideBar: boolean = false
   @State drawerOffset: number = -100
@@ -59,14 +58,14 @@ struct Index {
     this.loadCategories()
     this.loadUserData()
     CartService.loadCartCount().then((c: number) => { this.cartCount = c })
-    this.connectWsAndPoll()
+    this.startPolling()
   }
 
   onPageShow(): void {
     CartService.loadCartCount().then((c: number) => { this.cartCount = c })
     this.loadUserData()
     this.loadUnreadCount()
-    this.connectWsAndPoll()
+    this.startPolling()
   }
 
   onPageHide(): void {
@@ -74,30 +73,14 @@ struct Index {
     // 不主动断 WS，后台也能收推送
   }
 
-  connectWsAndPoll(): void {
-    this.startPolling()
-  }
-
-  // WebSocket 实时推送连接（登录后调用）
-  connectWs(): void {
-    if (!this.isLoggedIn) return
-    // 先重置再注册，避免切换账号后旧 handler 残留
-    this.wsManager.reset()
-    this.wsManager.onMessage((msg: WsMessage) => {
-      if (msg.type === 'notification') {
-        this.loadUnreadCount()
-      }
-    })
-    this.wsManager.connect()
-  }
-
+  // 定时轮询未读数（无 WebSocket，靠轮询刷新红点）
   startPolling(): void {
     if (this.pollTimer !== -1) {
       return
     }
     this.pollTimer = setInterval(() => {
       this.loadUnreadCount()
-    }, 30000) // 30 秒兜底轮询
+    }, 15000) // 15 秒轮询
   }
 
   stopPolling(): void {
@@ -139,8 +122,8 @@ struct Index {
       this.userCollectCount = resp.data.collectCount || 0
       this.userFollowCount = resp.data.followCount || 0
       this.userOrderCount = resp.data.orderCount || 0
-      // 登录态确认后，开启 WebSocket 实时推送
-      this.connectWs()
+      // 登录态确认后立即拉一次未读数
+      this.loadUnreadCount()
     } else {
       await clearToken()
       this.isLoggedIn = false
@@ -153,10 +136,9 @@ struct Index {
       this.unreadMsgCount = 0
       return
     }
-    const resp = await MessageService.getUnreadCount()
-    if (resp.code === 0 && resp.data) {
-      this.unreadMsgCount = resp.data.total || 0
-    }
+    const n = await NotificationService.unreadCount()
+    const m = await MessageService.unreadCount()
+    this.unreadMsgCount = n + m
   }
 
   private resetUserState(): void {
@@ -432,18 +414,15 @@ struct Index {
                     .layoutWeight(1)
 
                   if (this.unreadMsgCount > 0) {
-                    Row()
-                      .width(9)
-                      .height(9)
-                      .borderRadius(5)
-                      .backgroundColor('#E74C3C')
-                      .margin({ right: 8 })
                     Text(`${this.unreadMsgCount}`)
                       .fontSize(12)
                       .fontColor(Colors.BG_WHITE)
                       .backgroundColor('#E74C3C')
                       .borderRadius(10)
-                      .padding({ left: 7, right: 7, top: 2, bottom: 2 })
+                      .constraintSize({ minWidth: 18 })
+                      .textAlign(TextAlign.Center)
+                      .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                      .margin({ right: 8 })
                   }
 
                   Image($r('sys.media.ohos_ic_public_arrow_right'))
@@ -470,7 +449,6 @@ struct Index {
                   .onClick(async () => {
                     this.closeDrawer()
                     await AuthService.logout()
-                    this.wsManager.reset()
                     this.unreadMsgCount = 0
                     this.resetUserState()
                     this.isLoggedIn = false

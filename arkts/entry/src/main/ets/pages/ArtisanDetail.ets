@@ -224,9 +224,8 @@ struct ArtisanDetail {
               router.pushUrl({
                 url: Constants.PAGE_CHAT_DETAIL,
                 params: {
-                  peerId: artisanUserId,
-                  peerName: this.artisan!.name,
-                  currentUserId: myId
+                  otherId: this.artisan!.userId,
+                  otherName: this.artisan!.name
                 }
               })
             })

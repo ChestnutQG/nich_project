@@ -3,91 +3,56 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.chuizhipu.shop.mapper.MessageMapper">
 
-    <resultMap id="messageMap" type="com.chuizhipu.shop.entity.Message">
+    <resultMap id="msgMap" type="com.chuizhipu.shop.entity.Message">
         <id property="id" column="id"/>
-        <result property="conversationId" column="conversation_id"/>
-        <result property="senderId" column="sender_id"/>
-        <result property="receiverId" column="receiver_id"/>
+        <result property="fromUserId" column="from_user_id"/>
+        <result property="toUserId" column="to_user_id"/>
         <result property="content" column="content"/>
-        <result property="messageType" column="message_type"/>
-        <result property="notificationType" column="notification_type"/>
-        <result property="relatedId" column="related_id"/>
         <result property="isRead" column="is_read"/>
-        <result property="createdAt" column="created_at"/>
-        <result property="senderName" column="sender_name"/>
-        <result property="senderAvatar" column="sender_avatar"/>
+        <result property="createTime" column="create_time"/>
     </resultMap>
 
-    <!-- 插入消息 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO t_message (conversation_id, sender_id, receiver_id, content,
-                               message_type, notification_type, related_id, is_read)
-        VALUES (#{conversationId}, #{senderId}, #{receiverId}, #{content},
-                #{messageType}, #{notificationType}, #{relatedId}, #{isRead})
+        INSERT INTO t_message (from_user_id, to_user_id, content)
+        VALUES (#{fromUserId}, #{toUserId}, #{content})
     </insert>
 
-    <!-- 查询会话消息列表 -->
-    <select id="selectByConversation" resultMap="messageMap">
-        SELECT m.*, u.nickname AS sender_name, u.avatar AS sender_avatar
-        FROM t_message m
-        LEFT JOIN t_user u ON m.sender_id = u.id
-        WHERE m.conversation_id = #{conversationId}
-        ORDER BY m.created_at DESC
-        LIMIT #{offset}, #{limit}
+    <select id="selectConversation" resultMap="msgMap">
+        SELECT * FROM t_message
+        WHERE (from_user_id = #{userId} AND to_user_id = #{otherId})
+           OR (from_user_id = #{otherId} AND to_user_id = #{userId})
+        ORDER BY id ASC
     </select>
 
-    <!-- 查询用户的所有会话（每个会话最新一条消息，用 MAX(id) 避免时间精度问题） -->
-    <select id="selectConversations" resultMap="messageMap">
-        SELECT m.*, u.nickname AS sender_name, u.avatar AS sender_avatar
-        FROM t_message m
-        JOIN (
-            SELECT conversation_id, MAX(id) AS max_id
+    <select id="selectConversationList" resultType="java.util.LinkedHashMap">
+        SELECT
+            m.other_id   AS otherId,
+            u.nickname   AS otherName,
+            u.avatar     AS otherAvatar,
+            lm.content   AS lastContent,
+            lm.create_time AS lastTime,
+            (SELECT COUNT(*) FROM t_message x
+               WHERE x.to_user_id = #{userId} AND x.from_user_id = m.other_id AND x.is_read = 0) AS unread
+        FROM (
+            SELECT
+                CASE WHEN from_user_id = #{userId} THEN to_user_id ELSE from_user_id END AS other_id,
+                MAX(id) AS last_id
             FROM t_message
-            WHERE message_type = 'chat'
-              AND (sender_id = #{userId} OR receiver_id = #{userId})
-            GROUP BY conversation_id
-        ) latest ON m.id = latest.max_id
-        LEFT JOIN t_user u ON m.sender_id = u.id
-        ORDER BY m.created_at DESC
+            WHERE from_user_id = #{userId} OR to_user_id = #{userId}
+            GROUP BY other_id
+        ) m
+        JOIN t_message lm ON lm.id = m.last_id
+        JOIN t_user u ON u.id = m.other_id
+        ORDER BY lm.create_time DESC
     </select>
 
-    <!-- 查询通知列表 -->
-    <select id="selectNotifications" resultMap="messageMap">
-        SELECT m.*, u.nickname AS sender_name, u.avatar AS sender_avatar
-        FROM t_message m
-        LEFT JOIN t_user u ON m.sender_id = u.id
-        WHERE m.receiver_id = #{userId} AND m.message_type = 'notification'
-        ORDER BY m.created_at DESC
-        LIMIT #{offset}, #{limit}
+    <select id="countUnread" resultType="int">
+        SELECT COUNT(*) FROM t_message WHERE to_user_id = #{userId} AND is_read = 0
     </select>
 
-    <!-- 未读通知数 -->
-    <select id="countUnreadNotifications" resultType="int">
-        SELECT COUNT(*) FROM t_message
-        WHERE receiver_id = #{userId} AND message_type = 'notification' AND is_read = 0
-    </select>
-
-    <!-- 未读聊天消息数 -->
-    <select id="countUnreadChatMessages" resultType="int">
-        SELECT COUNT(*) FROM t_message
-        WHERE receiver_id = #{userId} AND message_type = 'chat' AND is_read = 0
-    </select>
-
-    <!-- 标记某条通知为已读 -->
-    <update id="markNotificationRead">
-        UPDATE t_message SET is_read = 1 WHERE id = #{id}
-    </update>
-
-    <!-- 标记某会话聊天消息为已读 -->
     <update id="markConversationRead">
         UPDATE t_message SET is_read = 1
-        WHERE conversation_id = #{conversationId} AND receiver_id = #{userId} AND is_read = 0
-    </update>
-
-    <!-- 标记所有通知为已读 -->
-    <update id="markAllNotificationsRead">
-        UPDATE t_message SET is_read = 1
-        WHERE receiver_id = #{userId} AND message_type = 'notification' AND is_read = 0
+        WHERE to_user_id = #{userId} AND from_user_id = #{otherId} AND is_read = 0
     </update>
 
 </mapper>

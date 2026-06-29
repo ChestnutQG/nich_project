@@ -2,7 +2,6 @@ package com.chuizhipu.shop.service;
 
 import com.chuizhipu.shop.entity.*;
 import com.chuizhipu.shop.mapper.*;
-import com.chuizhipu.shop.websocket.ChatWebSocketHandler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,21 +16,19 @@ public class DisputeService {
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final UserMapper userMapper;
-    private final MessageService messageService;
-    private final ChatWebSocketHandler chatHandler;
+    private final NotificationService notificationService;
 
     public DisputeService(DisputeMapper disputeMapper, JuryInvitationMapper invitationMapper,
                           JuryVoteMapper voteMapper, OrderMapper orderMapper,
                           OrderItemMapper orderItemMapper, UserMapper userMapper,
-                          MessageService messageService, ChatWebSocketHandler chatHandler) {
+                          NotificationService notificationService) {
         this.disputeMapper = disputeMapper;
         this.invitationMapper = invitationMapper;
         this.voteMapper = voteMapper;
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.userMapper = userMapper;
-        this.messageService = messageService;
-        this.chatHandler = chatHandler;
+        this.notificationService = notificationService;
     }
 
     /** 创建纠纷 */
@@ -255,21 +252,10 @@ public class DisputeService {
         sendDisputeNotification(dispute.getRespondentId(), notifyMsg, "dispute_resolved", disputeId);
     }
 
-    /** 发送维权通知（持久化 + WebSocket 实时推送） */
+    /** 发送维权通知（写入站内通知） */
     private void sendDisputeNotification(Long receiverId, String content,
                                           String notificationType, Long relatedId) {
-        try {
-            messageService.sendNotification(receiverId, content, notificationType, relatedId);
-            // WebSocket 实时推送
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("type", "notification");
-            payload.put("notificationType", notificationType);
-            payload.put("content", content);
-            payload.put("relatedId", relatedId);
-            chatHandler.pushToUser(receiverId, payload);
-        } catch (Exception e) {
-            // 通知发送失败不应阻断主流程
-        }
+        notificationService.notify(receiverId, notificationType, content, relatedId);
     }
 
     private Long getSellerId(Long orderId) {

@@ -5,9 +5,17 @@ import com.chuizhipu.shop.mapper.MessageMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
+/**
+ * 私信服务
+ */
 @Service
 public class MessageService {
 
@@ -17,93 +25,71 @@ public class MessageService {
         this.messageMapper = messageMapper;
     }
 
-    /** 发送聊天消息 */
+    /** 发私信 */
+    public Long send(Long fromId, Long toId, String content) {
+        Message m = new Message();
+        m.setFromUserId(fromId);
+        m.setToUserId(toId);
+        m.setContent(content);
+        messageMapper.insert(m);
+        return m.getId();
+    }
+
+    /** 取与某人的聊天记录，并把对方发来的标记为已读 */
     @Transactional
-    public Message sendChatMessage(Long senderId, Long receiverId, String content) {
-        Message msg = new Message();
-        msg.setConversationId(buildConversationId(senderId, receiverId));
-        msg.setSenderId(senderId);
-        msg.setReceiverId(receiverId);
-        msg.setContent(content);
-        msg.setMessageType("chat");
-        msg.setIsRead(false);
-        msg.setCreatedAt(LocalDateTime.now());
-        messageMapper.insert(msg);
-        return msg;
+    public List<Map<String, Object>> getConversation(Long userId, Long otherId) {
+        messageMapper.markConversationRead(userId, otherId);
+        List<Message> list = messageMapper.selectConversation(userId, otherId);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Message m : list) {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", m.getId().toString());
+            map.put("fromMe", m.getFromUserId().equals(userId));
+            map.put("content", m.getContent());
+            map.put("time", formatTime(m.getCreateTime()));
+            result.add(map);
+        }
+        return result;
     }
 
-    /** 发送系统通知（指定接收者） */
-    @Transactional
-    public Message sendNotification(Long receiverId, String content,
-                                     String notificationType, Long relatedId) {
-        Message msg = new Message();
-        msg.setSenderId(0L);  // 系统发送
-        msg.setReceiverId(receiverId);
-        msg.setContent(content);
-        msg.setMessageType("notification");
-        msg.setNotificationType(notificationType);
-        msg.setRelatedId(relatedId);
-        msg.setIsRead(false);
-        msg.setCreatedAt(LocalDateTime.now());
-        messageMapper.insert(msg);
-        return msg;
+    /** 会话列表 */
+    public List<Map<String, Object>> getConversationList(Long userId) {
+        List<Map<String, Object>> raw = messageMapper.selectConversationList(userId);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> r : raw) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("otherId", String.valueOf(r.get("otherId")));
+            m.put("otherName", r.get("otherName") != null ? r.get("otherName") : "用户");
+            m.put("otherAvatar", r.get("otherAvatar") != null ? r.get("otherAvatar") : "");
+            m.put("lastContent", r.get("lastContent") != null ? r.get("lastContent") : "");
+            Object unread = r.get("unread");
+            m.put("unread", unread == null ? 0 : ((Number) unread).intValue());
+            Object lastTime = r.get("lastTime");
+            m.put("time", lastTime instanceof LocalDateTime ? relativeTime((LocalDateTime) lastTime) : "");
+            result.add(m);
+        }
+        return result;
     }
 
-    /** 获取会话消息列表 */
-    public List<Message> getConversationMessages(Long userId, Long peerId, int page, int pageSize) {
-        String convId = buildConversationId(userId, peerId);
-        int offset = (page - 1) * pageSize;
-        return messageMapper.selectByConversation(convId, offset, pageSize);
+    public int unreadCount(Long userId) {
+        return messageMapper.countUnread(userId);
     }
 
-    /** 获取用户的所有会话列表 */
-    public List<Message> getConversations(Long userId) {
-        return messageMapper.selectConversations(userId);
+    private String formatTime(LocalDateTime t) {
+        if (t == null) return "";
+        return t.format(DateTimeFormatter.ofPattern("MM-dd HH:mm"));
     }
 
-    /** 获取通知列表 */
-    public List<Message> getNotifications(Long userId, int page, int pageSize) {
-        int offset = (page - 1) * pageSize;
-        return messageMapper.selectNotifications(userId, offset, pageSize);
-    }
-
-    /** 获取未读通知数 */
-    public int getUnreadNotificationCount(Long userId) {
-        return messageMapper.countUnreadNotifications(userId);
-    }
-
-    /** 获取未读聊天消息数 */
-    public int getUnreadChatCount(Long userId) {
-        return messageMapper.countUnreadChatMessages(userId);
-    }
-
-    /** 获取总未读数（通知 + 聊天） */
-    public int getTotalUnreadCount(Long userId) {
-        return messageMapper.countUnreadNotifications(userId) +
-                messageMapper.countUnreadChatMessages(userId);
-    }
-
-    /** 标记通知已读 */
-    @Transactional
-    public void markNotificationRead(Long id) {
-        messageMapper.markNotificationRead(id);
-    }
-
-    /** 标记某会话已读 */
-    @Transactional
-    public void markConversationRead(Long userId, Long peerId) {
-        String convId = buildConversationId(userId, peerId);
-        messageMapper.markConversationRead(convId, userId);
-    }
-
-    /** 全部通知标为已读 */
-    @Transactional
-    public void markAllNotificationsRead(Long userId) {
-        messageMapper.markAllNotificationsRead(userId);
-    }
-
-    /** 生成会话ID（小ID在前，确保A-B和B-A是同一个会话） */
-    private String buildConversationId(Long a, Long b) {
-        return a < b ? a + "_" + b : b + "_" + a;
+    private String relativeTime(LocalDateTime time) {
+        if (time == null) return "";
+        Duration d = Duration.between(time, LocalDateTime.now());
+        long mins = d.toMinutes();
+        if (mins < 1) return "刚刚";
+        if (mins < 60) return mins + "分钟前";
+        long hours = d.toHours();
+        if (hours < 24) return hours + "小时前";
+        long days = d.toDays();
+        if (days < 30) return days + "天前";
+        return time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
     }
 }

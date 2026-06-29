@@ -1,549 +1,201 @@
-// 消息中心 — 对话列表 + 通知列表
+// 消息中心 — 系统通知 + 私信会话 两个 Tab
 import { router } from '@kit.ArkUI'
-import { promptAction } from '@kit.ArkUI'
-import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
-import { Message, getNotificationIcon, getNotificationLabel } from '../model/Message'
-import { User } from '../model/User'
-import { MessageService } from '../service/MessageService'
-import { AuthService } from '../service/AuthService'
 import { NavBar } from '../components/NavBar'
-import { EmptyState } from '../components/EmptyState'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
+import { NotificationService, NotificationItem } from '../service/NotificationService'
+import { MessageService, Conversation } from '../service/MessageService'
 
 @Entry
 @Component
 struct MessageCenter {
-  @State currentTab: number = 0           // 0=对话, 1=通知
-  @State conversations: Message[] = []
-  @State notifications: Message[] = []
-  @State loadingChat: boolean = true
-  @State loadingNotif: boolean = true
-  @State unreadChat: number = 0
-  @State unreadNotif: number = 0
-  @State currentUserId: number = 0
-  @State refreshing: boolean = false
-  @State showSearch: boolean = false      // 是否显示用户搜索
-  @State searchKeyword: string = ''
-  @State searchResults: User[] = []
-  @State searchingUsers: boolean = false
-  private pollTimer: number = -1
+  @State activeTab: number = 0
+  @State notifications: NotificationItem[] = []
+  @State conversations: Conversation[] = []
+  @State loading: boolean = true
 
-  aboutToAppear(): void {
-    this.loadAll()
-    this.startPolling()
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
   }
 
   onPageShow(): void {
     this.loadAll()
-    this.startPolling()
-  }
-
-  onPageHide(): void {
-    this.stopPolling()
-  }
-
-  startPolling(): void {
-    if (this.pollTimer !== -1) return
-    this.pollTimer = setInterval(() => {
-      // 只刷新当前 tab 的数据，不显示 loading
-      if (this.currentTab === 0) {
-        this.loadConversations()
-      } else {
-        this.loadNotifications()
-      }
-      this.loadUnreadCount()
-    }, 8000) // 每 8 秒刷新
-  }
-
-  stopPolling(): void {
-    if (this.pollTimer !== -1) {
-      clearInterval(this.pollTimer)
-      this.pollTimer = -1
-    }
   }
 
   async loadAll(): Promise<void> {
-    // 获取当前用户ID
-    const userResp = await AuthService.getUserInfo()
-    if (userResp.code === 0 && userResp.data) {
-      this.currentUserId = Number(userResp.data.id) || 0
-    }
-    await Promise.all([
-      this.loadConversations(),
-      this.loadNotifications(),
-      this.loadUnreadCount()
-    ])
+    this.loading = true
+    const nResp = await NotificationService.fetchList()
+    if (nResp.code === 0) this.notifications = nResp.data
+    const cResp = await MessageService.fetchConversations()
+    if (cResp.code === 0) this.conversations = cResp.data
+    this.loading = false
   }
 
-  async loadConversations(): Promise<void> {
-    this.loadingChat = true
-    const resp = await MessageService.getConversations()
-    if (resp.code === 0) {
-      this.conversations = resp.data || []
-    }
-    this.loadingChat = false
-  }
-
-  async loadNotifications(): Promise<void> {
-    this.loadingNotif = true
-    const resp = await MessageService.getNotifications(1, 50)
-    if (resp.code === 0) {
-      this.notifications = resp.data || []
-    }
-    this.loadingNotif = false
-  }
-
-  async loadUnreadCount(): Promise<void> {
-    const resp = await MessageService.getUnreadCount()
-    if (resp.code === 0 && resp.data) {
-      this.unreadChat = resp.data.chat || 0
-      this.unreadNotif = resp.data.notification || 0
-    }
-  }
-
-  async markAllNotifRead(): Promise<void> {
-    const resp = await MessageService.markAllNotificationsRead()
-    if (resp.code === 0) {
-      this.unreadNotif = 0
-      // 更新列表中所有通知为已读
-      const updatedList: Message[] = []
-      for (let i = 0; i < this.notifications.length; i++) {
-        updatedList.push(this.copyMsgSetRead(this.notifications[i], true))
-      }
-      this.notifications = updatedList
-      promptAction.showToast({ message: '已全部标记为已读' })
-    }
-  }
-
-  // 搜索用户
-  async searchUsers(): Promise<void> {
-    if (!this.searchKeyword.trim()) {
-      this.searchResults = []
-      return
-    }
-    this.searchingUsers = true
-    const resp = await AuthService.searchUsers(this.searchKeyword.trim())
-    if (resp.code === 0 && resp.data) {
-      // 过滤掉自己
-      const filtered: User[] = []
-      for (let i = 0; i < resp.data.length; i++) {
-        if (Number(resp.data[i].id) !== this.currentUserId) {
-          filtered.push(resp.data[i])
-        }
-      }
-      this.searchResults = filtered
-    }
-    this.searchingUsers = false
-  }
-
-  // 手动复制 Message 并修改 isRead（ArkTS 不支持对象展开运算符）
-  copyMsgSetRead(src: Message, isRead: boolean): Message {
-    return {
-      id: src.id,
-      conversationId: src.conversationId,
-      senderId: src.senderId,
-      receiverId: src.receiverId,
-      content: src.content,
-      messageType: src.messageType,
-      notificationType: src.notificationType,
-      relatedId: src.relatedId,
-      isRead: isRead,
-      createdAt: src.createdAt,
-      senderName: src.senderName,
-      senderAvatar: src.senderAvatar
-    }
-  }
-
-  getPeerId(msg: Message): number {
-    // 从 conversationId 中提取对端用户ID
-    const convId = msg.conversationId || ''
-    const parts = convId.split('_')
-    if (parts.length === 2) {
-      return Number(parts[0]) === msg.senderId ? Number(parts[1]) : Number(parts[0])
-    }
-    return msg.senderId
+  async markAllRead(): Promise<void> {
+    await NotificationService.markAllRead()
+    this.loadAll()
   }
 
   build() {
     Column() {
-      NavBar({ title: '消息中心', showBack: true })
+      NavBar({ title: this.t('消息', 'Messages'), showBack: true })
 
-      // Tab 切换
+      // Tab 头
       Row() {
-        this.TabButton('💬', `对话${this.unreadChat > 0 ? ` (${this.unreadChat})` : ''}`, 0)
-        this.TabButton('🔔', `通知${this.unreadNotif > 0 ? ` (${this.unreadNotif})` : ''}`, 1)
-        if (this.currentTab === 1 && this.unreadNotif > 0) {
-          Text('全部已读')
-            .fontSize(12)
-            .fontColor(Colors.PRIMARY)
-            .onClick(() => this.markAllNotifRead())
-        }
-        if (this.currentTab === 0) {
-          Text('➕')
-            .fontSize(18)
-            .margin({ left: 8 })
-            .onClick(() => {
-              this.showSearch = !this.showSearch
-              this.searchKeyword = ''
-              this.searchResults = []
-            })
-        }
+        this.TabItem(this.t('通知', 'Notifications'), 0)
+        this.TabItem(this.t('私信', 'Chats'), 1)
       }
       .width('100%')
-      .padding({ left: 16, right: 16, top: 10, bottom: 10 })
-      .backgroundColor(Colors.BG_WHITE)
-      .justifyContent(FlexAlign.SpaceBetween)
+      .height(44)
+      .backgroundColor(Theme.card(this.theme))
 
-      // 用户搜索栏
-      if (this.currentTab === 0 && this.showSearch) {
-        Row() {
-          TextInput({ placeholder: '搜索用户昵称或手机号...', text: this.searchKeyword })
-            .fontSize(13)
-            .layoutWeight(1)
-            .height(34)
-            .backgroundColor(Colors.BG_PAPER)
-            .borderRadius(16)
-            .padding({ left: 12, right: 12 })
-            .onChange((value: string) => {
-              this.searchKeyword = value
-              this.searchUsers()
-            })
-
-          Text('取消')
-            .fontSize(12)
-            .fontColor(Colors.TEXT_HINT)
-            .margin({ left: 8 })
-            .onClick(() => {
-              this.showSearch = false
-              this.searchResults = []
-            })
-        }
-        .width('100%')
-        .padding({ left: 16, right: 16, top: 6, bottom: 6 })
-        .backgroundColor(Colors.BG_WHITE)
-
-        if (this.searchResults.length > 0) {
-          Column() {
-            ForEach(this.searchResults, (user: User) => {
-              Row() {
-                if (user.avatar) {
-                  Image(user.avatar)
-                    .width(36)
-                    .height(36)
-                    .borderRadius(18)
-                    .objectFit(ImageFit.Cover)
-                } else {
-                  Text((user.nickname || 'U').charAt(0))
-                    .fontSize(16)
-                    .fontColor(Colors.BG_WHITE)
-                    .width(36)
-                    .height(36)
-                    .borderRadius(18)
-                    .backgroundColor(Colors.PRIMARY)
-                    .textAlign(TextAlign.Center)
-                    .lineHeight(36)
-                }
-                Column() {
-                  Text(user.nickname || '用户')
-                    .fontSize(14)
-                    .fontColor(Colors.TEXT_PRIMARY)
-                  Text(user.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'))
-                    .fontSize(11)
-                    .fontColor(Colors.TEXT_HINT)
-                    .margin({ top: 2 })
-                }
-                .margin({ left: 10 })
-                .alignItems(HorizontalAlign.Start)
-                .layoutWeight(1)
-
-                Text('发消息 >')
-                  .fontSize(12)
-                  .fontColor(Colors.PRIMARY)
-              }
-              .width('100%')
-              .padding({ left: 16, right: 16, top: 10, bottom: 10 })
-              .backgroundColor(Colors.BG_WHITE)
-              .border({ width: { bottom: 0.5 }, color: Colors.DIVIDER })
-              .onClick(() => {
-                this.showSearch = false
-                this.searchResults = []
-                router.pushUrl({
-                  url: Constants.PAGE_CHAT_DETAIL,
-                  params: {
-                    peerId: Number(user.id),
-                    peerName: user.nickname || '用户',
-                    currentUserId: this.currentUserId
-                  }
-                })
-              })
-            })
-          }
-          .width('100%')
-        } else if (this.searchingUsers) {
-          Row() {
-            LoadingProgress().width(20).height(20).color(Colors.PRIMARY)
-          }
-          .width('100%')
-          .padding(12)
-          .backgroundColor(Colors.BG_WHITE)
-          .justifyContent(FlexAlign.Center)
-        }
-      }
-
-      // 内容区
-      if (this.currentTab === 0) {
-        this.ChatList()
-      } else {
+      if (this.activeTab === 0) {
         this.NotificationList()
+      } else {
+        this.ConversationList()
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(Colors.BG_PAPER)
+    .backgroundColor(Theme.bg(this.theme))
   }
 
   @Builder
-  TabButton(icon: string, label: string, index: number) {
+  TabItem(label: string, index: number) {
     Column() {
-      Text(icon + ' ' + label)
-        .fontSize(15)
-        .fontWeight(this.currentTab === index ? FontWeight.Bold : FontWeight.Normal)
-        .fontColor(this.currentTab === index ? Colors.PRIMARY : Colors.TEXT_SECONDARY)
-        .padding({ bottom: 6 })
+      Text(label)
+        .fontSize(this.fs(15))
+        .fontWeight(this.activeTab === index ? FontWeight.Bold : FontWeight.Normal)
+        .fontColor(this.activeTab === index ? Theme.primary(this.theme) : Theme.textSecondary(this.theme))
     }
-    .onClick(() => { this.currentTab = index })
     .layoutWeight(1)
-    .border({ width: { bottom: this.currentTab === index ? 2 : 0 }, color: Colors.PRIMARY })
-  }
-
-  @Builder
-  ChatList() {
-    if (this.conversations.length === 0 && !this.loadingChat) {
-      Column() {
-        EmptyState({ message: '暂无对话，去逛逛吧~', iconText: '💬' })
-      }
-      .width('100%')
-      .layoutWeight(1)
-    } else {
-      Scroll() {
-        Column() {
-          ForEach(this.conversations, (msg: Message) => {
-            Row() {
-              // 头像
-              if (msg.senderAvatar) {
-                Image(msg.senderAvatar)
-                  .width(44)
-                  .height(44)
-                  .borderRadius(22)
-                  .objectFit(ImageFit.Cover)
-              } else {
-                Text((msg.senderName || '?').charAt(0))
-                  .fontSize(18)
-                  .fontColor(Colors.BG_WHITE)
-                  .width(44)
-                  .height(44)
-                  .borderRadius(22)
-                  .backgroundColor(Colors.PRIMARY)
-                  .textAlign(TextAlign.Center)
-                  .lineHeight(44)
-              }
-
-              Column() {
-                Text(msg.senderName || '用户')
-                  .fontSize(15)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(Colors.TEXT_PRIMARY)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                Text(msg.content || '')
-                  .fontSize(13)
-                  .fontColor(Colors.TEXT_HINT)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  .margin({ top: 4 })
-              }
-              .margin({ left: 10 })
-              .alignItems(HorizontalAlign.Start)
-              .layoutWeight(1)
-
-              Column() {
-                Text(this.formatTime(msg.createdAt))
-                  .fontSize(11)
-                  .fontColor(Colors.TEXT_HINT)
-
-                if (!msg.isRead && msg.senderId !== 0) {
-                  Row()
-                    .width(8)
-                    .height(8)
-                    .borderRadius(4)
-                    .backgroundColor(Colors.PRIMARY)
-                    .margin({ top: 6 })
-                }
-              }
-              .alignItems(HorizontalAlign.End)
-            }
-            .width('100%')
-            .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-            .backgroundColor(Colors.BG_WHITE)
-            .onClick(() => {
-              router.pushUrl({
-                url: Constants.PAGE_CHAT_DETAIL,
-                params: {
-                  peerId: this.getPeerId(msg),
-                  peerName: msg.senderName || '用户',
-                  currentUserId: this.currentUserId
-                }
-              })
-            })
-          })
-        }
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
-    }
-
-    if (this.loadingChat) {
-      LoadingProgress().width(28).height(28).color(Colors.PRIMARY).margin({ top: 20 })
-    }
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .border(this.activeTab === index ? { width: { bottom: 2 }, color: Theme.primary(this.theme) } : { width: 0 })
+    .onClick(() => { this.activeTab = index })
   }
 
   @Builder
   NotificationList() {
-    if (this.notifications.length === 0 && !this.loadingNotif) {
-      Column() {
-        EmptyState({
-          message: '暂无通知，维权相关的消息会出现在这里~',
-          iconText: '🔔'
-        })
-      }
-      .width('100%')
-      .layoutWeight(1)
+    if (this.notifications.length === 0) {
+      this.EmptyTip('🔔', this.t('暂无通知', 'No notifications'))
     } else {
-      Scroll() {
-        Column() {
-          ForEach(this.notifications, (msg: Message) => {
-            Row() {
-              // 通知图标
-              Text(getNotificationIcon(msg.notificationType))
-                .fontSize(24)
-                .width(40)
-                .height(40)
-                .borderRadius(10)
-                .backgroundColor(Colors.PRIMARY_BG)
-                .textAlign(TextAlign.Center)
-                .lineHeight(40)
+      Column() {
+        Row() {
+          Blank()
+          Text(this.t('全部已读', 'Mark all read'))
+            .fontSize(this.fs(12))
+            .fontColor(Theme.primary(this.theme))
+            .onClick(() => { this.markAllRead() })
+        }
+        .width('100%').padding({ left: 16, right: 16, top: 8, bottom: 4 })
 
-              Column() {
-                Row() {
-                  Text(getNotificationLabel(msg.notificationType))
-                    .fontSize(13)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(Colors.PRIMARY)
+        List() {
+          ForEach(this.notifications, (n: NotificationItem) => {
+            ListItem() {
+              Row() {
+                // 未读红点
+                Circle({ width: 8, height: 8 })
+                  .fill(n.isRead ? Color.Transparent : Theme.primary(this.theme))
+                  .margin({ right: 8, top: 6 })
 
-                  if (!msg.isRead) {
-                    Row()
-                      .width(6)
-                      .height(6)
-                      .borderRadius(3)
-                      .backgroundColor(Colors.PRIMARY)
-                      .margin({ left: 6 })
+                Column() {
+                  Row() {
+                    Text(n.title)
+                      .fontSize(this.fs(14)).fontWeight(FontWeight.Medium)
+                      .fontColor(Theme.textPrimary(this.theme))
+                    Blank()
+                    Text(n.time).fontSize(this.fs(11)).fontColor(Theme.textHint(this.theme))
                   }
+                  .width('100%')
+                  Text(n.content)
+                    .fontSize(this.fs(13)).fontColor(Theme.textSecondary(this.theme))
+                    .margin({ top: 4 }).width('100%')
+                    .maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis })
                 }
-
-                Text(msg.content)
-                  .fontSize(14)
-                  .fontColor(Colors.TEXT_PRIMARY)
-                  .maxLines(2)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  .margin({ top: 4 })
-
-                Text(this.formatTime(msg.createdAt))
-                  .fontSize(11)
-                  .fontColor(Colors.TEXT_HINT)
-                  .margin({ top: 4 })
+                .layoutWeight(1).alignItems(HorizontalAlign.Start)
               }
-              .margin({ left: 10 })
-              .alignItems(HorizontalAlign.Start)
-              .layoutWeight(1)
-
-              Image($r('sys.media.ohos_ic_public_arrow_right'))
-                .width(14)
-                .height(14)
-                .fillColor(Colors.TEXT_HINT)
+              .width('100%').padding(14).alignItems(VerticalAlign.Top)
+              .backgroundColor(Theme.card(this.theme))
+              .onClick(() => {
+                if (!n.isRead) {
+                  NotificationService.markRead(n.id).then(() => { this.loadAll() })
+                }
+              })
             }
-            .width('100%')
-            .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-            .backgroundColor(Colors.BG_WHITE)
-            .border({ width: { bottom: 0.5 }, color: Colors.DIVIDER })
-            .onClick(async () => {
-              // 标记已读
-              if (!msg.isRead) {
-                await MessageService.markNotificationRead(msg.id)
-                this.unreadNotif = Math.max(0, this.unreadNotif - 1)
-                // 更新本地状态
-                const idx = this.notifications.findIndex((m: Message) => m.id === msg.id)
-                if (idx >= 0) {
-                  this.notifications[idx] = this.copyMsgSetRead(this.notifications[idx], true)
-                  // 触发状态更新（ArkTS 需要新数组引用才能响应变化）
-                  const updatedList: Message[] = []
-                  for (let i = 0; i < this.notifications.length; i++) {
-                    updatedList.push(this.notifications[i])
-                  }
-                  this.notifications = updatedList
-                }
-              }
-              // 跳转到关联详情
-              if (msg.relatedId && msg.notificationType) {
-                if (msg.notificationType.startsWith('dispute') || msg.notificationType === 'jury_invite') {
-                  router.pushUrl({
-                    url: Constants.PAGE_DISPUTE_DETAIL,
-                    params: { disputeId: msg.relatedId }
-                  })
-                } else if (msg.notificationType === 'order_status') {
-                  router.pushUrl({
-                    url: Constants.PAGE_ORDER_DETAIL,
-                    params: { orderId: msg.relatedId }
-                  })
-                } else if (msg.notificationType === 'artisan_new' || msg.notificationType === 'price_drop') {
-                  router.pushUrl({
-                    url: Constants.PAGE_PRODUCT_DETAIL,
-                    params: { productId: msg.relatedId }
-                  })
-                }
-              }
-            })
           })
         }
+        .layoutWeight(1).width('100%').divider({ strokeWidth: 0.5, color: Theme.divider(this.theme) })
       }
-      .width('100%')
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
-    }
-
-    if (this.loadingNotif) {
-      LoadingProgress().width(28).height(28).color(Colors.PRIMARY).margin({ top: 20 })
+      .layoutWeight(1).width('100%')
     }
   }
 
-  formatTime(timeStr: string): string {
-    if (!timeStr) return ''
-    try {
-      const date = new Date(timeStr)
-      const now = new Date()
-      const diff = now.getTime() - date.getTime()
-      if (diff < 60000) return '刚刚'
-      if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
-      if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
-      // 显示月-日 时:分
-      const m = String(date.getMonth() + 1).padStart(2, '0')
-      const d = String(date.getDate()).padStart(2, '0')
-      const h = String(date.getHours()).padStart(2, '0')
-      const min = String(date.getMinutes()).padStart(2, '0')
-      return `${m}-${d} ${h}:${min}`
-    } catch (e) {
-      return timeStr
+  @Builder
+  ConversationList() {
+    if (this.conversations.length === 0) {
+      this.EmptyTip('💬', this.t('暂无私信', 'No chats'))
+    } else {
+      List() {
+        ForEach(this.conversations, (c: Conversation) => {
+          ListItem() {
+            Row() {
+              Image(c.otherAvatar || 'https://picsum.photos/seed/chat/48/48')
+                .width(44).height(44).borderRadius(22).objectFit(ImageFit.Cover)
+
+              Column() {
+                Row() {
+                  Text(c.otherName).fontSize(this.fs(15)).fontWeight(FontWeight.Medium)
+                    .fontColor(Theme.textPrimary(this.theme))
+                  Blank()
+                  Text(c.time).fontSize(this.fs(11)).fontColor(Theme.textHint(this.theme))
+                }
+                .width('100%')
+                Text(c.lastContent)
+                  .fontSize(this.fs(13)).fontColor(Theme.textSecondary(this.theme))
+                  .margin({ top: 4 }).width('100%').maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+              }
+              .layoutWeight(1).margin({ left: 12 }).alignItems(HorizontalAlign.Start)
+
+              if (c.unread > 0) {
+                Text(`${c.unread}`)
+                  .fontSize(this.fs(11)).fontColor(Theme.WHITE)
+                  .backgroundColor(Theme.primary(this.theme))
+                  .borderRadius(9).constraintSize({ minWidth: 18 }).height(18)
+                  .textAlign(TextAlign.Center).padding({ left: 5, right: 5})
+                  .margin({ left: 6 })
+              }
+            }
+            .width('100%').padding(14).backgroundColor(Theme.card(this.theme))
+            .onClick(() => {
+              const p: Record<string, string> = {}
+              p['otherId'] = c.otherId
+              p['otherName'] = c.otherName
+              router.pushUrl({ url: Constants.PAGE_CHAT_DETAIL, params: p })
+            })
+          }
+        })
+      }
+      .layoutWeight(1).width('100%').divider({ strokeWidth: 0.5, color: Theme.divider(this.theme) })
     }
+  }
+
+  @Builder
+  EmptyTip(icon: string, text: string) {
+    Column() {
+      Text(icon).fontSize(this.fs(48)).opacity(0.6)
+      Text(text).fontSize(this.fs(14)).fontColor(Theme.textHint(this.theme)).margin({ top: 8 })
+    }
+    .layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
   }
 }

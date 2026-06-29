@@ -13,6 +13,7 @@ USE chuizhi_shop;
 SET NAMES utf8mb4;
 
 -- 先删旧表（按依赖顺序），方便重复执行
+DROP TABLE IF EXISTS t_notification;
 DROP TABLE IF EXISTS t_message;
 DROP TABLE IF EXISTS t_comment;
 DROP TABLE IF EXISTS t_jury_vote;
@@ -293,21 +294,33 @@ CREATE TABLE t_jury_vote (
 ) COMMENT '陪审投票';
 
 -- 15. 消息表（聊天 + 通知）
+-- 私信（用户 <-> 用户）
 CREATE TABLE t_message (
-    id               BIGINT AUTO_INCREMENT PRIMARY KEY,
-    conversation_id  VARCHAR(64)  COMMENT '会话ID（聊天消息用，格式: smallerId_largerId）',
-    sender_id        BIGINT       NOT NULL COMMENT '发送者ID（0=系统）',
-    receiver_id      BIGINT       NOT NULL COMMENT '接收者ID',
-    content          TEXT         NOT NULL COMMENT '消息内容',
-    message_type     VARCHAR(20)  NOT NULL DEFAULT 'chat' COMMENT 'chat=聊天 notification=通知',
-    notification_type VARCHAR(30) COMMENT 'dispute_new|dispute_status|dispute_resolved|jury_invite|system',
-    related_id       BIGINT       COMMENT '关联ID（维权ID/订单ID等）',
-    is_read          TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '是否已读',
-    created_at       DATETIME     DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_conversation (conversation_id),
-    INDEX idx_receiver_unread (receiver_id, is_read, created_at),
-    INDEX idx_sender (sender_id)
-) COMMENT '消息（聊天+通知）';
+    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+    from_user_id BIGINT NOT NULL COMMENT '发送者',
+    to_user_id   BIGINT NOT NULL COMMENT '接收者',
+    content      VARCHAR(1000) NOT NULL COMMENT '内容',
+    is_read      TINYINT DEFAULT 0 COMMENT '接收者是否已读',
+    create_time  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (from_user_id) REFERENCES t_user(id),
+    FOREIGN KEY (to_user_id)   REFERENCES t_user(id),
+    INDEX idx_pair (from_user_id, to_user_id),
+    INDEX idx_to_read (to_user_id, is_read)
+) COMMENT '私信';
+
+-- 系统通知（单向：系统 -> 用户）
+CREATE TABLE t_notification (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id     BIGINT NOT NULL COMMENT '接收用户ID',
+    type        VARCHAR(20) NOT NULL COMMENT '类型 order/follow/comment/dispute/system',
+    title       VARCHAR(100) NOT NULL COMMENT '标题',
+    content     VARCHAR(500) COMMENT '内容',
+    ref_id      BIGINT COMMENT '关联业务ID',
+    is_read     TINYINT DEFAULT 0 COMMENT '0未读 1已读',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES t_user(id),
+    INDEX idx_user_read (user_id, is_read)
+) COMMENT '系统通知';
 
 -- ==========================================
 -- 示例数据

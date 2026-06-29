@@ -5,39 +5,24 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface MessageMapper {
 
-    /** 插入消息 */
-    int insert(Message message);
+    int insert(Message m);
 
-    /** 查询某个会话的消息列表（分页） */
-    List<Message> selectByConversation(@Param("conversationId") String conversationId,
-                                       @Param("offset") int offset,
-                                       @Param("limit") int limit);
+    /** 两人之间的全部消息（时间升序） */
+    List<Message> selectConversation(@Param("userId") Long userId,
+                                     @Param("otherId") Long otherId);
 
-    /** 查询用户的所有会话列表（每个会话最新一条消息） */
-    List<Message> selectConversations(@Param("userId") Long userId);
+    /** 我的会话列表（每个对话方最新一条 + 未读数） */
+    List<Map<String, Object>> selectConversationList(@Param("userId") Long userId);
 
-    /** 查询用户的通知列表 */
-    List<Message> selectNotifications(@Param("userId") Long userId,
-                                      @Param("offset") int offset,
-                                      @Param("limit") int limit);
+    /** 我收到的未读总数 */
+    int countUnread(@Param("userId") Long userId);
 
-    /** 查询用户未读通知数 */
-    int countUnreadNotifications(@Param("userId") Long userId);
-
-    /** 查询用户未读聊天消息数（按会话聚合） */
-    int countUnreadChatMessages(@Param("userId") Long userId);
-
-    /** 标记通知为已读 */
-    int markNotificationRead(@Param("id") Long id);
-
-    /** 标记某会话的所有聊天消息为已读 */
-    int markConversationRead(@Param("conversationId") String conversationId,
-                             @Param("userId") Long userId);
-
-    /** 标记用户所有通知为已读 */
-    int markAllNotificationsRead(@Param("userId") Long userId);
+    /** 把某人发给我的消息标记为已读 */
+    int markConversationRead(@Param("userId") Long userId,
+                             @Param("otherId") Long otherId);
 }

@@ -1,272 +1,127 @@
-// 聊天详情页 — 实时对话
-import { router } from '@kit.ArkUI'
-import { promptAction } from '@kit.ArkUI'
-import { Colors } from '../common/Colors'
-import { Message } from '../model/Message'
-import { MessageService } from '../service/MessageService'
-import { WebSocketManager, WsMessage } from '../service/WebSocketManager'
+// 聊天详情页 — 与某用户的私信对话
+import { router, promptAction, KeyboardAvoidMode } from '@kit.ArkUI'
 import { NavBar } from '../components/NavBar'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
+import { MessageService, ChatMessage } from '../service/MessageService'
 
 @Entry
 @Component
 struct ChatDetail {
-  @State messages: Message[] = []
+  @State messages: ChatMessage[] = []
   @State inputText: string = ''
-  @State loading: boolean = true
-  @State peerId: number = 0
-  @State peerName: string = '聊天'
-  @State currentUserId: number = 0
-  private wsManager: WebSocketManager = new WebSocketManager()
-  private scrollController: Scroller = new Scroller()
+  @State sending: boolean = false
+  private otherId: string = ''
+  private otherName: string = ''
+
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
 
   aboutToAppear(): void {
-    const params = router.getParams() as Record<string, Object>
+    // 键盘弹出时收缩页面（列表变短）而非整体上移，避免顶部被顶掉
+    this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.RESIZE)
+    const params = router.getParams() as Record<string, string>
     if (params) {
-      this.peerId = Number(params['peerId']) || 0
-      this.peerName = (params['peerName'] as string) || '聊天'
-      this.currentUserId = Number(params['currentUserId']) || 0
+      this.otherId = params['otherId'] ?? ''
+      this.otherName = params['otherName'] ?? this.t('聊天', 'Chat')
     }
-    this.loadMessages()
-    this.connectWs()
+    this.loadChat()
   }
 
   aboutToDisappear(): void {
-    this.wsManager.close()
+    // 恢复默认，避免影响其它页面
+    this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.OFFSET)
   }
 
-  async loadMessages(): Promise<void> {
-    this.loading = true
-    const resp = await MessageService.getChatMessages(this.peerId)
-    if (resp.code === 0 && resp.data) {
+  async loadChat(): Promise<void> {
+    if (!this.otherId) return
+    const resp = await MessageService.fetchChat(this.otherId)
+    if (resp.code === 0) {
       this.messages = resp.data
-      setTimeout(() => {
-        this.scrollController.scrollEdge(Edge.Bottom)
-      }, 300)
     }
-    this.loading = false
-    await MessageService.markConversationRead(this.peerId)
-  }
-
-  connectWs(): void {
-    this.wsManager.onMessage((msg: WsMessage) => {
-      if (msg.type === 'chat') {
-        if ((msg.senderId === this.peerId && msg.receiverId === this.currentUserId) ||
-          (msg.senderId === this.currentUserId && msg.receiverId === this.peerId)) {
-          if (msg.senderId === this.currentUserId && msg.id && msg.id > 0) {
-            this.replaceTemp(msg)
-          } else if (msg.senderId === this.peerId) {
-            const m: Message = {
-              id: msg.id || 0,
-              conversationId: '',
-              senderId: msg.senderId || 0,
-              receiverId: msg.receiverId || 0,
-              content: msg.content || '',
-              messageType: 'chat',
-              isRead: false,
-              createdAt: msg.createdAt || ''
-            }
-            this.messages = this.addMsg(this.messages, m)
-            setTimeout(() => { this.scrollController.scrollEdge(Edge.Bottom) }, 150)
-            MessageService.markConversationRead(this.peerId)
-          }
-        }
-      } else if (msg.type === 'notification') {
-        promptAction.showToast({ message: msg.content || '新通知', duration: 2000 })
-      }
-    })
-    this.wsManager.connect()
-  }
-
-  replaceTemp(confirmed: WsMessage): void {
-    const arr: Message[] = []
-    let done = false
-    for (let i = 0; i < this.messages.length; i++) {
-      const m = this.messages[i]
-      if (!done && m.senderId === this.currentUserId &&
-        m.id > 1000000000000 && m.content === confirmed.content) {
-        arr.push({
-          id: confirmed.id || 0,
-          conversationId: '',
-          senderId: confirmed.senderId || 0,
-          receiverId: confirmed.receiverId || 0,
-          content: confirmed.content || '',
-          messageType: 'chat',
-          isRead: true,
-          createdAt: confirmed.createdAt || ''
-        })
-        done = true
-      } else {
-        arr.push(m)
-      }
-    }
-    if (!done && confirmed.content) {
-      arr.push({
-        id: confirmed.id || 0,
-        conversationId: '',
-        senderId: confirmed.senderId || 0,
-        receiverId: confirmed.receiverId || 0,
-        content: confirmed.content || '',
-        messageType: 'chat',
-        isRead: true,
-        createdAt: confirmed.createdAt || ''
-      })
-    }
-    this.messages = arr
-  }
-
-  addMsg(list: Message[], item: Message): Message[] {
-    const r: Message[] = []
-    for (let i = 0; i < list.length; i++) { r.push(list[i]) }
-    r.push(item)
-    return r
   }
 
   async sendMessage(): Promise<void> {
     const text = this.inputText.trim()
-    if (!text) { return }
-    this.inputText = ''
-    const tmp: Message = {
-      id: new Date().getTime(),
-      conversationId: '',
-      senderId: this.currentUserId,
-      receiverId: this.peerId,
-      content: text,
-      messageType: 'chat',
-      isRead: true,
-      createdAt: ''
+    if (!text || this.sending) return
+    this.sending = true
+    const resp = await MessageService.send(this.otherId, text)
+    this.sending = false
+    if (resp.code === 0) {
+      this.inputText = ''
+      this.loadChat()
+    } else {
+      promptAction.showToast({ message: resp.message || this.t('发送失败', 'Failed') })
     }
-    this.messages = this.addMsg(this.messages, tmp)
-    setTimeout(() => { this.scrollController.scrollEdge(Edge.Bottom) }, 100)
-    this.wsManager.sendChat(this.peerId, text)
   }
 
   build() {
     Column() {
-      NavBar({ title: this.peerName, showBack: true })
+      NavBar({ title: this.otherName, showBack: true })
 
-      if (this.loading) {
+      // 消息列表
+      if (this.messages.length === 0) {
         Column() {
-          LoadingProgress().width(28).height(28).color(Colors.PRIMARY)
+          Text(this.t('打个招呼，开始聊天吧', 'Say hi to start chatting'))
+            .fontSize(this.fs(13)).fontColor(Theme.textHint(this.theme))
         }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-      } else if (this.messages.length === 0) {
-        Column() {
-          Text('💬').fontSize(48).opacity(0.4)
-          Text('发送第一条消息吧~').fontSize(14).fontColor(Colors.TEXT_HINT).margin({ top: 12 })
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
+        .layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
       } else {
-        Scroll(this.scrollController) {
-          Column() {
-            ForEach(this.messages, (msg: Message, idx: number) => {
-              this.MessageBubble(msg)
-            }, (msg: Message) => msg.id.toString())
-          }
-          .width('100%')
-          .padding({ top: 12, bottom: 12 })
+        List({ space: 12 }) {
+          ForEach(this.messages, (m: ChatMessage) => {
+            ListItem() {
+              Row() {
+                if (m.fromMe) {
+                  Blank()
+                  Text(m.content)
+                    .fontSize(this.fs(14)).fontColor(Theme.WHITE)
+                    .backgroundColor(Theme.primary(this.theme))
+                    .borderRadius(10).padding(10).constraintSize({ maxWidth: '70%' })
+                } else {
+                  Text(m.content)
+                    .fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme))
+                    .backgroundColor(Theme.card(this.theme))
+                    .borderRadius(10).padding(10).constraintSize({ maxWidth: '70%' })
+                  Blank()
+                }
+              }
+              .width('100%')
+            }
+          })
         }
-        .width('100%')
-        .layoutWeight(1)
+        .layoutWeight(1).width('100%').padding({ left: 12, right: 12, top: 12 })
         .scrollBar(BarState.Off)
-        .edgeEffect(EdgeEffect.Spring)
       }
 
-      // 输入栏
+      // 输入区
       Row() {
-        TextInput({ placeholder: '输入消息...' })
-          .fontSize(14)
-          .placeholderColor(Colors.TEXT_HINT)
-          .backgroundColor(Colors.BG_PAPER)
-          .borderRadius(20)
-          .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-          .layoutWeight(1)
-          .height(38)
-          .onChange((value: string) => { this.inputText = value })
-          .onSubmit(() => { this.sendMessage() })
+        TextInput({ placeholder: this.t('发消息…', 'Message...'), text: this.inputText })
+          .fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme))
+          .placeholderColor(Theme.textHint(this.theme))
+          .backgroundColor(Theme.bg(this.theme))
+          .borderRadius(18).height(38).layoutWeight(1)
+          .onChange((v: string) => { this.inputText = v })
 
-        Text('发送')
-          .fontSize(14)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.inputText.trim().length > 0 ? Colors.PRIMARY : Colors.TEXT_HINT)
-          .padding({ left: 14, right: 4 })
+        Button(this.t('发送', 'Send'))
+          .fontSize(this.fs(14)).fontColor(Theme.WHITE)
+          .backgroundColor(this.inputText.trim() ? Theme.primary(this.theme) : Theme.textHint(this.theme))
+          .borderRadius(18).height(38).margin({ left: 8 })
+          .enabled(!!this.inputText.trim() && !this.sending)
           .onClick(() => { this.sendMessage() })
       }
-      .width('100%')
-      .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-      .backgroundColor(Color.White)
-      .border({ width: { top: 0.5 }, color: Colors.DIVIDER })
+      .width('100%').padding({ left: 12, right: 12, top: 8, bottom: 12 })
+      .backgroundColor(Theme.card(this.theme))
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(Colors.BG_PAPER)
-  }
-
-  @Builder
-  MessageBubble(msg: Message) {
-    Column() {
-      if (msg.senderId === this.currentUserId) {
-        // 我发的 — 右对齐
-        Row() {
-          Blank()
-          Column() {
-            Text(msg.content)
-              .fontSize(15)
-              .fontColor(Color.White)
-              .padding({ left: 14, right: 14, top: 10, bottom: 10 })
-              .borderRadius(16)
-              .backgroundColor(Colors.PRIMARY)
-          }
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.End)
-
-        Text(this.fmtTime(msg.createdAt))
-          .fontSize(10)
-          .fontColor(Colors.TEXT_HINT)
-          .textAlign(TextAlign.End)
-          .width('100%')
-          .padding({ right: 4, top: 4 })
-      } else {
-        // 对方发的 — 左对齐
-        Row() {
-          Column() {
-            Text(msg.content)
-              .fontSize(15)
-              .fontColor(Colors.TEXT_PRIMARY)
-              .padding({ left: 14, right: 14, top: 10, bottom: 10 })
-              .borderRadius(16)
-              .backgroundColor(Color.White)
-              .border({ width: 0.5, color: Colors.DIVIDER })
-          }
-          Blank()
-        }
-        .width('100%')
-
-        Text(this.fmtTime(msg.createdAt))
-          .fontSize(10)
-          .fontColor(Colors.TEXT_HINT)
-          .textAlign(TextAlign.Start)
-          .width('100%')
-          .padding({ left: 4, top: 4 })
-      }
-    }
-    .width('100%')
-    .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-  }
-
-  fmtTime(s: string): string {
-    if (!s) { return '' }
-    try {
-      const d = new Date(s)
-      const h = String(d.getHours()).padStart(2, '0')
-      const m = String(d.getMinutes()).padStart(2, '0')
-      return h + ':' + m
-    } catch (e) {
-      return ''
-    }
+    .width('100%').height('100%')
+    .backgroundColor(Theme.bg(this.theme))
   }
 }
