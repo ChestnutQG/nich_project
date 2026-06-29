@@ -1,40 +1,64 @@
-// 应用设置服务 — PersistentStorage 自动持久化，无异步竞态
-// PersistentStorage 作为 AppStorage ↔ 磁盘的桥接层，修改 AppStorage 即自动写盘
+// 应用设置服务 — 同步初始化 + 即时写盘，彻底解决重启丢失问题
+import { preferences } from '@kit.ArkData'
 import { ConfigurationConstant } from '@kit.AbilityKit'
 
 export type ThemeMode = 'light' | 'dark'
 export type FontScale = 'small' | 'normal' | 'large'
 export type Language = 'zh' | 'en'
 
-class SettingsServiceImpl {
+const PREFS_NAME = 'app_settings'
 
-  // 在 EntryAbility.onCreate() 里同步调用，必须早于任何页面/组件初始化
-  // PersistentStorage.persistProp 会从磁盘读取存档值写入 AppStorage，
-  // 保证 @StorageLink 初始化时拿到的是上次保存的值而不是默认值
+class SettingsServiceImpl {
+  private prefs: preferences.Preferences | null = null
+
+  // 同步初始化，在 EntryAbility.onCreate 中调用（早于任何页面/组件）
+  // getPreferencesSync 直接从磁盘读取，保证 @StorageLink 初始化时拿到存档值
   init(): void {
-    PersistentStorage.persistProp<ThemeMode>('theme', 'light')
-    PersistentStorage.persistProp<FontScale>('fontScale', 'normal')
-    PersistentStorage.persistProp<Language>('language', 'zh')
-    // 还原上次保存的系统颜色模式（影响状态栏等系统 UI）
-    const theme = AppStorage.get<ThemeMode>('theme') ?? 'light'
-    this.applyColorMode(theme)
+    try {
+      this.prefs = preferences.getPreferencesSync(getContext(), { name: PREFS_NAME })
+      const theme    = this.prefs.getSync('theme',     'light')  as ThemeMode
+      const fontScale = this.prefs.getSync('fontScale', 'normal') as FontScale
+      const language  = this.prefs.getSync('language',  'zh')     as Language
+      AppStorage.setOrCreate<ThemeMode>('theme',     theme)
+      AppStorage.setOrCreate<FontScale>('fontScale', fontScale)
+      AppStorage.setOrCreate<Language>('language',   language)
+      this.applyColorMode(theme)
+    } catch (_) {
+      // 首次安装或读盘失败，使用默认值
+      AppStorage.setOrCreate<ThemeMode>('theme',     'light')
+      AppStorage.setOrCreate<FontScale>('fontScale', 'normal')
+      AppStorage.setOrCreate<Language>('language',   'zh')
+    }
   }
 
-  // 兼容旧调用，init 已在 Ability 启动时处理，这里无需再做
+  // 兼容旧调用
   ensureInit(): void {}
 
   setTheme(mode: ThemeMode): void {
     AppStorage.set<ThemeMode>('theme', mode)
-    // PersistentStorage 监听到 AppStorage 变化后自动写盘，不用手动 flush
     this.applyColorMode(mode)
+    this.save('theme', mode)
   }
 
   setFontScale(scale: FontScale): void {
     AppStorage.set<FontScale>('fontScale', scale)
+    this.save('fontScale', scale)
   }
 
   setLanguage(lang: Language): void {
     AppStorage.set<Language>('language', lang)
+    this.save('language', lang)
+  }
+
+  // 在 EntryAbility.onBackground 中调用，确保进入后台时数据已落盘
+  flush(): void {
+    this.prefs?.flush()
+  }
+
+  private save(key: string, value: string): void {
+    if (!this.prefs) return
+    this.prefs.putSync(key, value)
+    this.prefs.flush() // 立即启动异步写盘，用户正常操作下足够在杀进程前完成
   }
 
   private applyColorMode(mode: ThemeMode): void {
