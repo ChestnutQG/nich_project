@@ -18,4 +18,7 @@ public interface OrderItemMapper {
     int insert(OrderItem item);
 
     int insertBatch(@Param("items") List<OrderItem> items);
+
+    /** 查订单对应的卖家（匠人）用户 ID */
+    Long selectSellerIdByOrderId(@Param("orderId") Long orderId);
 }

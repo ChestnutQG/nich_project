@@ -70,103 +70,106 @@ struct DisputeDetail {
 
   build() {
     Column() {
-      NavBar({ title: this.t('维权详情', 'Dispute Detail'), showBack: true })
+      Column() {
+        NavBar({ title: this.t('维权详情', 'Dispute Detail'), showBack: true })
 
-      if (this.loading) {
-        Row() {
-          LoadingProgress().width(24).height(24).color(Theme.primary(this.theme))
-        }
-        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
-        .backgroundColor(Theme.bg(this.theme))
-      } else if (!this.dispute) {
-        Column() {
-          Text(this.t('纠纷不存在', 'Dispute not found'))
-            .fontSize(this.fs(14)).fontColor(Theme.textHint(this.theme))
-        }
-        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
-        .backgroundColor(Theme.bg(this.theme))
-      } else {
-        Scroll() {
+        if (this.loading) {
+          Row() {
+            LoadingProgress().width(24).height(24).color(Theme.primary(this.theme))
+          }
+          .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
+          .backgroundColor(Theme.bg(this.theme))
+        } else if (!this.dispute) {
           Column() {
-            // 状态卡
+            Text(this.t('纠纷不存在', 'Dispute not found'))
+              .fontSize(this.fs(14)).fontColor(Theme.textHint(this.theme))
+          }
+          .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
+          .backgroundColor(Theme.bg(this.theme))
+        } else {
+          Scroll() {
             Column() {
-              Text(getDisputeStatusText(this.dispute!.status))
-                .fontSize(this.fs(24)).fontWeight(FontWeight.Bold)
-                .fontColor(this.dispute!.status === 'negotiating' ? '#856404' :
-                  this.dispute!.status === 'voting' ? '#1A5276' : '#1E8449')
-              if (this.dispute!.result) {
-                Text(getDisputeResultText(this.dispute!.result))
-                  .fontSize(this.fs(16))
-                  .fontColor(this.dispute!.result === 'buyer_win' ? '#922B21' : '#1A5276')
-                  .margin({ top: 4 })
-              }
-            }
-            .width('100%').padding(24)
-            .backgroundColor(this.dispute!.status === 'negotiating' ? '#FFF3CD' :
-              this.dispute!.status === 'voting' ? '#D6EAF8' : '#D5F5E3')
-
-            // 纠纷信息
-            Column() {
-              this.InfoRow(this.t('订单编号', 'Order No.'), this.dispute!.orderNo)
-              this.InfoRow(this.t('商品名称', 'Product'), this.dispute!.productName)
-              this.InfoRow(this.t('申请人', 'Initiator'), this.dispute!.initiatorName || '')
-              this.InfoRow(this.t('被申请人', 'Respondent'), this.dispute!.respondentName || '')
-              this.InfoRow(this.t('创建时间', 'Created'), this.dispute!.createdAt || '')
-            }
-            .width('100%').padding(16).backgroundColor(Theme.card(this.theme)).margin({ top: 8 })
-
-            // 维权原因
-            Column() {
-              Text(this.t('维权原因', 'Reason'))
-                .fontSize(this.fs(14)).fontWeight(FontWeight.Medium).fontColor(Theme.textPrimary(this.theme))
-              Text(this.dispute!.reason || '')
-                .fontSize(this.fs(13)).fontColor(Theme.textSecondary(this.theme)).margin({ top: 8 })
-            }
-            .width('100%').padding(16).backgroundColor(Theme.card(this.theme)).margin({ top: 8 })
-
-            // 投票统计
-            if (this.stats) {
+              // 状态卡
               Column() {
-                Text(this.t('陪审投票', 'Jury Votes'))
-                  .fontSize(this.fs(14)).fontWeight(FontWeight.Medium).fontColor(Theme.textPrimary(this.theme))
-
-                Row() {
-                  Text(`${this.t('买家方', 'Buyer')}: ${this.stats!.buyerVotes} ${this.t('票', '')}`)
-                    .fontSize(this.fs(13)).fontColor('#922B21').layoutWeight(1)
-                  Text(`${this.t('卖家方', 'Seller')}: ${this.stats!.sellerVotes} ${this.t('票', '')}`)
-                    .fontSize(this.fs(13)).fontColor('#1A5276').layoutWeight(1)
-                  Text(`${this.t('共', 'Total')} ${this.stats!.totalVotes} ${this.t('票', '')}`)
-                    .fontSize(this.fs(13)).fontColor(Theme.textSecondary(this.theme)).layoutWeight(1)
+                Text(getDisputeStatusText(this.dispute!.status))
+                  .fontSize(this.fs(24)).fontWeight(FontWeight.Bold)
+                  .fontColor(this.dispute!.status === 'negotiating' ? '#856404' :
+                    this.dispute!.status === 'voting' ? '#1A5276' : '#1E8449')
+                if (this.dispute!.result) {
+                  Text(getDisputeResultText(this.dispute!.result))
+                    .fontSize(this.fs(16))
+                    .fontColor(this.dispute!.result === 'buyer_win' ? '#922B21' : '#1A5276')
+                    .margin({ top: 4 })
                 }
-                .width('100%').margin({ top: 12 })
+              }
+              .width('100%').padding(24)
+              .backgroundColor(this.dispute!.status === 'negotiating' ? '#FFF3CD' :
+                this.dispute!.status === 'voting' ? '#D6EAF8' : '#D5F5E3')
 
-                Text(`${this.t('买家支持率', 'Buyer rate')}: ${(this.stats!.buyerRate * 100).toFixed(1)}%`)
-                  .fontSize(this.fs(12)).fontColor(Theme.textHint(this.theme)).margin({ top: 8 })
+              // 纠纷信息
+              Column() {
+                this.InfoRow(this.t('订单编号', 'Order No.'), this.dispute!.orderNo)
+                this.InfoRow(this.t('商品名称', 'Product'), this.dispute!.productName)
+                this.InfoRow(this.t('申请人', 'Initiator'), this.dispute!.initiatorName || '')
+                this.InfoRow(this.t('被申请人', 'Respondent'), this.dispute!.respondentName || '')
+                this.InfoRow(this.t('创建时间', 'Created'), this.dispute!.createdAt || '')
               }
               .width('100%').padding(16).backgroundColor(Theme.card(this.theme)).margin({ top: 8 })
-            }
 
-            Row().height(80)
+              // 维权原因
+              Column() {
+                Text(this.t('维权原因', 'Reason'))
+                  .fontSize(this.fs(14)).fontWeight(FontWeight.Medium).fontColor(Theme.textPrimary(this.theme))
+                Text(this.dispute!.reason || '')
+                  .fontSize(this.fs(13)).fontColor(Theme.textSecondary(this.theme)).margin({ top: 8 })
+              }
+              .width('100%').padding(16).backgroundColor(Theme.card(this.theme)).margin({ top: 8 })
+
+              // 投票统计 (voting/resolved)
+              if (this.stats) {
+                Column() {
+                  Text(this.t('陪审投票', 'Jury Votes'))
+                    .fontSize(this.fs(14)).fontWeight(FontWeight.Medium).fontColor(Theme.textPrimary(this.theme))
+
+                  Row() {
+                    Text(`${this.t('买家方', 'Buyer')}: ${this.stats!.buyerVotes} ${this.t('票', '')}`)
+                      .fontSize(this.fs(13)).fontColor('#922B21').layoutWeight(1)
+                    Text(`${this.t('卖家方', 'Seller')}: ${this.stats!.sellerVotes} ${this.t('票', '')}`)
+                      .fontSize(this.fs(13)).fontColor('#1A5276').layoutWeight(1)
+                    Text(`${this.t('共', 'Total')} ${this.stats!.totalVotes} ${this.t('票', '')}`)
+                      .fontSize(this.fs(13)).fontColor(Theme.textSecondary(this.theme)).layoutWeight(1)
+                  }
+                  .width('100%').margin({ top: 12 })
+
+                  Text(`${this.t('买家支持率', 'Buyer rate')}: ${(this.stats!.buyerRate).toFixed(1)}%`)
+                    .fontSize(this.fs(12)).fontColor(Theme.textHint(this.theme)).margin({ top: 8 })
+                }
+                .width('100%').padding(16).backgroundColor(Theme.card(this.theme)).margin({ top: 8 })
+              }
+
+              Row().height(80)
+            }
           }
+          .width('100%').layoutWeight(1).backgroundColor(Theme.bg(this.theme)).scrollBar(BarState.Off)
         }
-        .width('100%').layoutWeight(1).backgroundColor(Theme.bg(this.theme)).scrollBar(BarState.Off)
+      }
+      .width('100%').layoutWeight(1)
+
+      // 底部操作: 申请陪审团
+      if (this.dispute && this.dispute.status === 'negotiating') {
+        Row() {
+          Button(this.requestingJury ? this.t('申请中...', 'Requesting...') : this.t('申请陪审团介入', 'Request Jury'))
+            .fontSize(this.fs(15))
+            .backgroundColor(this.requestingJury ? Theme.textHint(this.theme) : Theme.primary(this.theme))
+            .borderRadius(22).height(44).layoutWeight(1)
+            .onClick(() => { if (!this.requestingJury) this.handleRequestJury() })
+        }
+        .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 })
+        .backgroundColor(Theme.card(this.theme))
       }
     }
     .width('100%').height('100%')
     .backgroundColor(Theme.bg(this.theme))
-
-    // 底部操作: 申请陪审团
-    if (this.dispute && this.dispute.status === 'negotiating') {
-      Row() {
-        Button(this.requestingJury ? this.t('申请中...', 'Requesting...') : this.t('申请陪审团介入', 'Request Jury'))
-          .fontSize(this.fs(15))
-          .backgroundColor(this.requestingJury ? Theme.textHint(this.theme) : Theme.primary(this.theme))
-          .borderRadius(22).height(44).layoutWeight(1)
-          .onClick(() => { if (!this.requestingJury) this.handleRequestJury() })
-      }
-      .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 })
-      .backgroundColor(Theme.card(this.theme))
-    }
   }
 
   @Builder

@@ -3,6 +3,7 @@ package com.chuizhipu.shop.controller;
 import com.chuizhipu.shop.common.R;
 import com.chuizhipu.shop.entity.*;
 import com.chuizhipu.shop.mapper.*;
+import com.chuizhipu.shop.service.DisputeService;
 import com.chuizhipu.shop.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,16 +19,21 @@ public class AdminController {
     private final ProductMapper productMapper;
     private final FavoriteMapper favoriteMapper;
     private final FollowMapper followMapper;
+    private final DisputeService disputeService;
+    private final JuryInvitationMapper invitationMapper;
 
     public AdminController(UserMapper userMapper, DisputeMapper disputeMapper,
                            OrderMapper orderMapper, ProductMapper productMapper,
-                           FavoriteMapper favoriteMapper, FollowMapper followMapper) {
+                           FavoriteMapper favoriteMapper, FollowMapper followMapper,
+                           DisputeService disputeService, JuryInvitationMapper invitationMapper) {
         this.userMapper = userMapper;
         this.disputeMapper = disputeMapper;
         this.orderMapper = orderMapper;
         this.productMapper = productMapper;
         this.favoriteMapper = favoriteMapper;
         this.followMapper = followMapper;
+        this.disputeService = disputeService;
+        this.invitationMapper = invitationMapper;
     }
 
     /** GET /api/admin/disputes — 所有纠纷列表 */
@@ -150,5 +156,34 @@ public class AdminController {
         }
         productMapper.updateAuditStatus(id, auditStatus);
         return R.ok(auditStatus.equals("approved") ? "已通过审核" : "已驳回");
+    }
+
+    /** PUT /api/admin/disputes/{id}/resolve — 管理员直接裁决 */
+    @PutMapping("/disputes/{id}/resolve")
+    public R resolveDispute(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String result = body.get("result");
+        if (result == null || !List.of("buyer_win", "seller_win").contains(result))
+            return R.error("result 只能是 buyer_win 或 seller_win");
+        disputeService.adminResolve(id, result);
+        return R.ok("已裁决");
+    }
+
+    /** GET /api/admin/disputes/{id}/jurors — 查看纠纷的陪审员列表 */
+    @GetMapping("/disputes/{id}/jurors")
+    public R disputeJurors(@PathVariable Long id) {
+        List<JuryInvitation> jurors = invitationMapper.selectByDisputeId(id);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (JuryInvitation inv : jurors) {
+            User user = userMapper.selectById(inv.getUserId());
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", inv.getId().toString());
+            map.put("userId", inv.getUserId().toString());
+            map.put("userName", user != null ? user.getNickname() : "未知用户");
+            map.put("status", inv.getStatus());
+            map.put("inviteTime", inv.getInviteTime() != null ? inv.getInviteTime().toString() : "");
+            map.put("voteTime", inv.getVoteTime() != null ? inv.getVoteTime().toString() : "");
+            result.add(map);
+        }
+        return R.ok(result);
     }
 }

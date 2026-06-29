@@ -31,10 +31,12 @@ struct DisputeApply {
   }
 
   aboutToAppear(): void {
-    this.loadOrders()
+    const params = router.getParams() as Record<string, string>
+    const preSelectedOrderId = params ? params['orderId'] : undefined
+    this.loadOrders(preSelectedOrderId)
   }
 
-  async loadOrders(): Promise<void> {
+  async loadOrders(preSelectedOrderId?: string): Promise<void> {
     this.loading = true
     let resp = await OrderService.fetchOrders(OrderStatus.PENDING_RECEIVE)
     if (resp.code === 0) {
@@ -43,6 +45,11 @@ struct DisputeApply {
     resp = await OrderService.fetchOrders(OrderStatus.COMPLETED)
     if (resp.code === 0) {
       this.orders = this.orders.concat(resp.data)
+    }
+    // 如果传入了 orderId，自动选中对应订单
+    if (preSelectedOrderId) {
+      const found = this.orders.find(o => o.id === preSelectedOrderId)
+      if (found) { this.selectedOrder = found }
     }
     this.loading = false
   }

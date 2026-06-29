@@ -81,6 +81,7 @@ CREATE TABLE t_category (
 -- ==========================================
 CREATE TABLE t_artisan (
     id                BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id           BIGINT        COMMENT '关联用户ID（登录账号）',
     name              VARCHAR(50)  NOT NULL COMMENT '姓名',
     avatar            VARCHAR(500) COMMENT '头像URL',
     title             VARCHAR(100) COMMENT '头衔（如"国家级非遗传承人"）',
@@ -92,7 +93,8 @@ CREATE TABLE t_artisan (
     certificate_images JSON        COMMENT '认证证书图片数组',
     works_count       INT DEFAULT 0 COMMENT '作品数',
     followers_count   INT DEFAULT 0 COMMENT '关注数',
-    create_time       DATETIME DEFAULT CURRENT_TIMESTAMP
+    create_time       DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES t_user(id)
 ) COMMENT '匠人/传承人';
 
 -- ==========================================
@@ -281,8 +283,17 @@ CREATE TABLE t_jury_vote (
 -- 用户（密码 123456 的 MD5：e10adc3949ba59abbe56e057f20f883e）
 INSERT INTO t_user (id, nickname, avatar, phone, password, role, credit_score, status, collect_count, follow_count, order_count) VALUES
 (1, '爱非遗的小明', 'https://picsum.photos/seed/user01/200/200', '13800000001', 'e10adc3949ba59abbe56e057f20f883e', 'admin', 100, 'active', 12, 5, 3),
-(2, '传统文化爱好者', 'https://picsum.photos/seed/user02/200/200', '13800000002', 'e10adc3949ba59abbe56e057f20f883e', 'user', 100, 'active', 8, 3, 1),
-(3, '非遗守护者', 'https://picsum.photos/seed/user03/200/200', '13800000003', 'e10adc3949ba59abbe56e057f20f883e', 'user', 95, 'active', 5, 2, 0);
+(2, '沈桂芳', 'https://picsum.photos/seed/user02/200/200', '13800000002', 'e10adc3949ba59abbe56e057f20f883e', 'artisan', 100, 'active', 8, 3, 0),
+(3, '非遗守护者李华', 'https://picsum.photos/seed/user03/200/200', '13800000003', 'e10adc3949ba59abbe56e057f20f883e', 'user', 95, 'active', 5, 2, 0),
+(4, '刘远山', 'https://picsum.photos/seed/user04/200/200', '13800000004', 'e10adc3949ba59abbe56e057f20f883e', 'artisan', 95, 'active', 0, 0, 0),
+(5, '赵德胜', 'https://picsum.photos/seed/user05/200/200', '13800000005', 'e10adc3949ba59abbe56e057f20f883e', 'artisan', 100, 'active', 0, 0, 0),
+(6, '非遗小白', 'https://picsum.photos/seed/user06/200/200', '13800000006', 'e10adc3949ba59abbe56e057f20f883e', 'user', 85, 'active', 0, 0, 0),
+(7, '传统文化迷', 'https://picsum.photos/seed/user07/200/200', '13800000007', 'e10adc3949ba59abbe56e057f20f883e', 'user', 90, 'active', 0, 0, 0),
+(8, '手艺爱好者', 'https://picsum.photos/seed/user08/200/200', '13800000008', 'e10adc3949ba59abbe56e057f20f883e', 'user', 80, 'active', 0, 0, 0),
+(9, '国风少年', 'https://picsum.photos/seed/user09/200/200', '13800000009', 'e10adc3949ba59abbe56e057f20f883e', 'user', 95, 'active', 0, 0, 0),
+(10, '文化传承者', 'https://picsum.photos/seed/user10/200/200', '13800000010', 'e10adc3949ba59abbe56e057f20f883e', 'user', 100, 'active', 0, 0, 0),
+(11, '民间艺术迷', 'https://picsum.photos/seed/user11/200/200', '13800000011', 'e10adc3949ba59abbe56e057f20f883e', 'user', 88, 'active', 0, 0, 0),
+(12, '匠心独运', 'https://picsum.photos/seed/user12/200/200', '13800000012', 'e10adc3949ba59abbe56e057f20f883e', 'user', 92, 'active', 0, 0, 0);
 
 -- 分类（10 大非遗类别）
 INSERT INTO t_category (id, name, icon, parent_id, sort_order) VALUES
@@ -298,14 +309,14 @@ INSERT INTO t_category (id, name, icon, parent_id, sort_order) VALUES
 (10, '民间文学',     '📚', 0, 10);
 
 -- 匠人
-INSERT INTO t_artisan (id, name, avatar, title, level, province, city, craft_type, intro, certificate_images, works_count, followers_count) VALUES
-(1, '沈桂芳', 'https://picsum.photos/seed/art01/200/200', '国家级非遗传承人', 3, '江苏', '苏州', '苏绣',
+INSERT INTO t_artisan (id, user_id, name, avatar, title, level, province, city, craft_type, intro, certificate_images, works_count, followers_count) VALUES
+(1, 2, '沈桂芳', 'https://picsum.photos/seed/art01/200/200', '国家级非遗传承人', 3, '江苏', '苏州', '苏绣',
    '沈桂芳，1958年生于苏州镇湖刺绣世家，8岁随母学绣，从事苏绣四十余年，尤擅双面绣与仿真绣，作品多次作为国礼赠送外宾。',
    '["https://picsum.photos/seed/cert01/400/300","https://picsum.photos/seed/cert02/400/300"]', 156, 3280),
-(2, '刘远山', 'https://picsum.photos/seed/art02/200/200', '省级非遗传承人', 2, '江西', '景德镇', '青花瓷',
+(2, 4, '刘远山', 'https://picsum.photos/seed/art02/200/200', '省级非遗传承人', 2, '江西', '景德镇', '青花瓷',
    '刘远山，1970年生于景德镇陶瓷世家，师从中国工艺美术大师王锡良，擅长青花山水。',
    '["https://picsum.photos/seed/cert03/400/300"]', 89, 1580),
-(3, '赵德胜', 'https://picsum.photos/seed/art03/200/200', '国家级非遗传承人', 3, '北京', '北京', '景泰蓝',
+(3, 5, '赵德胜', 'https://picsum.photos/seed/art03/200/200', '国家级非遗传承人', 3, '北京', '北京', '景泰蓝',
    '赵德胜，1962年生于北京，景泰蓝制作技艺国家级传承人，从事珐琅工艺四十载。',
    '["https://picsum.photos/seed/cert04/400/300"]', 72, 2100);
 
