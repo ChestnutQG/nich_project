@@ -200,6 +200,10 @@ public class DisputeService {
     }
 
     private Long getSellerId(Long orderId) {
-        return orderItemMapper.selectSellerIdByOrderId(orderId);
+        try {
+            return orderItemMapper.selectSellerIdByOrderId(orderId);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

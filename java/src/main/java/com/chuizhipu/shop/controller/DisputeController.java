@@ -37,6 +37,8 @@ public class DisputeController {
             return R.ok(id);
         } catch (IllegalArgumentException e) {
             return R.error(e.getMessage());
+        } catch (Exception e) {
+            return R.error("维权失败: " + e.getMessage());
         }
     }
 
@@ -50,8 +52,9 @@ public class DisputeController {
             return R.ok(null);
         } catch (IllegalArgumentException e) {
             return R.error(e.getMessage());
+        } catch (Exception e) {
+            return R.error("操作失败: " + e.getMessage());
         }
-    }
 
     /** GET /api/disputes/{id} — 纠纷详情 */
     @GetMapping("/{id}")
