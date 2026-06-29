@@ -27,6 +27,7 @@ export class Constants {
   static readonly PAGE_JURY_INVITATIONS = 'pages/JuryInvitations'
   static readonly PAGE_FAVORITE_LIST = 'pages/FavoriteList'
   static readonly PAGE_FOLLOW_LIST = 'pages/FollowList'
+  static readonly PAGE_SETTINGS = 'pages/Settings'
 
   // 非遗传承认证等级
   static readonly ARTISAN_LEVEL_TEXT: Record<number, string> = {

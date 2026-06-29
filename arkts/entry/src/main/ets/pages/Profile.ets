@@ -8,6 +8,9 @@ import { AuthService } from '../service/AuthService'
 import { ensureTokenLoaded } from '../service/ApiClient'
 import { User } from '../model/User'
 import { NavBar } from '../components/NavBar'
+import { SettingsService } from '../service/SettingsService'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 @Entry
 @Component
@@ -23,9 +26,22 @@ struct Profile {
   @State userFollowCount: number = 0
   @State userOrderCount: number = 0
 
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
+
   aboutToAppear(): void {
     this.loadUserData()
     CartService.loadCartCount().then((c: number) => { this.cartCount = c })
+    SettingsService.ensureInit()
   }
 
   async loadUserData(): Promise<void> {
@@ -34,7 +50,7 @@ struct Profile {
     if (resp.code === 0 && resp.data) {
       const u = resp.data
       this.user = u
-      this.userName = u.nickname || '用户'
+      this.userName = u.nickname || this.t('用户', 'User')
       this.userAvatar = u.avatar || ''
       this.userPhone = u.phone || ''
       this.userRole = u.role || 'user'
@@ -43,7 +59,6 @@ struct Profile {
       this.userFollowCount = u.followCount || 0
       this.userOrderCount = u.orderCount || 0
     } else {
-      // 未登录或 token 过期，清空状态并跳转登录
       this.user = null
       this.resetUserState()
       router.pushUrl({ url: Constants.PAGE_LOGIN })
@@ -51,7 +66,7 @@ struct Profile {
   }
 
   private resetUserState(): void {
-    this.userName = '未登录'
+    this.userName = this.t('未登录', 'Not logged in')
     this.userAvatar = ''
     this.userPhone = ''
     this.userRole = ''
@@ -63,7 +78,7 @@ struct Profile {
 
   build() {
     Column() {
-      NavBar({ title: '我的', showBack: true })
+      NavBar({ title: this.t('我的', 'Profile'), showBack: true })
 
       Scroll() {
         Column() {
@@ -77,12 +92,12 @@ struct Profile {
                 .objectFit(ImageFit.Cover)
             } else {
               Text(this.userName.charAt(0))
-                .fontSize(24)
-                .fontColor(Colors.BG_WHITE)
+                .fontSize(this.fs(24))
+                .fontColor(Theme.WHITE)
                 .width(56)
                 .height(56)
                 .borderRadius(28)
-                .backgroundColor(Colors.PRIMARY)
+                .backgroundColor(Theme.primary(this.theme))
                 .textAlign(TextAlign.Center)
                 .lineHeight(56)
             }
@@ -90,28 +105,28 @@ struct Profile {
             Column() {
               Row() {
                 Text(this.userName)
-                  .fontSize(16)
+                  .fontSize(this.fs(16))
                   .fontWeight(FontWeight.Medium)
-                // 角色标签
+                  .fontColor(Theme.textPrimary(this.theme))
                 Text(this.roleLabel())
-                  .fontSize(10)
-                  .fontColor(Colors.BG_WHITE)
-                  .backgroundColor(this.userRole === 'admin' ? '#E74C3C' :
-                    this.userRole === 'artisan' ? '#C8A45C' : Colors.PRIMARY)
+                  .fontSize(this.fs(10))
+                  .fontColor(Theme.WHITE)
+                  .backgroundColor(this.userRole === 'admin' ? Theme.error(this.theme) :
+                    this.userRole === 'artisan' ? Theme.gold(this.theme) : Theme.primary(this.theme))
                   .borderRadius(4)
                   .padding({ left: 6, right: 6, top: 2, bottom: 2 })
                   .margin({ left: 8 })
               }
 
               Text(this.userPhone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'))
-                .fontSize(12)
-                .fontColor(Colors.TEXT_SECONDARY)
+                .fontSize(this.fs(12))
+                .fontColor(Theme.textSecondary(this.theme))
                 .margin({ top: 4 })
 
-              Text(`信用分: ${this.userCredit}`)
-                .fontSize(11)
-                .fontColor(this.userCredit >= 80 ? '#27AE60' :
-                  this.userCredit >= 60 ? '#F39C12' : '#E74C3C')
+              Text(`${this.t('信用分', 'Credit')}: ${this.userCredit}`)
+                .fontSize(this.fs(11))
+                .fontColor(this.userCredit >= 80 ? Theme.success(this.theme) :
+                  this.userCredit >= 60 ? Theme.warning(this.theme) : Theme.error(this.theme))
                 .margin({ top: 2 })
             }
             .margin({ left: 12 })
@@ -119,53 +134,54 @@ struct Profile {
 
             Blank()
 
-            Text('编辑资料 >')
-              .fontSize(12)
-              .fontColor(Colors.TEXT_HINT)
+            Text(this.t('编辑资料 >', 'Edit >'))
+              .fontSize(this.fs(12))
+              .fontColor(Theme.textHint(this.theme))
               .onClick(() => router.pushUrl({ url: Constants.PAGE_PROFILE_EDIT }))
           }
           .width('100%')
           .padding(20)
-          .backgroundColor(Colors.BG_WHITE)
+          .backgroundColor(Theme.card(this.theme))
           .borderRadius(8)
           .margin({ left: 16, right: 16, top: 20 })
 
           // 统计数据
           Row() {
-            this.StatItem('收藏', `${this.userCollectCount}`)
-            this.StatItem('关注', `${this.userFollowCount}`)
-            this.StatItem('订单', `${this.userOrderCount}`)
+            this.StatItem(this.t('收藏', 'Saved'), `${this.userCollectCount}`)
+            this.StatItem(this.t('关注', 'Following'), `${this.userFollowCount}`)
+            this.StatItem(this.t('订单', 'Orders'), `${this.userOrderCount}`)
           }
           .width('100%')
           .padding({ top: 16, bottom: 16 })
-          .backgroundColor(Colors.BG_WHITE)
+          .backgroundColor(Theme.card(this.theme))
           .borderRadius(8)
           .margin({ left: 16, right: 16, top: 12 })
 
           // 菜单列表
           Column() {
-            this.MenuItem('🛒', `购物车 (${this.cartCount})`, () => {
+            this.MenuItem('🛒', `${this.t('购物车', 'Cart')} (${this.cartCount})`, () => {
               router.pushUrl({ url: Constants.PAGE_CART })
             })
-            this.MenuItem('📦', '发布作品', () => router.pushUrl({ url: Constants.PAGE_PRODUCT_PUBLISH }))
-            this.MenuItem('📋', '我的订单', () => router.pushUrl({ url: Constants.PAGE_ORDER_LIST }))
-            this.MenuItem('⚖️', '我的维权', () => router.pushUrl({ url: Constants.PAGE_DISPUTE_LIST }))
-            this.MenuItem('👨‍⚖️', '陪审邀请', () => router.pushUrl({ url: Constants.PAGE_JURY_INVITATIONS }))
-            this.MenuItem('📍', '收货地址', () => router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST }))
-            this.MenuItem('❤️', '我的收藏', () => router.pushUrl({ url: Constants.PAGE_FAVORITE_LIST }))
-            this.MenuItem('🧑‍🎨', '关注的匠人', () => router.pushUrl({ url: Constants.PAGE_FOLLOW_LIST }))
+            this.MenuItem('📦', this.t('发布作品', 'Publish'), () => router.pushUrl({ url: Constants.PAGE_PRODUCT_PUBLISH }))
+            this.MenuItem('📋', this.t('我的订单', 'My Orders'), () => router.pushUrl({ url: Constants.PAGE_ORDER_LIST }))
+            this.MenuItem('⚖️', this.t('我的维权', 'My Disputes'), () => router.pushUrl({ url: Constants.PAGE_DISPUTE_LIST }))
+            this.MenuItem('👨‍⚖️', this.t('陪审邀请', 'Jury'), () => router.pushUrl({ url: Constants.PAGE_JURY_INVITATIONS }))
+            this.MenuItem('📍', this.t('收货地址', 'Addresses'), () => router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST }))
+            this.MenuItem('❤️', this.t('我的收藏', 'Favorites'), () => router.pushUrl({ url: Constants.PAGE_FAVORITE_LIST }))
+            this.MenuItem('🧑‍🎨', this.t('关注的匠人', 'Following'), () => router.pushUrl({ url: Constants.PAGE_FOLLOW_LIST }))
+            this.MenuItem('⚙️', this.t('设置', 'Settings'), () => router.pushUrl({ url: Constants.PAGE_SETTINGS }))
           }
           .width('100%')
-          .backgroundColor(Colors.BG_WHITE)
+          .backgroundColor(Theme.card(this.theme))
           .borderRadius(8)
           .margin({ left: 16, right: 16, top: 12 })
 
           // 退出登录
           Column() {
             Row() {
-              Text('退出登录')
-                .fontSize(15)
-                .fontColor('#E74C3C')
+              Text(this.t('退出登录', 'Sign Out'))
+                .fontSize(this.fs(15))
+                .fontColor(Theme.error(this.theme))
             }
             .width('100%')
             .padding({ left: 16, right: 16, top: 14, bottom: 14 })
@@ -174,12 +190,12 @@ struct Profile {
               await AuthService.logout()
               this.user = null
               this.resetUserState()
-              promptAction.showToast({ message: '已退出' })
+              promptAction.showToast({ message: this.t('已退出', 'Signed out') })
               router.back()
             })
           }
           .width('100%')
-          .backgroundColor(Colors.BG_WHITE)
+          .backgroundColor(Theme.card(this.theme))
           .borderRadius(8)
           .margin({ left: 16, right: 16, top: 12 })
 
@@ -188,18 +204,19 @@ struct Profile {
       }
       .width('100%')
       .layoutWeight(1)
-      .backgroundColor(Colors.BG_PAPER)
+      .backgroundColor(Theme.bg(this.theme))
       .scrollBar(BarState.Off)
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(Theme.bg(this.theme))
   }
 
   roleLabel(): string {
     switch (this.userRole) {
-      case 'admin': return '管理员'
-      case 'artisan': return '传承人'
-      default: return '用户'
+      case 'admin': return this.t('管理员', 'Admin')
+      case 'artisan': return this.t('传承人', 'Artisan')
+      default: return this.t('用户', 'User')
     }
   }
 
@@ -207,12 +224,12 @@ struct Profile {
   StatItem(label: string, count: string) {
     Column() {
       Text(count)
-        .fontSize(20)
+        .fontSize(this.fs(20))
         .fontWeight(FontWeight.Bold)
-        .fontColor(Colors.TEXT_PRIMARY)
+        .fontColor(Theme.textPrimary(this.theme))
       Text(label)
-        .fontSize(12)
-        .fontColor(Colors.TEXT_SECONDARY)
+        .fontSize(this.fs(12))
+        .fontColor(Theme.textSecondary(this.theme))
         .margin({ top: 4 })
     }
     .layoutWeight(1)
@@ -222,18 +239,18 @@ struct Profile {
   MenuItem(icon: string, title: string, onClick: () => void) {
     Row() {
       Text(icon)
-        .fontSize(20)
+        .fontSize(this.fs(20))
         .margin({ right: 12 })
 
       Text(title)
-        .fontSize(15)
-        .fontColor(Colors.TEXT_PRIMARY)
+        .fontSize(this.fs(15))
+        .fontColor(Theme.textPrimary(this.theme))
         .layoutWeight(1)
 
       Image($r('sys.media.ohos_ic_public_arrow_right'))
         .width(14)
         .height(14)
-        .fillColor(Colors.TEXT_HINT)
+        .fillColor(Theme.textHint(this.theme))
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 14, bottom: 14 })

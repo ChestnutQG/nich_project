@@ -6,6 +6,8 @@ import { Utils } from '../common/Utils'
 import { Order, OrderStatus, getOrderStatusText, OrderItem } from '../model/Order'
 import { OrderService } from '../service/OrderService'
 import { NavBar } from '../components/NavBar'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 @Entry
 @Component
@@ -13,6 +15,18 @@ struct OrderDetail {
   @State order: Order | undefined = undefined
   @State loading: boolean = true
   private orderId: string = ''
+
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
 
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, string>
@@ -32,57 +46,64 @@ struct OrderDetail {
 
   build() {
     Column() {
-      NavBar({ title: '订单详情', showBack: true })
+      NavBar({ title: this.t('订单详情', 'Order Detail'), showBack: true })
 
       if (this.loading) {
         Row() {
-          LoadingProgress().width(24).height(24).color(Colors.PRIMARY)
+          LoadingProgress().width(24).height(24).color(Theme.primary(this.theme))
         }
         .width('100%')
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
+        .backgroundColor(Theme.bg(this.theme))
       } else if (!this.order) {
         Column() {
-          Text('订单不存在').fontSize(14).fontColor(Colors.TEXT_HINT)
+          Text(this.t('订单不存在', 'Order not found'))
+            .fontSize(this.fs(14))
+            .fontColor(Theme.textHint(this.theme))
         }
         .width('100%')
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
+        .backgroundColor(Theme.bg(this.theme))
       } else {
         Scroll() {
           Column() {
             // 状态卡
             Column() {
               Text(getOrderStatusText(this.order!.status))
-                .fontSize(22)
+                .fontSize(this.fs(22))
                 .fontWeight(FontWeight.Bold)
-                .fontColor(Colors.PRIMARY)
+                .fontColor(Theme.primary(this.theme))
             }
             .width('100%')
             .padding(24)
-            .backgroundColor(Colors.PRIMARY_BG)
+            .backgroundColor(Theme.primaryBg(this.theme))
 
             // 收货地址
             Column() {
               Row() {
-                Text('📍').fontSize(16).margin({ right: 8 })
-                Text('收货地址').fontSize(14).fontWeight(FontWeight.Medium).fontColor(Colors.TEXT_PRIMARY)
+                Text('📍').fontSize(this.fs(16)).margin({ right: 8 })
+                Text(this.t('收货地址', 'Shipping Address'))
+                  .fontSize(this.fs(14))
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(Theme.textPrimary(this.theme))
               }
               .width('100%')
 
               Text(`${this.order!.address.name}  ${this.order!.address.phone}`)
-                .fontSize(13)
-                .fontColor(Colors.TEXT_PRIMARY)
+                .fontSize(this.fs(13))
+                .fontColor(Theme.textPrimary(this.theme))
                 .margin({ top: 8 })
 
               Text(`${this.order!.address.province}${this.order!.address.city}${this.order!.address.district} ${this.order!.address.detail}`)
-                .fontSize(12)
-                .fontColor(Colors.TEXT_SECONDARY)
+                .fontSize(this.fs(12))
+                .fontColor(Theme.textSecondary(this.theme))
                 .margin({ top: 4 })
             }
             .width('100%')
             .padding(16)
-            .backgroundColor(Colors.BG_WHITE)
+            .backgroundColor(Theme.card(this.theme))
             .margin({ top: 8 })
 
             // 商品列表
@@ -97,13 +118,13 @@ struct OrderDetail {
 
                   Column() {
                     Text(item.productName)
-                      .fontSize(13)
+                      .fontSize(this.fs(13))
                       .fontWeight(FontWeight.Medium)
-                      .fontColor(Colors.TEXT_PRIMARY)
+                      .fontColor(Theme.textPrimary(this.theme))
                       .maxLines(2)
                     Text(item.skuName)
-                      .fontSize(11)
-                      .fontColor(Colors.TEXT_SECONDARY)
+                      .fontSize(this.fs(11))
+                      .fontColor(Theme.textSecondary(this.theme))
                       .margin({ top: 4 })
                   }
                   .layoutWeight(1)
@@ -112,12 +133,12 @@ struct OrderDetail {
 
                   Column() {
                     Text(`¥${(item.price / 100).toFixed(2)}`)
-                      .fontSize(14)
+                      .fontSize(this.fs(14))
                       .fontWeight(FontWeight.Bold)
-                      .fontColor(Colors.PRIMARY)
+                      .fontColor(Theme.primary(this.theme))
                     Text(`x${item.quantity}`)
-                      .fontSize(11)
-                      .fontColor(Colors.TEXT_HINT)
+                      .fontSize(this.fs(11))
+                      .fontColor(Theme.textHint(this.theme))
                       .margin({ top: 4 })
                   }
                 }
@@ -125,45 +146,45 @@ struct OrderDetail {
                 .padding({ top: 8, bottom: 8 })
               })
 
-              Divider().color(Colors.DIVIDER)
+              Divider().color(Theme.divider(this.theme))
 
               // 金额汇总
-              this.PriceRow('商品总额', this.order!.totalAmount)
-              this.PriceRow('优惠', -this.order!.discountAmount)
-              this.PriceRow('运费', this.order!.freight)
+              this.PriceRow(this.t('商品总额', 'Subtotal'), this.order!.totalAmount)
+              this.PriceRow(this.t('优惠', 'Discount'), -this.order!.discountAmount)
+              this.PriceRow(this.t('运费', 'Shipping'), this.order!.freight)
               Row() {
-                Text('实付金额')
-                  .fontSize(15)
+                Text(this.t('实付金额', 'Amount Paid'))
+                  .fontSize(this.fs(15))
                   .fontWeight(FontWeight.Medium)
-                  .fontColor(Colors.TEXT_PRIMARY)
+                  .fontColor(Theme.textPrimary(this.theme))
                 Blank()
                 Text(`¥${(this.order!.payAmount / 100).toFixed(2)}`)
-                  .fontSize(18)
+                  .fontSize(this.fs(18))
                   .fontWeight(FontWeight.Bold)
-                  .fontColor(Colors.PRIMARY)
+                  .fontColor(Theme.primary(this.theme))
               }
               .width('100%')
               .margin({ top: 8 })
             }
             .width('100%')
             .padding(16)
-            .backgroundColor(Colors.BG_WHITE)
+            .backgroundColor(Theme.card(this.theme))
             .margin({ top: 8 })
 
             // 订单信息
             Column() {
-              this.InfoRow('订单编号', this.order!.orderNo)
-              this.InfoRow('创建时间', Utils.formatDate(this.order!.createTime))
+              this.InfoRow(this.t('订单编号', 'Order No.'), this.order!.orderNo)
+              this.InfoRow(this.t('创建时间', 'Created'), Utils.formatDate(this.order!.createTime))
               if (this.order!.payTime) {
-                this.InfoRow('付款时间', Utils.formatDate(this.order!.payTime))
+                this.InfoRow(this.t('付款时间', 'Paid At'), Utils.formatDate(this.order!.payTime))
               }
               if (this.order!.deliverTime) {
-                this.InfoRow('发货时间', Utils.formatDate(this.order!.deliverTime))
+                this.InfoRow(this.t('发货时间', 'Shipped At'), Utils.formatDate(this.order!.deliverTime))
               }
             }
             .width('100%')
             .padding(16)
-            .backgroundColor(Colors.BG_WHITE)
+            .backgroundColor(Theme.card(this.theme))
             .margin({ top: 8 })
 
             Row().height(48)
@@ -171,37 +192,37 @@ struct OrderDetail {
         }
         .width('100%')
         .layoutWeight(1)
-        .backgroundColor(Colors.BG_PAPER)
+        .backgroundColor(Theme.bg(this.theme))
         .scrollBar(BarState.Off)
 
         // 底部操作
         if (this.order!.status === OrderStatus.PENDING_PAY) {
           Row() {
-            Button('取消订单')
-              .fontSize(14)
-              .backgroundColor(Colors.BG_CARD)
-              .fontColor(Colors.TEXT_SECONDARY)
+            Button(this.t('取消订单', 'Cancel'))
+              .fontSize(this.fs(14))
+              .backgroundColor(Theme.card(this.theme))
+              .fontColor(Theme.textSecondary(this.theme))
               .borderRadius(20)
               .height(40)
               .layoutWeight(1)
               .margin({ right: 12 })
-            Button('立即付款')
-              .fontSize(14)
-              .backgroundColor(Colors.PRIMARY)
+            Button(this.t('立即付款', 'Pay Now'))
+              .fontSize(this.fs(14))
+              .backgroundColor(Theme.primary(this.theme))
               .borderRadius(20)
               .height(40)
               .layoutWeight(1)
           }
           .width('100%')
           .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-          .backgroundColor(Colors.BG_WHITE)
+          .backgroundColor(Theme.card(this.theme))
         }
         if (this.order!.status === OrderStatus.PENDING_RECEIVE ||
             this.order!.status === OrderStatus.COMPLETED) {
           Row() {
-            Button('申请维权')
-              .fontSize(14)
-              .backgroundColor(Colors.WARNING)
+            Button(this.t('申请维权', 'Dispute'))
+              .fontSize(this.fs(14))
+              .backgroundColor(Theme.warning(this.theme))
               .borderRadius(20)
               .height(40)
               .layoutWeight(1)
@@ -211,24 +232,25 @@ struct OrderDetail {
           }
           .width('100%')
           .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-          .backgroundColor(Colors.BG_WHITE)
+          .backgroundColor(Theme.card(this.theme))
         }
       }
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(Theme.bg(this.theme))
   }
 
   @Builder
   PriceRow(label: string, amount: number) {
     Row() {
       Text(label)
-        .fontSize(13)
-        .fontColor(Colors.TEXT_SECONDARY)
+        .fontSize(this.fs(13))
+        .fontColor(Theme.textSecondary(this.theme))
       Blank()
       Text(`${amount >= 0 ? '+' : '-'}¥${(Math.abs(amount) / 100).toFixed(2)}`)
-        .fontSize(13)
-        .fontColor(Colors.TEXT_PRIMARY)
+        .fontSize(this.fs(13))
+        .fontColor(Theme.textPrimary(this.theme))
     }
     .width('100%')
     .margin({ top: 4 })
@@ -238,12 +260,12 @@ struct OrderDetail {
   InfoRow(label: string, value: string) {
     Row() {
       Text(label)
-        .fontSize(12)
-        .fontColor(Colors.TEXT_SECONDARY)
+        .fontSize(this.fs(12))
+        .fontColor(Theme.textSecondary(this.theme))
         .width(72)
       Text(value)
-        .fontSize(12)
-        .fontColor(Colors.TEXT_PRIMARY)
+        .fontSize(this.fs(12))
+        .fontColor(Theme.textPrimary(this.theme))
     }
     .width('100%')
     .margin({ top: 6 })

@@ -9,6 +9,8 @@ import { ProductService } from '../service/ProductService'
 import { CategoryService } from '../service/CategoryService'
 import { Category } from '../model/Category'
 import { ApiClient } from '../service/ApiClient'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 @Entry
 @Component
@@ -31,6 +33,18 @@ struct ProductPublish {
 
   @State private categoryList: Category[] = []
 
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
+
   aboutToAppear(): void {
     this.loadCategories()
   }
@@ -39,7 +53,6 @@ struct ProductPublish {
     const resp = await CategoryService.fetchCategories()
     if (resp.code === 0 && resp.data.length > 0) {
       this.categoryList = resp.data
-      // 默认选中第一个分类
       const first = resp.data[0]
       this.categoryId = parseInt(first.id)
       this.selectedCategoryName = first.name
@@ -48,135 +61,130 @@ struct ProductPublish {
 
   build() {
     Column() {
-      NavBar({ title: '发布作品', showBack: true })
+      NavBar({ title: this.t('发布作品', 'Publish Work'), showBack: true })
 
       Scroll() {
         Column() {
           // 基本信息
-          Text('基本信息')
-            .fontSize(13).fontColor(Colors.TEXT_SECONDARY).width('100%')
+          Text(this.t('基本信息', 'Basic Info'))
+            .fontSize(this.fs(13)).fontColor(Theme.textSecondary(this.theme)).width('100%')
             .padding({ left: 16, right: 16, top: 20, bottom: 8 })
 
           Row() {
-            Text('作品名称 *').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
-            TextInput({ placeholder: '请输入作品名称' })
-              .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
+            Text(`${this.t('作品名称', 'Name')} *`).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(100)
+            TextInput({ placeholder: this.t('请输入作品名称', 'Enter work name') })
+              .fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).placeholderColor(Theme.textHint(this.theme))
               .backgroundColor(Color.Transparent).layoutWeight(1)
               .onChange((v: string) => { this.name = v })
           }
-          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
+          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Theme.card(this.theme))
 
-          Divider().color(Colors.DIVIDER).margin({ left: 16 })
+          Divider().color(Theme.divider(this.theme)).margin({ left: 16 })
 
           Row() {
-            Text('作品描述').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
-            TextInput({ placeholder: '简要描述作品特点' })
-              .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
+            Text(this.t('作品描述', 'Description')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(100)
+            TextInput({ placeholder: this.t('简要描述作品特点', 'Brief description') })
+              .fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).placeholderColor(Theme.textHint(this.theme))
               .backgroundColor(Color.Transparent).layoutWeight(1)
               .onChange((v: string) => { this.description = v })
           }
-          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
+          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Theme.card(this.theme))
 
-          Divider().color(Colors.DIVIDER).margin({ left: 16 })
+          Divider().color(Theme.divider(this.theme)).margin({ left: 16 })
 
-          // 分类选择
           Row() {
-            Text('非遗分类').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(80)
+            Text(this.t('非遗分类', 'Category')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(80)
             Blank()
-            Text(this.selectedCategoryName).fontSize(14).fontColor(Colors.PRIMARY).margin({ right: 4 })
-            Text('▼').fontSize(10).fontColor(Colors.TEXT_HINT)
+            Text(this.selectedCategoryName).fontSize(this.fs(14)).fontColor(Theme.primary(this.theme)).margin({ right: 4 })
+            Text('▼').fontSize(this.fs(10)).fontColor(Theme.textHint(this.theme))
           }
-          .width('100%').padding({ left: 16, right: 16, top: 14, bottom: 14 }).backgroundColor(Colors.BG_WHITE)
+          .width('100%').padding({ left: 16, right: 16, top: 14, bottom: 14 }).backgroundColor(Theme.card(this.theme))
           .onClick(() => { this.showCategoryPicker() })
 
-          Divider().color(Colors.DIVIDER).margin({ left: 16 })
+          Divider().color(Theme.divider(this.theme)).margin({ left: 16 })
 
-          // 是否售卖开关
           Row() {
-            Text('是否售卖').fontSize(14).fontColor(Colors.TEXT_PRIMARY).layoutWeight(1)
+            Text(this.t('是否售卖', 'For Sale')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).layoutWeight(1)
             Toggle({ type: ToggleType.Switch, isOn: this.isSellable })
-              .selectedColor(Colors.PRIMARY)
+              .selectedColor(Theme.primary(this.theme))
               .onChange((v: boolean) => { this.isSellable = v })
           }
-          .width('100%').padding({ left: 16, right: 16, top: 14, bottom: 14 }).backgroundColor(Colors.BG_WHITE)
+          .width('100%').padding({ left: 16, right: 16, top: 14, bottom: 14 }).backgroundColor(Theme.card(this.theme))
 
-          // 价格与库存 — 仅在开启售卖时显示
           if (this.isSellable) {
-            Text('价格与库存')
-              .fontSize(13).fontColor(Colors.TEXT_SECONDARY).width('100%')
+            Text(this.t('价格与库存', 'Price & Stock'))
+              .fontSize(this.fs(13)).fontColor(Theme.textSecondary(this.theme)).width('100%')
               .padding({ left: 16, right: 16, top: 20, bottom: 8 })
 
             Row() {
-              Text('售价 *（元）').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
-              TextInput({ placeholder: '例如 1280' })
-                .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
+              Text(`${this.t('售价', 'Price')} *（${this.t('元', 'CNY')}）`).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(100)
+              TextInput({ placeholder: this.t('例如 1280', 'e.g. 1280') })
+                .fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).placeholderColor(Theme.textHint(this.theme))
                 .backgroundColor(Color.Transparent).layoutWeight(1).type(InputType.Number)
                 .onChange((v: string) => { this.price = v })
             }
-            .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
+            .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Theme.card(this.theme))
 
-            Divider().color(Colors.DIVIDER).margin({ left: 16 })
+            Divider().color(Theme.divider(this.theme)).margin({ left: 16 })
 
             Row() {
-              Text('原价（元）').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
-              TextInput({ placeholder: '划线价，可不填' })
-                .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
+              Text(`${this.t('原价', 'Original')}（${this.t('元', 'CNY')}）`).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(100)
+              TextInput({ placeholder: this.t('划线价，可不填', 'Optional') })
+                .fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).placeholderColor(Theme.textHint(this.theme))
                 .backgroundColor(Color.Transparent).layoutWeight(1).type(InputType.Number)
                 .onChange((v: string) => { this.originalPrice = v })
             }
-            .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
+            .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Theme.card(this.theme))
 
-            Divider().color(Colors.DIVIDER).margin({ left: 16 })
+            Divider().color(Theme.divider(this.theme)).margin({ left: 16 })
 
             Row() {
-              Text('库存数量').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
+              Text(this.t('库存数量', 'Stock')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(100)
               TextInput({ placeholder: '1', text: '1' })
-                .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
+                .fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).placeholderColor(Theme.textHint(this.theme))
                 .backgroundColor(Color.Transparent).layoutWeight(1).type(InputType.Number)
                 .onChange((v: string) => { this.stock = v })
             }
-            .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
+            .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Theme.card(this.theme))
           }
 
-          // 产地与技艺
-          Text('产地与技艺')
-            .fontSize(13).fontColor(Colors.TEXT_SECONDARY).width('100%')
+          Text(this.t('产地与技艺', 'Origin & Craft'))
+            .fontSize(this.fs(13)).fontColor(Theme.textSecondary(this.theme)).width('100%')
             .padding({ left: 16, right: 16, top: 20, bottom: 8 })
 
           Row() {
-            Text('产地').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
-            TextInput({ placeholder: '例如：江苏苏州' })
-              .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
+            Text(this.t('产地', 'Region')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(100)
+            TextInput({ placeholder: this.t('例如：江苏苏州', 'e.g. Suzhou, Jiangsu') })
+              .fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).placeholderColor(Theme.textHint(this.theme))
               .backgroundColor(Color.Transparent).layoutWeight(1)
               .onChange((v: string) => { this.region = v })
           }
-          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
+          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Theme.card(this.theme))
 
-          Divider().color(Colors.DIVIDER).margin({ left: 16 })
+          Divider().color(Theme.divider(this.theme)).margin({ left: 16 })
 
           Row() {
-            Text('技艺类型').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
-            TextInput({ placeholder: '例如：苏绣、青花瓷' })
-              .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
+            Text(this.t('技艺类型', 'Craft')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(100)
+            TextInput({ placeholder: this.t('例如：苏绣、青花瓷', 'e.g. Suzhou Embroidery') })
+              .fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).placeholderColor(Theme.textHint(this.theme))
               .backgroundColor(Color.Transparent).layoutWeight(1)
               .onChange((v: string) => { this.craftType = v })
           }
-          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
+          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Theme.card(this.theme))
 
-          Divider().color(Colors.DIVIDER).margin({ left: 16 })
+          Divider().color(Theme.divider(this.theme)).margin({ left: 16 })
 
           Row() {
-            Text('标签').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(100)
-            TextInput({ placeholder: '多个用逗号分隔' })
-              .fontSize(14).fontColor(Colors.TEXT_PRIMARY).placeholderColor(Colors.TEXT_HINT)
+            Text(this.t('标签', 'Tags')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(100)
+            TextInput({ placeholder: this.t('多个用逗号分隔', 'Comma separated') })
+              .fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).placeholderColor(Theme.textHint(this.theme))
               .backgroundColor(Color.Transparent).layoutWeight(1)
               .onChange((v: string) => { this.tags = v })
           }
-          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Colors.BG_WHITE)
+          .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 }).backgroundColor(Theme.card(this.theme))
 
-          // 图片选择
-          Text('作品图片')
-            .fontSize(13).fontColor(Colors.TEXT_SECONDARY).width('100%')
+          Text(this.t('作品图片', 'Images'))
+            .fontSize(this.fs(13)).fontColor(Theme.textSecondary(this.theme)).width('100%')
             .padding({ left: 16, right: 16, top: 20, bottom: 8 })
 
           if (this.selectedUris.length > 0 || this.uploadedUrls.length > 0) {
@@ -188,7 +196,7 @@ struct ProductPublish {
                       .width('100%').height('100%')
                       .objectFit(ImageFit.Cover).borderRadius(6)
                     Text('✕')
-                      .fontSize(12).fontColor(Color.White)
+                      .fontSize(this.fs(12)).fontColor(Color.White)
                       .width(20).height(20).borderRadius(10)
                       .backgroundColor('#99000000').textAlign(TextAlign.Center)
                       .position({ x: -6, y: -6 })
@@ -205,18 +213,21 @@ struct ProductPublish {
           }
 
           Row() {
-            Text(this.selectedUris.length > 0 ? `已选 ${this.selectedUris.length} 张` : '从相册选择图片')
-              .fontSize(14).fontColor(Colors.TEXT_SECONDARY)
+            Text(this.selectedUris.length > 0
+              ? `${this.t('已选', 'Selected')} ${this.selectedUris.length} ${this.t('张', '')}`
+              : this.t('从相册选择图片', 'Choose from album'))
+              .fontSize(this.fs(14)).fontColor(Theme.textSecondary(this.theme))
           }
           .width('100%').height(44).justifyContent(FlexAlign.Center)
-          .borderRadius(8).border({ width: 1, color: Colors.DIVIDER, style: BorderStyle.Dashed })
+          .borderRadius(8).border({ width: 1, color: Theme.divider(this.theme), style: BorderStyle.Dashed })
           .margin({ left: 16, right: 16, top: 8 })
           .onClick(() => { this.pickImages() })
 
-          // 提交
-          Button(this.submitting ? '发布中...' : (this.uploading ? '上传文件中...' : '立即发布'))
-            .fontSize(16)
-            .backgroundColor((this.submitting || this.uploading) ? Colors.TEXT_HINT : Colors.PRIMARY)
+          Button(this.submitting
+            ? this.t('发布中...', 'Publishing...')
+            : (this.uploading ? this.t('上传文件中...', 'Uploading...') : this.t('立即发布', 'Publish')))
+            .fontSize(this.fs(16))
+            .backgroundColor((this.submitting || this.uploading) ? Theme.textHint(this.theme) : Theme.primary(this.theme))
             .borderRadius(24).height(48).width('100%')
             .margin({ left: 16, right: 16, top: 30, bottom: 30 })
             .onClick(() => {
@@ -224,18 +235,18 @@ struct ProductPublish {
             })
         }
       }
-      .width('100%').layoutWeight(1).backgroundColor(Colors.BG_PAPER).scrollBar(BarState.Off)
+      .width('100%').layoutWeight(1).backgroundColor(Theme.bg(this.theme)).scrollBar(BarState.Off)
     }
     .width('100%').height('100%')
+    .backgroundColor(Theme.bg(this.theme))
   }
 
   private showCategoryPicker(): void {
     if (this.categoryList.length === 0) {
-      promptAction.showToast({ message: '分类加载中，请稍候' })
+      promptAction.showToast({ message: this.t('分类加载中，请稍候', 'Loading categories...') })
       return
     }
     const names: string[] = this.categoryList.map((c: Category) => c.name)
-    // 当前选中项在列表中的位置
     let selectedIndex = this.categoryList.findIndex((c: Category) => c.name === this.selectedCategoryName)
     if (selectedIndex < 0) selectedIndex = 0
     TextPickerDialog.show({
@@ -274,15 +285,14 @@ struct ProductPublish {
 
   private async handlePublish(): Promise<void> {
     if (!this.name.trim()) {
-      promptAction.showToast({ message: '请输入作品名称' })
+      promptAction.showToast({ message: this.t('请输入作品名称', 'Please enter a name') })
       return
     }
 
-    // 仅售卖时需要验证价格
     if (this.isSellable) {
       const priceNum = parseFloat(this.price)
       if (isNaN(priceNum) || priceNum <= 0) {
-        promptAction.showToast({ message: '请输入有效价格' })
+        promptAction.showToast({ message: this.t('请输入有效价格', 'Please enter a valid price') })
         return
       }
     }
@@ -297,7 +307,7 @@ struct ProductPublish {
       if (resp.code === 0 && resp.data) {
         finalUrls = resp.data['urls'] || []
       } else {
-        promptAction.showToast({ message: resp.message || '图片上传失败' })
+        promptAction.showToast({ message: resp.message || this.t('图片上传失败', 'Image upload failed') })
         this.submitting = false
         return
       }
@@ -347,10 +357,10 @@ struct ProductPublish {
     this.submitting = false
 
     if (resp.code === 0) {
-      promptAction.showToast({ message: '发布成功！' })
+      promptAction.showToast({ message: this.t('发布成功！', 'Published!') })
       router.back()
     } else {
-      promptAction.showToast({ message: resp.message || '发布失败' })
+      promptAction.showToast({ message: resp.message || this.t('发布失败', 'Publish failed') })
     }
   }
 }

@@ -6,6 +6,8 @@ import { Constants } from '../common/Constants'
 import { AuthService } from '../service/AuthService'
 import { LoginResult } from '../model/User'
 import { ApiResponse } from '../model/ApiResponse'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 interface TestAccount {
   label: string
@@ -23,6 +25,18 @@ struct Login {
   @State username: string = ''
   @State remember: boolean = true
 
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
+
   private testAccounts: TestAccount[] = [
     { label: '管理员', phone: '13800000001', password: '123456' },
     { label: '传承人', phone: '13800000002', password: '123456' },
@@ -33,8 +47,8 @@ struct Login {
     Column() {
       Row() {
         Text('‹')
-          .fontSize(28)
-          .fontColor(Colors.TEXT_PRIMARY)
+          .fontSize(this.fs(28))
+          .fontColor(Theme.textPrimary(this.theme))
           .width(24)
           .height(24)
           .textAlign(TextAlign.Center)
@@ -45,14 +59,14 @@ struct Login {
 
       Scroll() {
         Column() {
-          Text(this.isRegister ? '注册账号' : '欢迎来到锤子铺')
-            .fontSize(26)
+          Text(this.isRegister ? this.t('注册账号', 'Register') : this.t('欢迎来到锤子铺', 'Welcome to Chuizhi'))
+            .fontSize(this.fs(26))
             .fontWeight(FontWeight.Bold)
-            .fontColor(Colors.TEXT_PRIMARY)
+            .fontColor(Theme.textPrimary(this.theme))
 
-          Text(this.isRegister ? '加入非遗守护者' : '发现并拥有中国手艺')
-            .fontSize(14)
-            .fontColor(Colors.TEXT_SECONDARY)
+          Text(this.isRegister ? this.t('加入非遗守护者', 'Join as a heritage guardian') : this.t('发现并拥有中国手艺', 'Discover Chinese craftsmanship'))
+            .fontSize(this.fs(14))
+            .fontColor(Theme.textSecondary(this.theme))
             .margin({ top: 8 })
 
           // 测试账号快速切换
@@ -60,11 +74,11 @@ struct Login {
             Row() {
               ForEach(this.testAccounts, (acc: TestAccount) => {
                 Text(acc.label)
-                  .fontSize(11)
-                  .fontColor(this.phone === acc.phone ? Colors.BG_WHITE : Colors.TEXT_SECONDARY)
+                  .fontSize(this.fs(11))
+                  .fontColor(this.phone === acc.phone ? Theme.WHITE : Theme.textSecondary(this.theme))
                   .padding({ left: 14, right: 14, top: 6, bottom: 6 })
                   .borderRadius(14)
-                  .backgroundColor(this.phone === acc.phone ? Colors.PRIMARY : Colors.BG_PAPER)
+                  .backgroundColor(this.phone === acc.phone ? Theme.primary(this.theme) : Theme.bg(this.theme))
                   .margin({ right: 10 })
                   .onClick(() => {
                     this.phone = acc.phone
@@ -79,71 +93,77 @@ struct Login {
           // 注册时显示用户名输入
           if (this.isRegister) {
             Row() {
-              TextInput({ placeholder: '请输入用户名', text: this.username })
-                .fontSize(16)
+              TextInput({ placeholder: this.t('请输入用户名', 'Username'), text: this.username })
+                .fontSize(this.fs(16))
                 .layoutWeight(1)
                 .height(44)
                 .backgroundColor(Color.Transparent)
+                .fontColor(Theme.textPrimary(this.theme))
+                .placeholderColor(Theme.textHint(this.theme))
                 .onChange((value: string) => { this.username = value })
             }
             .width('100%')
             .padding({ left: 16, right: 16 })
             .height(48)
             .borderRadius(8)
-            .border({ width: 1, color: Colors.DIVIDER })
+            .border({ width: 1, color: Theme.divider(this.theme) })
             .margin({ top: 24 })
           }
 
           Row() {
             Text('+86')
-              .fontSize(16)
+              .fontSize(this.fs(16))
               .fontWeight(FontWeight.Medium)
-              .fontColor(Colors.TEXT_PRIMARY)
+              .fontColor(Theme.textPrimary(this.theme))
               .margin({ right: 12 })
 
-            TextInput({ placeholder: '请输入手机号', text: this.phone })
-              .fontSize(16)
+            TextInput({ placeholder: this.t('请输入手机号', 'Phone number'), text: this.phone })
+              .fontSize(this.fs(16))
               .layoutWeight(1)
               .height(44)
               .type(InputType.PhoneNumber)
               .maxLength(11)
               .backgroundColor(Color.Transparent)
+              .fontColor(Theme.textPrimary(this.theme))
+              .placeholderColor(Theme.textHint(this.theme))
               .onChange((value: string) => { this.phone = value })
           }
           .width('100%')
           .padding({ left: 16, right: 16 })
           .height(48)
           .borderRadius(8)
-          .border({ width: 1, color: Colors.DIVIDER })
+          .border({ width: 1, color: Theme.divider(this.theme) })
           .margin({ top: 24 })
 
           Row() {
-            TextInput({ placeholder: '请输入密码', text: this.password })
-              .fontSize(16)
+            TextInput({ placeholder: this.t('请输入密码', 'Password'), text: this.password })
+              .fontSize(this.fs(16))
               .layoutWeight(1)
               .height(44)
               .type(InputType.Password)
               .backgroundColor(Color.Transparent)
+              .fontColor(Theme.textPrimary(this.theme))
+              .placeholderColor(Theme.textHint(this.theme))
               .onChange((value: string) => { this.password = value })
           }
           .width('100%')
           .padding({ left: 16, right: 16 })
           .height(48)
           .borderRadius(8)
-          .border({ width: 1, color: Colors.DIVIDER })
+          .border({ width: 1, color: Theme.divider(this.theme) })
           .margin({ top: 16 })
 
           // 记住登录
           Row() {
             Checkbox()
               .select(this.remember)
-              .selectedColor(Colors.PRIMARY)
+              .selectedColor(Theme.primary(this.theme))
               .width(20)
               .height(20)
               .onChange((value: boolean) => { this.remember = value })
-            Text('记住登录')
-              .fontSize(13)
-              .fontColor(Colors.TEXT_SECONDARY)
+            Text(this.t('记住登录', 'Remember me'))
+              .fontSize(this.fs(13))
+              .fontColor(Theme.textSecondary(this.theme))
               .margin({ left: 6 })
               .onClick(() => { this.remember = !this.remember })
             Blank()
@@ -151,10 +171,10 @@ struct Login {
           .width('100%')
           .margin({ top: 16 })
 
-          Button(this.isRegister ? '注 册' : '登 录')
-            .fontSize(16)
+          Button(this.isRegister ? this.t('注 册', 'Register') : this.t('登 录', 'Sign In'))
+            .fontSize(this.fs(16))
             .fontWeight(FontWeight.Medium)
-            .backgroundColor(Colors.PRIMARY)
+            .backgroundColor(Theme.primary(this.theme))
             .borderRadius(24)
             .height(48)
             .width('100%')
@@ -162,15 +182,15 @@ struct Login {
             .enabled(!this.logging)
             .onClick(async () => {
               if (this.phone.length < 11) {
-                promptAction.showToast({ message: '请输入正确的手机号' })
+                promptAction.showToast({ message: this.t('请输入正确的手机号', 'Please enter a valid phone number') })
                 return
               }
               if (this.password.length < 6) {
-                promptAction.showToast({ message: '密码至少6位' })
+                promptAction.showToast({ message: this.t('密码至少6位', 'Password must be at least 6 characters') })
                 return
               }
               if (this.isRegister && !this.username) {
-                promptAction.showToast({ message: '请输入用户名' })
+                promptAction.showToast({ message: this.t('请输入用户名', 'Please enter a username') })
                 return
               }
 
@@ -184,20 +204,20 @@ struct Login {
               this.logging = false
 
               if (resp.code === 0) {
-                promptAction.showToast({ message: this.isRegister ? '注册成功' : '登录成功' })
+                promptAction.showToast({ message: this.isRegister ? this.t('注册成功', 'Registered') : this.t('登录成功', 'Signed in') })
                 router.back()
               } else {
-                promptAction.showToast({ message: resp.message || '操作失败' })
+                promptAction.showToast({ message: resp.message || this.t('操作失败', 'Failed') })
               }
             })
 
           Row() {
-            Text(this.isRegister ? '已有账号？' : '没有账号？')
-              .fontSize(13)
-              .fontColor(Colors.TEXT_SECONDARY)
-            Text(this.isRegister ? '去登录' : '去注册')
-              .fontSize(13)
-              .fontColor(Colors.PRIMARY)
+            Text(this.isRegister ? this.t('已有账号？', 'Have an account? ') : this.t('没有账号？', 'No account? '))
+              .fontSize(this.fs(13))
+              .fontColor(Theme.textSecondary(this.theme))
+            Text(this.isRegister ? this.t('去登录', 'Sign in') : this.t('去注册', 'Register'))
+              .fontSize(this.fs(13))
+              .fontColor(Theme.primary(this.theme))
               .onClick(() => {
                 this.isRegister = !this.isRegister
                 this.username = ''
@@ -215,6 +235,6 @@ struct Login {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(Colors.BG_PAPER)
+    .backgroundColor(Theme.bg(this.theme))
   }
 }

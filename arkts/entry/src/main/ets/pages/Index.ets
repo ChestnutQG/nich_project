@@ -13,6 +13,8 @@ import { AuthService } from '../service/AuthService'
 import { CategoryService } from '../service/CategoryService'
 import { User } from '../model/User'
 import { getToken, ensureTokenLoaded, clearToken } from '../service/ApiClient'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 @Entry
 @Component
@@ -34,6 +36,18 @@ struct Index {
   @State drawerOffset: number = -100
 
   @State categories: Category[] = []
+
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
 
   aboutToAppear(): void {
     this.loadFeedData()
@@ -73,14 +87,13 @@ struct Index {
 
     const resp = await AuthService.getUserInfo()
     if (resp.code === 0 && resp.data) {
-      this.userName = resp.data.nickname || '用户'
+      this.userName = resp.data.nickname || this.t('用户', 'User')
       this.userAvatar = resp.data.avatar || ''
       this.userPhone = resp.data.phone || ''
       this.userCollectCount = resp.data.collectCount || 0
       this.userFollowCount = resp.data.followCount || 0
       this.userOrderCount = resp.data.orderCount || 0
     } else {
-      // token 过期或失效（如后端重启），清掉记住的登录，避免卡在假登录态
       await clearToken()
       this.isLoggedIn = false
       this.resetUserState()
@@ -88,7 +101,7 @@ struct Index {
   }
 
   private resetUserState(): void {
-    this.userName = '未登录'
+    this.userName = this.t('未登录', 'Not logged in')
     this.userAvatar = ''
     this.userPhone = ''
     this.userCollectCount = 0
@@ -107,7 +120,6 @@ struct Index {
     animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
       this.drawerOffset = -100
     })
-    // 动画结束后隐藏遮罩
     setTimeout(() => {
       this.showSideBar = false
     }, 220)
@@ -119,7 +131,6 @@ struct Index {
       Column() {
         // 顶部导航栏
         Row() {
-          // 头像按钮 — 有头像则显示头像，否则显示默认图标
           if (this.userAvatar) {
             Image(this.userAvatar)
               .width(28)
@@ -130,48 +141,46 @@ struct Index {
               .onClick(() => { this.openDrawer() })
           } else {
             Text('👤')
-              .fontSize(22)
+              .fontSize(this.fs(22))
               .margin({ right: 12 })
               .onClick(() => { this.openDrawer() })
           }
 
-          Text('锤子铺')
-            .fontSize(22)
+          Text(this.t('锤子铺', 'Chuizhi'))
+            .fontSize(this.fs(22))
             .fontWeight(FontWeight.Bold)
-            .fontColor(Colors.TEXT_PRIMARY)
+            .fontColor(Theme.textPrimary(this.theme))
 
           Blank()
 
-          // 发布入口
-          Text('发布')
-            .fontSize(14)
-            .fontColor(Colors.PRIMARY)
+          Text(this.t('发布', 'Publish'))
+            .fontSize(this.fs(14))
+            .fontColor(Theme.primary(this.theme))
             .margin({ right: 16 })
             .onClick(() => {
               router.pushUrl({ url: Constants.PAGE_PRODUCT_PUBLISH })
             })
 
-          // 搜索
           Text('🔍')
-            .fontSize(22)
+            .fontSize(this.fs(22))
             .onClick(() => router.pushUrl({ url: Constants.PAGE_SEARCH }))
         }
         .width('100%')
         .padding({ left: 16, right: 16, top: 12, bottom: 8 })
-        .backgroundColor(Colors.BG_WHITE)
+        .backgroundColor(Theme.card(this.theme))
 
         // 分类 chip 横滚
         Scroll() {
           Row() {
             ForEach(this.categories, (cat: Category) => {
               Text(cat.icon + ' ' + cat.name)
-                .fontSize(12)
-                .fontColor(Colors.TEXT_SECONDARY)
+                .fontSize(this.fs(12))
+                .fontColor(Theme.textSecondary(this.theme))
                 .padding({ left: 12, right: 12, top: 6, bottom: 6 })
                 .borderRadius(14)
-                .border({ width: 1, color: Colors.DIVIDER })
+                .border({ width: 1, color: Theme.divider(this.theme) })
                 .margin({ right: 8 })
-                .backgroundColor(Colors.BG_WHITE)
+                .backgroundColor(Theme.card(this.theme))
                 .onClick(() => {
                   router.pushUrl({
                     url: Constants.PAGE_PRODUCT_LIST,
@@ -186,19 +195,20 @@ struct Index {
         .scrollBar(BarState.Off)
         .width('100%')
         .height(40)
-        .backgroundColor(Colors.BG_WHITE)
-        .border({ width: { bottom: 0.5 }, color: Colors.DIVIDER })
+        .backgroundColor(Theme.card(this.theme))
+        .border({ width: { bottom: 0.5 }, color: Theme.divider(this.theme) })
 
         // Feed 列表
         if (this.feedProducts.length === 0 && !this.feedLoading) {
           Column() {
-            Text('暂无内容')
-              .fontSize(16)
-              .fontColor(Colors.TEXT_HINT)
+            Text(this.t('暂无内容', 'No content'))
+              .fontSize(this.fs(16))
+              .fontColor(Theme.textHint(this.theme))
           }
           .width('100%')
           .layoutWeight(1)
           .justifyContent(FlexAlign.Center)
+          .backgroundColor(Theme.bg(this.theme))
         } else {
           Refresh({ refreshing: $$this.feedRefreshing }) {
             List() {
@@ -227,24 +237,22 @@ struct Index {
           LoadingProgress()
             .width(28)
             .height(28)
-            .color(Colors.PRIMARY)
+            .color(Theme.primary(this.theme))
             .margin({ top: 8, bottom: 12 })
         }
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(Colors.BG_PAPER)
+      .backgroundColor(Theme.bg(this.theme))
 
       // 侧边栏遮罩 + 面板
       if (this.showSideBar) {
-        // 半透明遮罩（点击关闭）
         Column()
           .width('100%')
           .height('100%')
           .backgroundColor('#55000000')
           .onClick(() => { this.closeDrawer() })
 
-        // 侧边栏面板（从左侧滑入）
         Column() {
           Scroll() {
             Column() {
@@ -258,25 +266,25 @@ struct Index {
                     .objectFit(ImageFit.Cover)
                 } else {
                   Text(this.userName.charAt(0))
-                    .fontSize(24)
-                    .fontColor(Colors.BG_WHITE)
+                    .fontSize(this.fs(24))
+                    .fontColor(Theme.WHITE)
                     .width(56)
                     .height(56)
                     .borderRadius(28)
-                    .backgroundColor(Colors.PRIMARY)
+                    .backgroundColor(Theme.primary(this.theme))
                     .textAlign(TextAlign.Center)
                     .lineHeight(56)
                 }
 
                 Column() {
                   Text(this.userName)
-                    .fontSize(16)
+                    .fontSize(this.fs(16))
                     .fontWeight(FontWeight.Medium)
-                    .fontColor(Colors.TEXT_PRIMARY)
+                    .fontColor(Theme.textPrimary(this.theme))
 
                   Text(this.userPhone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'))
-                    .fontSize(12)
-                    .fontColor(Colors.TEXT_SECONDARY)
+                    .fontSize(this.fs(12))
+                    .fontColor(Theme.textSecondary(this.theme))
                     .margin({ top: 4 })
                 }
                 .margin({ left: 12 })
@@ -284,9 +292,9 @@ struct Index {
 
                 Blank()
 
-                Text('编辑 >')
-                  .fontSize(12)
-                  .fontColor(Colors.TEXT_HINT)
+                Text(this.t('编辑 >', 'Edit >'))
+                  .fontSize(this.fs(12))
+                  .fontColor(Theme.textHint(this.theme))
                   .onClick(() => {
                     this.closeDrawer()
                     router.pushUrl({ url: Constants.PAGE_PROFILE_EDIT })
@@ -294,71 +302,61 @@ struct Index {
               }
               .width('100%')
               .padding({ left: 16, right: 16, top: 40, bottom: 20 })
-              .backgroundColor(Colors.BG_WHITE)
+              .backgroundColor(Theme.card(this.theme))
 
               // 统计数据
               Row() {
-                this.StatItem('收藏', `${this.userCollectCount}`, () => {
+                this.StatItem(this.t('收藏', 'Saved'), `${this.userCollectCount}`, () => {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_FAVORITE_LIST })
                 })
-                this.StatItem('关注', `${this.userFollowCount}`, () => {
+                this.StatItem(this.t('关注', 'Following'), `${this.userFollowCount}`, () => {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_FOLLOW_LIST })
                 })
-                this.StatItem('订单', `${this.userOrderCount}`, () => {
+                this.StatItem(this.t('订单', 'Orders'), `${this.userOrderCount}`, () => {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_ORDER_LIST })
                 })
               }
               .width('100%')
               .padding({ top: 16, bottom: 16 })
-              .backgroundColor(Colors.BG_WHITE)
+              .backgroundColor(Theme.card(this.theme))
               .margin({ top: 1 })
 
               // 菜单列表
               Column() {
-                this.MenuItem('🛒', `购物车 (${this.cartCount})`, () => {
+                this.MenuItem('🛒', `${this.t('购物车', 'Cart')} (${this.cartCount})`, () => {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_CART })
                 })
-                this.MenuItem('📦', '发布作品', () => {
+                this.MenuItem('📦', this.t('发布作品', 'Publish'), () => {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_PRODUCT_PUBLISH })
                 })
-                this.MenuItem('📋', '我的订单', () => {
-                  this.closeDrawer()
-                  router.pushUrl({ url: Constants.PAGE_ORDER_LIST })
-                })
-                this.MenuItem('⚖️', '我的维权', () => {
+                this.MenuItem('⚖️', this.t('我的维权', 'My Disputes'), () => {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_DISPUTE_LIST })
                 })
-                this.MenuItem('👨‍⚖️', '陪审邀请', () => {
+                this.MenuItem('👨‍⚖️', this.t('陪审邀请', 'Jury'), () => {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_JURY_INVITATIONS })
                 })
-                this.MenuItem('📍', '收货地址', () => {
+                this.MenuItem('📍', this.t('收货地址', 'Addresses'), () => {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST })
                 })
-                this.MenuItem('❤️', '我的收藏', () => {
+                this.MenuItem('🔔', this.t('消息通知', 'Notifications'), () => { this.closeDrawer() })
+                this.MenuItem('⚙️', this.t('设置', 'Settings'), () => {
                   this.closeDrawer()
-                  router.pushUrl({ url: Constants.PAGE_FAVORITE_LIST })
+                  router.pushUrl({ url: Constants.PAGE_SETTINGS })
                 })
-                this.MenuItem('🧑‍🎨', '关注的匠人', () => {
-                  this.closeDrawer()
-                  router.pushUrl({ url: Constants.PAGE_FOLLOW_LIST })
-                })
-                this.MenuItem('🔔', '消息通知', () => { this.closeDrawer() })
-                this.MenuItem('⚙️', '设置', () => { this.closeDrawer() })
 
-                // 登录 / 退出
                 if (this.isLoggedIn) {
                   Row() {
-                    Text('退出登录')
-                      .fontSize(15)
-                      .fontColor('#E74C3C')
+                    Text(this.t('退出登录', 'Sign Out'))
+                      .fontSize(this.fs(15))
+                      .fontColor(Theme.error(this.theme))
                   }
                   .width('100%')
                   .padding({ left: 16, right: 16, top: 14, bottom: 14 })
@@ -368,13 +366,13 @@ struct Index {
                     await AuthService.logout()
                     this.resetUserState()
                     this.isLoggedIn = false
-                    promptAction.showToast({ message: '已退出' })
+                    promptAction.showToast({ message: this.t('已退出', 'Signed out') })
                   })
                 } else {
                   Row() {
-                    Text('登录 / 注册')
-                      .fontSize(15)
-                      .fontColor(Colors.PRIMARY)
+                    Text(this.t('登录 / 注册', 'Sign In / Register'))
+                      .fontSize(this.fs(15))
+                      .fontColor(Theme.primary(this.theme))
                   }
                   .width('100%')
                   .padding({ left: 16, right: 16, top: 14, bottom: 14 })
@@ -386,7 +384,7 @@ struct Index {
                 }
               }
               .width('100%')
-              .backgroundColor(Colors.BG_WHITE)
+              .backgroundColor(Theme.card(this.theme))
               .margin({ top: 1 })
 
               Row().height(20)
@@ -398,7 +396,7 @@ struct Index {
         }
         .width('78%')
         .height('100%')
-        .backgroundColor(Colors.BG_PAPER)
+        .backgroundColor(Theme.bg(this.theme))
         .offset({ x: `${this.drawerOffset}%` })
       }
     }
@@ -410,12 +408,12 @@ struct Index {
   StatItem(label: string, count: string, onClick?: () => void) {
     Column() {
       Text(count)
-        .fontSize(20)
+        .fontSize(this.fs(20))
         .fontWeight(FontWeight.Bold)
-        .fontColor(Colors.TEXT_PRIMARY)
+        .fontColor(Theme.textPrimary(this.theme))
       Text(label)
-        .fontSize(12)
-        .fontColor(Colors.TEXT_SECONDARY)
+        .fontSize(this.fs(12))
+        .fontColor(Theme.textSecondary(this.theme))
         .margin({ top: 4 })
     }
     .layoutWeight(1)
@@ -428,18 +426,18 @@ struct Index {
   MenuItem(icon: string, title: string, onClick: () => void) {
     Row() {
       Text(icon)
-        .fontSize(20)
+        .fontSize(this.fs(20))
         .margin({ right: 12 })
 
       Text(title)
-        .fontSize(15)
-        .fontColor(Colors.TEXT_PRIMARY)
+        .fontSize(this.fs(15))
+        .fontColor(Theme.textPrimary(this.theme))
         .layoutWeight(1)
 
       Image($r('sys.media.ohos_ic_public_arrow_right'))
         .width(14)
         .height(14)
-        .fillColor(Colors.TEXT_HINT)
+        .fillColor(Theme.textHint(this.theme))
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 14, bottom: 14 })
@@ -456,9 +454,9 @@ struct Index {
         .objectFit(ImageFit.Cover)
 
       Text(product.name)
-        .fontSize(15)
+        .fontSize(this.fs(15))
         .fontWeight(FontWeight.Medium)
-        .fontColor(Colors.TEXT_PRIMARY)
+        .fontColor(Theme.textPrimary(this.theme))
         .maxLines(2)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .width('100%')
@@ -466,17 +464,17 @@ struct Index {
 
       Row() {
         Text(product.artisanName)
-          .fontSize(12)
-          .fontColor(Colors.TEXT_SECONDARY)
+          .fontSize(this.fs(12))
+          .fontColor(Theme.textSecondary(this.theme))
 
         Blank()
 
         Text(product.craftType)
-          .fontSize(11)
-          .fontColor(Colors.PRIMARY)
+          .fontSize(this.fs(11))
+          .fontColor(Theme.primary(this.theme))
           .padding({ left: 8, right: 8, top: 2, bottom: 2 })
           .borderRadius(4)
-          .backgroundColor(Colors.PRIMARY_BG)
+          .backgroundColor(Theme.primaryBg(this.theme))
       }
       .width('100%')
       .margin({ top: 8 })
@@ -484,7 +482,7 @@ struct Index {
     .width('100%')
     .padding(12)
     .borderRadius(8)
-    .backgroundColor(Colors.BG_WHITE)
+    .backgroundColor(Theme.card(this.theme))
     .margin({ top: 10 })
     .onClick(() => {
       router.pushUrl({ url: Constants.PAGE_PRODUCT_DETAIL, params: { productId: product.id } })

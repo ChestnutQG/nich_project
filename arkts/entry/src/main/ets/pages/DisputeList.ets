@@ -6,12 +6,26 @@ import { DisputeService } from '../service/DisputeService'
 import { Dispute, getDisputeStatusText, getDisputeResultText } from '../model/Dispute'
 import { NavBar } from '../components/NavBar'
 import { EmptyState } from '../components/EmptyState'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 @Entry
 @Component
 struct DisputeList {
   @State disputes: Dispute[] = []
   @State loading: boolean = true
+
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
 
   aboutToAppear(): void {
     this.loadList()
@@ -28,15 +42,16 @@ struct DisputeList {
 
   build() {
     Column() {
-      NavBar({ title: '我的维权', showBack: true })
+      NavBar({ title: this.t('我的维权', 'My Disputes'), showBack: true })
 
       if (this.loading) {
         Row() {
-          LoadingProgress().width(24).height(24).color(Colors.PRIMARY)
+          LoadingProgress().width(24).height(24).color(Theme.primary(this.theme))
         }
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
+        .backgroundColor(Theme.bg(this.theme))
       } else if (this.disputes.length === 0) {
-        EmptyState({ message: '暂无维权记录', iconText: '⚖️' })
+        EmptyState({ message: this.t('暂无维权记录', 'No disputes'), iconText: '⚖️' })
       } else {
         Scroll() {
           Column() {
@@ -45,15 +60,15 @@ struct DisputeList {
                 Row() {
                   Column() {
                     Text(d.orderNo || '')
-                      .fontSize(13).fontWeight(FontWeight.Medium).fontColor(Colors.TEXT_PRIMARY)
+                      .fontSize(this.fs(13)).fontWeight(FontWeight.Medium).fontColor(Theme.textPrimary(this.theme))
                     Text(d.productName || '')
-                      .fontSize(12).fontColor(Colors.TEXT_SECONDARY).margin({ top: 4 })
+                      .fontSize(this.fs(12)).fontColor(Theme.textSecondary(this.theme)).margin({ top: 4 })
                   }
                   .alignItems(HorizontalAlign.Start).layoutWeight(1)
 
                   Column() {
                     Text(getDisputeStatusText(d.status))
-                      .fontSize(11)
+                      .fontSize(this.fs(11))
                       .fontColor(d.status === 'negotiating' ? '#856404' :
                         d.status === 'voting' ? '#1A5276' : '#1E8449')
                       .backgroundColor(d.status === 'negotiating' ? '#FFF3CD' :
@@ -62,7 +77,7 @@ struct DisputeList {
                       .padding({ left: 8, right: 8, top: 3, bottom: 3 })
                     if (d.result) {
                       Text(getDisputeResultText(d.result))
-                        .fontSize(10)
+                        .fontSize(this.fs(10))
                         .fontColor(d.result === 'buyer_win' ? '#922B21' : '#1A5276')
                         .margin({ top: 4 })
                     }
@@ -72,22 +87,22 @@ struct DisputeList {
                 .width('100%')
 
                 Row() {
-                  Text(`${d.initiatorName} 申请 · 被申请人: ${d.respondentName}`)
-                    .fontSize(11).fontColor(Colors.TEXT_HINT)
+                  Text(`${d.initiatorName} ${this.t('申请 · 被申请人', 'applied · Respondent')}: ${d.respondentName}`)
+                    .fontSize(this.fs(11)).fontColor(Theme.textHint(this.theme))
                 }
                 .width('100%').margin({ top: 8 })
 
                 if (d.status === 'voting') {
                   Row() {
-                    Text(`投票: ${d.buyerVotes} 支持买家 vs ${d.sellerVotes} 支持卖家`)
-                      .fontSize(11).fontColor(Colors.PRIMARY)
+                    Text(`${this.t('投票', 'Votes')}: ${d.buyerVotes} ${this.t('支持买家', 'buyer')} vs ${d.sellerVotes} ${this.t('支持卖家', 'seller')}`)
+                      .fontSize(this.fs(11)).fontColor(Theme.primary(this.theme))
                   }
                   .width('100%').margin({ top: 4 })
                 }
               }
               .width('100%')
               .padding(14)
-              .backgroundColor(Colors.BG_WHITE)
+              .backgroundColor(Theme.card(this.theme))
               .borderRadius(8)
               .margin({ top: 8 })
               .onClick(() => {
@@ -99,15 +114,15 @@ struct DisputeList {
           }
           .padding({ left: 16, right: 16 })
         }
-        .width('100%').layoutWeight(1).backgroundColor(Colors.BG_PAPER).scrollBar(BarState.Off)
+        .width('100%').layoutWeight(1).backgroundColor(Theme.bg(this.theme)).scrollBar(BarState.Off)
       }
     }
     .width('100%').height('100%')
+    .backgroundColor(Theme.bg(this.theme))
 
-    // 新建维权按钮
-    Button('发起维权')
-      .fontSize(14)
-      .backgroundColor(Colors.PRIMARY)
+    Button(this.t('发起维权', 'New Dispute'))
+      .fontSize(this.fs(14))
+      .backgroundColor(Theme.primary(this.theme))
       .borderRadius(22).height(44).width('60%')
       .position({ x: '20%', y: '88%' })
       .shadow({ radius: 8, color: '#40000000' })

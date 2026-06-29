@@ -1,17 +1,15 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { SettingsService } from '../service/SettingsService';
 
 const DOMAIN = 0x0000;
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-    try {
-      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
-    } catch (err) {
-      hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
-    }
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
+    // 预加载用户设置（主题/字体/语言），尽早同步到 AppStorage
+    SettingsService.ensureInit().catch(() => {});
   }
 
   onDestroy(): void {

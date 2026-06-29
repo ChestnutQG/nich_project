@@ -6,6 +6,8 @@ import { Product } from '../model/Product'
 import { ProductService } from '../service/ProductService'
 import { NavBar } from '../components/NavBar'
 import { ProductCard } from '../components/ProductCard'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 @Entry
 @Component
@@ -15,6 +17,18 @@ struct SearchPage {
   @State searching: boolean = false
   @State history: string[] = ['苏绣', '紫砂壶', '青花瓷', '银饰', '歙砚']
   private hotKeywords: string[] = ['景德镇陶瓷', '苏绣团扇', '宜兴紫砂', '苗银饰品', '手工宣纸', '蜡染']
+
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
 
   async doSearch(): Promise<void> {
     if (this.keyword.trim().length === 0) return
@@ -33,20 +47,20 @@ struct SearchPage {
 
   build() {
     Column() {
-      NavBar({ title: '搜索', showBack: true })
+      NavBar({ title: this.t('搜索', 'Search'), showBack: true })
 
       Row() {
-        TextInput({ placeholder: '搜非遗好物、匠人、技艺...', text: this.keyword })
-          .fontSize(14)
+        TextInput({ placeholder: this.t('搜非遗好物、匠人、技艺...', 'Search crafts, artisans...'), text: this.keyword })
+          .fontSize(this.fs(14))
           .layoutWeight(1)
           .height(38)
           .backgroundColor(Color.Transparent)
           .onChange((value: string) => { this.keyword = value })
           .onSubmit(() => { this.doSearch() })
 
-        Text('搜索')
-          .fontSize(14)
-          .fontColor(Colors.PRIMARY)
+        Text(this.t('搜索', 'Search'))
+          .fontSize(this.fs(14))
+          .fontColor(Theme.primary(this.theme))
           .fontWeight(FontWeight.Medium)
           .margin({ left: 8 })
           .onClick(() => { this.doSearch() })
@@ -54,7 +68,7 @@ struct SearchPage {
       .width('100%')
       .height(44)
       .padding({ left: 16, right: 16 })
-      .backgroundColor(Colors.BG_WHITE)
+      .backgroundColor(Theme.card(this.theme))
 
       if (this.results.length > 0) {
         Scroll() {
@@ -78,29 +92,29 @@ struct SearchPage {
         }
         .width('100%')
         .layoutWeight(1)
-        .backgroundColor(Colors.BG_PAPER)
+        .backgroundColor(Theme.bg(this.theme))
         .scrollBar(BarState.Off)
       } else if (this.searching) {
         Row() {
-          LoadingProgress().width(24).height(24).color(Colors.PRIMARY)
-          Text('搜索中...').fontSize(14).fontColor(Colors.TEXT_HINT).margin({ left: 8 })
+          LoadingProgress().width(24).height(24).color(Theme.primary(this.theme))
+          Text(this.t('搜索中...', 'Searching...')).fontSize(this.fs(14)).fontColor(Theme.textHint(this.theme)).margin({ left: 8 })
         }
         .width('100%')
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
-        .backgroundColor(Colors.BG_PAPER)
+        .backgroundColor(Theme.bg(this.theme))
       } else {
         Scroll() {
           Column() {
             Row() {
-              Text('搜索历史')
-                .fontSize(14)
+              Text(this.t('搜索历史', 'History'))
+                .fontSize(this.fs(14))
                 .fontWeight(FontWeight.Medium)
-                .fontColor(Colors.TEXT_PRIMARY)
+                .fontColor(Theme.textPrimary(this.theme))
               Blank()
-              Text('清空')
-                .fontSize(12)
-                .fontColor(Colors.TEXT_HINT)
+              Text(this.t('清空', 'Clear'))
+                .fontSize(this.fs(12))
+                .fontColor(Theme.textHint(this.theme))
                 .onClick(() => { this.history = [] })
             }
             .width('100%')
@@ -109,11 +123,11 @@ struct SearchPage {
             Flex({ wrap: FlexWrap.Wrap }) {
               ForEach(this.history, (item: string) => {
                 Text(item)
-                  .fontSize(12)
-                  .fontColor(Colors.TEXT_SECONDARY)
+                  .fontSize(this.fs(12))
+                  .fontColor(Theme.textSecondary(this.theme))
                   .padding({ left: 12, right: 12, top: 6, bottom: 6 })
                   .borderRadius(14)
-                  .backgroundColor(Colors.BG_CARD)
+                  .backgroundColor(Theme.card(this.theme))
                   .margin({ right: 10, bottom: 10 })
                   .onClick(() => {
                     this.keyword = item
@@ -125,10 +139,10 @@ struct SearchPage {
             .padding({ left: 16, right: 16 })
 
             Row() {
-              Text('热门搜索')
-                .fontSize(14)
+              Text(this.t('热门搜索', 'Hot Searches'))
+                .fontSize(this.fs(14))
                 .fontWeight(FontWeight.Medium)
-                .fontColor(Colors.TEXT_PRIMARY)
+                .fontColor(Theme.textPrimary(this.theme))
             }
             .width('100%')
             .padding({ left: 16, right: 16, top: 20 })
@@ -136,11 +150,11 @@ struct SearchPage {
             Flex({ wrap: FlexWrap.Wrap }) {
               ForEach(this.hotKeywords, (item: string) => {
                 Text(item)
-                  .fontSize(12)
-                  .fontColor(Colors.TEXT_HINT)
+                  .fontSize(this.fs(12))
+                  .fontColor(Theme.textHint(this.theme))
                   .padding({ left: 12, right: 12, top: 6, bottom: 6 })
                   .borderRadius(14)
-                  .backgroundColor(Colors.BG_CARD)
+                  .backgroundColor(Theme.card(this.theme))
                   .margin({ right: 10, bottom: 10 })
                   .onClick(() => {
                     this.keyword = item
@@ -154,11 +168,12 @@ struct SearchPage {
         }
         .width('100%')
         .layoutWeight(1)
-        .backgroundColor(Colors.BG_PAPER)
+        .backgroundColor(Theme.bg(this.theme))
         .scrollBar(BarState.Off)
       }
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(Theme.bg(this.theme))
   }
 }

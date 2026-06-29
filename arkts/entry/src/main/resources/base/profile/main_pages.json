@@ -16,6 +16,7 @@
     "pages/Profile",
     "pages/ProfileEdit",
     "pages/FavoriteList",
-    "pages/FollowList"
+    "pages/FollowList",
+    "pages/Settings"
   ]
 }

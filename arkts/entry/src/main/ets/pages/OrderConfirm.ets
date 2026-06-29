@@ -12,6 +12,8 @@ import { ProductService } from '../service/ProductService'
 import { OrderService } from '../service/OrderService'
 import { CartService } from '../service/CartService'
 import { AddressService } from '../service/AddressService'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 @Entry
 @Component
@@ -23,8 +25,19 @@ struct OrderConfirm {
 
   private productId: string = ''
   private skuId: string = ''
-  // 从购物车进入时，记录被结算的购物车项 id，下单成功后删除
   private cartItemIds: string[] = []
+
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
 
   private calcTotalAmount(): number {
     let sum = 0
@@ -33,7 +46,6 @@ struct OrderConfirm {
   }
 
   private calcDiscountAmount(): number {
-    // 暂无优惠券/活动体系，优惠固定为 0
     return 0
   }
 
@@ -44,18 +56,15 @@ struct OrderConfirm {
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, string>
     if (params && params['productId']) {
-      // 从商品详情页过来，按 productId 加载
       this.productId = params['productId']
       this.skuId = params['skuId'] || ''
       this.loadProductData()
     } else {
-      // 从购物车过来，直接从 CartService 取选中的商品
       this.loadFromCart()
     }
   }
 
   onPageShow(): void {
-    // 从地址页“选择”返回时带回了地址 id，则用选中的；否则首次进入加载默认
     const picked = AppStorage.get<string>('orderSelectedAddressId')
     if (picked) {
       AppStorage.delete('orderSelectedAddressId')
@@ -65,7 +74,6 @@ struct OrderConfirm {
     }
   }
 
-  // 加载收货地址：传 preferId 则优先选中该地址，否则取默认（无默认取第一条）
   async loadAddress(preferId?: string): Promise<void> {
     const resp = await AddressService.fetchList()
     if (resp.code === 0 && resp.data.length > 0) {
@@ -86,7 +94,6 @@ struct OrderConfirm {
     const resp = await ProductService.fetchProductDetail(this.productId)
     if (resp.code === 0 && resp.data) {
       const p = resp.data
-      // 找到选中的 SKU
       let selectedSku = p.skus.length > 0 ? p.skus[0] : undefined
       if (this.skuId) {
         const found = p.skus.find((sku) => sku.id === this.skuId)
@@ -107,7 +114,6 @@ struct OrderConfirm {
     this.loading = false
   }
 
-  // 从购物车加载选中的商品
   async loadFromCart(): Promise<void> {
     const resp = await CartService.fetchCartList()
     if (resp.code === 0 && resp.data) {
@@ -137,58 +143,59 @@ struct OrderConfirm {
 
   build() {
     Column() {
-      NavBar({ title: '确认订单', showBack: true })
+      NavBar({ title: this.t('确认订单', 'Confirm Order'), showBack: true })
 
       if (this.loading) {
         Row() {
-          LoadingProgress().width(24).height(24).color(Colors.PRIMARY)
-          Text('加载中...').fontSize(14).fontColor(Colors.TEXT_HINT).margin({ left: 8 })
+          LoadingProgress().width(24).height(24).color(Theme.primary(this.theme))
+          Text(this.t('加载中...', 'Loading...')).fontSize(this.fs(14)).fontColor(Theme.textHint(this.theme)).margin({ left: 8 })
         }
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
+        .backgroundColor(Theme.bg(this.theme))
       } else {
         Scroll() {
           Column() {
             // 收货地址
             Row() {
               Text('📍')
-                .fontSize(22)
+                .fontSize(this.fs(22))
                 .margin({ right: 10 })
 
               if (this.address) {
                 Column() {
                   Row() {
                     Text(this.address!.name)
-                      .fontSize(15)
+                      .fontSize(this.fs(15))
                       .fontWeight(FontWeight.Medium)
-                      .fontColor(Colors.TEXT_PRIMARY)
+                      .fontColor(Theme.textPrimary(this.theme))
                     Text(this.address!.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'))
-                      .fontSize(13)
-                      .fontColor(Colors.TEXT_SECONDARY)
+                      .fontSize(this.fs(13))
+                      .fontColor(Theme.textSecondary(this.theme))
                       .margin({ left: 16 })
                   }
                   Text(`${this.address!.province}${this.address!.city}${this.address!.district} ${this.address!.detail}`)
-                    .fontSize(13)
-                    .fontColor(Colors.TEXT_SECONDARY)
+                    .fontSize(this.fs(13))
+                    .fontColor(Theme.textSecondary(this.theme))
                     .margin({ top: 4 })
                     .maxLines(2)
                 }
                 .layoutWeight(1)
                 .alignItems(HorizontalAlign.Start)
               } else {
-                Text('请添加收货地址')
-                  .fontSize(15)
-                  .fontColor(Colors.TEXT_HINT)
+                Text(this.t('请添加收货地址', 'Add shipping address'))
+                  .fontSize(this.fs(15))
+                  .fontColor(Theme.textHint(this.theme))
                   .layoutWeight(1)
               }
 
               Image($r('sys.media.ohos_ic_public_arrow_right'))
                 .width(14)
                 .height(14)
-                .fillColor(Colors.TEXT_HINT)
+                .fillColor(Theme.textHint(this.theme))
             }
             .width('100%')
             .padding(16)
-            .backgroundColor(Colors.BG_WHITE)
+            .backgroundColor(Theme.card(this.theme))
             .onClick(() => {
               router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST, params: { mode: 'select' } })
             })
@@ -205,15 +212,15 @@ struct OrderConfirm {
 
                   Column() {
                     Text(item.productName)
-                      .fontSize(14)
+                      .fontSize(this.fs(14))
                       .fontWeight(FontWeight.Medium)
-                      .fontColor(Colors.TEXT_PRIMARY)
+                      .fontColor(Theme.textPrimary(this.theme))
                       .maxLines(2)
                       .textOverflow({ overflow: TextOverflow.Ellipsis })
 
                     Text(item.skuName)
-                      .fontSize(11)
-                      .fontColor(Colors.TEXT_SECONDARY)
+                      .fontSize(this.fs(11))
+                      .fontColor(Theme.textSecondary(this.theme))
                       .margin({ top: 4 })
                   }
                   .layoutWeight(1)
@@ -223,8 +230,8 @@ struct OrderConfirm {
                   Column() {
                     PriceText({ price: item.price, textSize: 15 })
                     Text(`x${item.quantity}`)
-                      .fontSize(11)
-                      .fontColor(Colors.TEXT_HINT)
+                      .fontSize(this.fs(11))
+                      .fontColor(Theme.textHint(this.theme))
                       .margin({ top: 4 })
                   }
                 }
@@ -234,41 +241,41 @@ struct OrderConfirm {
             }
             .width('100%')
             .padding(16)
-            .backgroundColor(Colors.BG_WHITE)
+            .backgroundColor(Theme.card(this.theme))
             .margin({ top: 8 })
 
             // 金额汇总
             Column() {
-              this.AmountRow('商品总额', this.calcTotalAmount())
-              this.AmountRow('运费', 0)
-              this.AmountRow('优惠', -this.calcDiscountAmount())
+              this.AmountRow(this.t('商品总额', 'Subtotal'), this.calcTotalAmount())
+              this.AmountRow(this.t('运费', 'Shipping'), 0)
+              this.AmountRow(this.t('优惠', 'Discount'), -this.calcDiscountAmount())
             }
             .width('100%')
             .padding(16)
-            .backgroundColor(Colors.BG_WHITE)
+            .backgroundColor(Theme.card(this.theme))
             .margin({ top: 8 })
           }
         }
         .width('100%')
         .layoutWeight(1)
-        .backgroundColor(Colors.BG_PAPER)
+        .backgroundColor(Theme.bg(this.theme))
         .scrollBar(BarState.Off)
 
         // 底部提交栏
         Row() {
-          Text('实付: ')
-            .fontSize(14)
-            .fontColor(Colors.TEXT_PRIMARY)
+          Text(this.t('实付: ', 'Pay: '))
+            .fontSize(this.fs(14))
+            .fontColor(Theme.textPrimary(this.theme))
           Text(`¥${(this.calcPayAmount() / 100).toFixed(2)}`)
-            .fontSize(20)
+            .fontSize(this.fs(20))
             .fontWeight(FontWeight.Bold)
-            .fontColor(Colors.PRIMARY)
+            .fontColor(Theme.primary(this.theme))
 
           Blank()
 
-          Button(this.submitting ? '提交中...' : '提交订单')
-            .fontSize(15)
-            .backgroundColor(this.submitting ? Colors.TEXT_HINT : Colors.PRIMARY)
+          Button(this.submitting ? this.t('提交中...', 'Submitting...') : this.t('提交订单', 'Place Order'))
+            .fontSize(this.fs(15))
+            .backgroundColor(this.submitting ? Theme.textHint(this.theme) : Theme.primary(this.theme))
             .borderRadius(20)
             .height(40)
             .width(120)
@@ -279,23 +286,24 @@ struct OrderConfirm {
         .width('100%')
         .height(56)
         .padding({ left: 16, right: 16 })
-        .backgroundColor(Colors.BG_WHITE)
+        .backgroundColor(Theme.card(this.theme))
       }
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(Theme.bg(this.theme))
   }
 
   @Builder
   AmountRow(label: string, amount: number) {
     Row() {
       Text(label)
-        .fontSize(14)
-        .fontColor(Colors.TEXT_SECONDARY)
+        .fontSize(this.fs(14))
+        .fontColor(Theme.textSecondary(this.theme))
       Blank()
       Text(`${amount >= 0 ? '' : '-'}¥${(Math.abs(amount) / 100).toFixed(2)}`)
-        .fontSize(14)
-        .fontColor(Colors.TEXT_PRIMARY)
+        .fontSize(this.fs(14))
+        .fontColor(Theme.textPrimary(this.theme))
     }
     .width('100%')
     .margin({ top: 6 })
@@ -303,17 +311,16 @@ struct OrderConfirm {
 
   private async handleSubmit(): Promise<void> {
     if (!this.address) {
-      promptAction.showToast({ message: '请先添加收货地址' })
+      promptAction.showToast({ message: this.t('请先添加收货地址', 'Please add a shipping address') })
       return
     }
     if (this.cartItems.length === 0) {
-      promptAction.showToast({ message: '没有可下单的商品' })
+      promptAction.showToast({ message: this.t('没有可下单的商品', 'No items to order') })
       return
     }
     const addr: Address = this.address!
     this.submitting = true
 
-    // 构建订单
     const order: Order = {
       id: '',
       orderNo: '',
@@ -331,15 +338,14 @@ struct OrderConfirm {
     this.submitting = false
 
     if (resp.code === 0) {
-      // 购物车结算的，下单成功后把对应商品从购物车移除
       for (const id of this.cartItemIds) {
         await CartService.removeItem(id)
       }
       this.cartItemIds = []
-      promptAction.showToast({ message: '下单成功' })
+      promptAction.showToast({ message: this.t('下单成功', 'Order placed') })
       router.pushUrl({ url: Constants.PAGE_ORDER_LIST })
     } else {
-      promptAction.showToast({ message: resp.message || '下单失败' })
+      promptAction.showToast({ message: resp.message || this.t('下单失败', 'Failed') })
     }
   }
 }
