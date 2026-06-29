@@ -416,7 +416,6 @@ struct Index {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_ADDRESS_LIST })
                 })
-                this.MenuItem('🔔', this.t('消息通知', 'Notifications'), () => { this.closeDrawer() })
                 this.MenuItem('⚙️', this.t('设置', 'Settings'), () => {
                   this.closeDrawer()
                   router.pushUrl({ url: Constants.PAGE_SETTINGS })
