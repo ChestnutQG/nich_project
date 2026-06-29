@@ -55,6 +55,7 @@ public class DisputeController {
         } catch (Exception e) {
             return R.error("操作失败: " + e.getMessage());
         }
+    }
 
     /** GET /api/disputes/{id} — 纠纷详情 */
     @GetMapping("/{id}")
