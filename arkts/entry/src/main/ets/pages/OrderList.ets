@@ -8,6 +8,8 @@ import { OrderService } from '../service/OrderService'
 import { NavBar } from '../components/NavBar'
 import { EmptyState } from '../components/EmptyState'
 import { PriceText } from '../components/PriceText'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 interface StatusTab {
   label: string
@@ -21,11 +23,22 @@ struct OrderList {
   @State currentStatus: number = -1
   @State loading: boolean = true
 
-  // 付款弹窗
   @State showPayModal: boolean = false
   @State payingOrder: Order | undefined = undefined
   @State paying: boolean = false
-  @State selectedPayMethod: number = 0  // 0-华为 1-微信 2-支付宝
+  @State selectedPayMethod: number = 0
+
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
 
   private statusTabs: StatusTab[] = [
     { label: '全部', status: -1 },
@@ -59,13 +72,13 @@ struct OrderList {
   build() {
     Stack() {
       Column() {
-        NavBar({ title: '我的订单', showBack: true })
+        NavBar({ title: this.t('我的订单', 'My Orders'), showBack: true })
 
         Row() {
           ForEach(this.statusTabs, (tab: StatusTab, index: number) => {
             Text(tab.label)
-              .fontSize(13)
-              .fontColor(this.currentStatus === tab.status ? Colors.PRIMARY : Colors.TEXT_SECONDARY)
+              .fontSize(this.fs(13))
+              .fontColor(this.currentStatus === tab.status ? Theme.primary(this.theme) : Theme.textSecondary(this.theme))
               .fontWeight(this.currentStatus === tab.status ? FontWeight.Medium : FontWeight.Normal)
               .layoutWeight(1)
               .textAlign(TextAlign.Center)
@@ -77,17 +90,18 @@ struct OrderList {
           })
         }
         .width('100%')
-        .backgroundColor(Colors.BG_WHITE)
+        .backgroundColor(Theme.card(this.theme))
 
         if (this.loading) {
           Row() {
-            LoadingProgress().width(24).height(24).color(Colors.PRIMARY)
+            LoadingProgress().width(24).height(24).color(Theme.primary(this.theme))
           }
           .width('100%')
           .layoutWeight(1)
           .justifyContent(FlexAlign.Center)
+          .backgroundColor(Theme.bg(this.theme))
         } else if (this.orders.length === 0) {
-          EmptyState({ message: '暂无订单', iconText: '📋' })
+          EmptyState({ message: this.t('暂无订单', 'No orders'), iconText: '📋' })
         } else {
           Scroll() {
             Column() {
@@ -98,14 +112,14 @@ struct OrderList {
           }
           .width('100%')
           .layoutWeight(1)
-          .backgroundColor(Colors.BG_PAPER)
+          .backgroundColor(Theme.bg(this.theme))
           .scrollBar(BarState.Off)
         }
       }
       .width('100%')
       .height('100%')
+      .backgroundColor(Theme.bg(this.theme))
 
-      // 付款弹窗
       if (this.showPayModal) {
         this.PayModal()
       }
@@ -118,13 +132,13 @@ struct OrderList {
   OrderCard(order: Order) {
     Column() {
       Row() {
-        Text(`订单号：${order.orderNo}`)
-          .fontSize(12)
-          .fontColor(Colors.TEXT_SECONDARY)
+        Text(`${this.t('订单号', 'Order')}：${order.orderNo}`)
+          .fontSize(this.fs(12))
+          .fontColor(Theme.textSecondary(this.theme))
         Blank()
         Text(getOrderStatusText(order.status))
-          .fontSize(12)
-          .fontColor(Colors.PRIMARY)
+          .fontSize(this.fs(12))
+          .fontColor(Theme.primary(this.theme))
       }
       .width('100%')
       .padding({ left: 14, right: 14, top: 12, bottom: 8 })
@@ -139,15 +153,15 @@ struct OrderList {
 
           Column() {
             Text(item.productName)
-              .fontSize(13)
+              .fontSize(this.fs(13))
               .fontWeight(FontWeight.Medium)
-              .fontColor(Colors.TEXT_PRIMARY)
+              .fontColor(Theme.textPrimary(this.theme))
               .maxLines(2)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
 
             Text(item.skuName)
-              .fontSize(11)
-              .fontColor(Colors.TEXT_SECONDARY)
+              .fontSize(this.fs(11))
+              .fontColor(Theme.textSecondary(this.theme))
               .margin({ top: 4 })
           }
           .layoutWeight(1)
@@ -157,8 +171,8 @@ struct OrderList {
           Column() {
             PriceText({ price: item.price, textSize: 13 })
             Text(`x${item.quantity}`)
-              .fontSize(11)
-              .fontColor(Colors.TEXT_HINT)
+              .fontSize(this.fs(11))
+              .fontColor(Theme.textHint(this.theme))
               .margin({ top: 4 })
           }
           .alignItems(HorizontalAlign.End)
@@ -168,17 +182,17 @@ struct OrderList {
       })
 
       Row() {
-        Text(`共${this.getItemCount(order)}件  合计：`)
-          .fontSize(12)
-          .fontColor(Colors.TEXT_SECONDARY)
+        Text(`${this.t('共', '')}${this.getItemCount(order)}${this.t('件  合计：', ' items  Total: ')}`)
+          .fontSize(this.fs(12))
+          .fontColor(Theme.textSecondary(this.theme))
         PriceText({ price: order.payAmount, textSize: 14 })
 
         Blank()
 
         if (order.status === OrderStatus.PENDING_PAY) {
-          Button('去付款')
-            .fontSize(12)
-            .backgroundColor(Colors.PRIMARY)
+          Button(this.t('去付款', 'Pay Now'))
+            .fontSize(this.fs(12))
+            .backgroundColor(Theme.primary(this.theme))
             .borderRadius(14)
             .height(28)
             .padding({ left: 12, right: 12 })
@@ -188,17 +202,17 @@ struct OrderList {
               this.showPayModal = true
             })
         } else if (order.status === OrderStatus.PENDING_RECEIVE) {
-          Button('确认收货')
-            .fontSize(12)
-            .backgroundColor(Colors.PRIMARY)
+          Button(this.t('确认收货', 'Confirm Receipt'))
+            .fontSize(this.fs(12))
+            .backgroundColor(Theme.primary(this.theme))
             .borderRadius(14)
             .height(28)
             .padding({ left: 12, right: 12 })
             .onClick(() => { this.handleConfirmReceive(order) })
         } else if (order.status === OrderStatus.PENDING_DELIVER) {
-          Button('提醒发货')
-            .fontSize(12)
-            .backgroundColor(Colors.GOLD)
+          Button(this.t('提醒发货', 'Remind'))
+            .fontSize(this.fs(12))
+            .backgroundColor(Theme.gold(this.theme))
             .borderRadius(14)
             .height(28)
             .padding({ left: 12, right: 12 })
@@ -208,7 +222,7 @@ struct OrderList {
       .padding({ left: 14, right: 14, top: 10, bottom: 12 })
     }
     .width('100%')
-    .backgroundColor(Colors.BG_WHITE)
+    .backgroundColor(Theme.card(this.theme))
     .margin({ top: 8 })
     .onClick(() => {
       const p: Record<string, Object> = {}
@@ -220,7 +234,6 @@ struct OrderList {
   @Builder
   PayModal() {
     Column() {
-      // 遮罩
       Column()
         .width('100%').height('100%')
         .backgroundColor('#4D000000')
@@ -232,97 +245,96 @@ struct OrderList {
     }
 
     Column() {
-      Text('确认支付')
-        .fontSize(18)
+      Text(this.t('确认支付', 'Confirm Payment'))
+        .fontSize(this.fs(18))
         .fontWeight(FontWeight.Medium)
-        .fontColor(Colors.TEXT_PRIMARY)
+        .fontColor(Theme.textPrimary(this.theme))
         .margin({ top: 24, bottom: 4 })
 
-      Text('锤子铺 · 模拟收银台')
-        .fontSize(13)
-        .fontColor(Colors.TEXT_SECONDARY)
+      Text(this.t('锤子铺 · 模拟收银台', 'Chuizhi · Simulated Checkout'))
+        .fontSize(this.fs(13))
+        .fontColor(Theme.textSecondary(this.theme))
         .margin({ bottom: 20 })
 
-      // 支付金额
       Column() {
-        Text('支付金额')
-          .fontSize(12)
-          .fontColor(Colors.TEXT_SECONDARY)
+        Text(this.t('支付金额', 'Amount'))
+          .fontSize(this.fs(12))
+          .fontColor(Theme.textSecondary(this.theme))
         Text(`¥${((this.payingOrder?.payAmount || 0) / 100).toFixed(2)}`)
-          .fontSize(32)
+          .fontSize(this.fs(32))
           .fontWeight(FontWeight.Bold)
-          .fontColor(Colors.PRIMARY)
+          .fontColor(Theme.primary(this.theme))
           .margin({ top: 6 })
       }
       .width('100%')
       .padding(16)
-      .backgroundColor(Colors.PRIMARY_BG)
+      .backgroundColor(Theme.primaryBg(this.theme))
       .borderRadius(10)
       .margin({ bottom: 16 })
 
-      // 支付方式选择
       Column() {
         Row() {
           Text(this.selectedPayMethod === 0 ? '●' : '○')
-            .fontSize(18)
-            .fontColor(this.selectedPayMethod === 0 ? Colors.PRIMARY : Colors.TEXT_HINT)
+            .fontSize(this.fs(18))
+            .fontColor(this.selectedPayMethod === 0 ? Theme.primary(this.theme) : Theme.textHint(this.theme))
             .margin({ right: 10 })
-          Text('💳 华为支付（模拟）')
-            .fontSize(14)
-            .fontColor(Colors.TEXT_PRIMARY)
+          Text(this.t('💳 华为支付（模拟）', '💳 Huawei Pay (Simulated)'))
+            .fontSize(this.fs(14))
+            .fontColor(Theme.textPrimary(this.theme))
             .layoutWeight(1)
         }
         .width('100%')
         .padding(12)
         .borderRadius(8)
-        .border({ width: 1, color: this.selectedPayMethod === 0 ? Colors.PRIMARY : Colors.DIVIDER })
-        .backgroundColor(this.selectedPayMethod === 0 ? Colors.PRIMARY_BG : Color.Transparent)
+        .border({ width: 1, color: this.selectedPayMethod === 0 ? Theme.primary(this.theme) : Theme.divider(this.theme) })
+        .backgroundColor(this.selectedPayMethod === 0 ? Theme.primaryBg(this.theme) : Color.Transparent)
         .margin({ bottom: 8 })
         .onClick(() => { this.selectedPayMethod = 0 })
 
         Row() {
           Text(this.selectedPayMethod === 1 ? '●' : '○')
-            .fontSize(18)
-            .fontColor(this.selectedPayMethod === 1 ? Colors.PRIMARY : Colors.TEXT_HINT)
+            .fontSize(this.fs(18))
+            .fontColor(this.selectedPayMethod === 1 ? Theme.primary(this.theme) : Theme.textHint(this.theme))
             .margin({ right: 10 })
-          Text('📱 微信支付（模拟）')
-            .fontSize(14)
-            .fontColor(Colors.TEXT_PRIMARY)
+          Text(this.t('📱 微信支付（模拟）', '📱 WeChat Pay (Simulated)'))
+            .fontSize(this.fs(14))
+            .fontColor(Theme.textPrimary(this.theme))
             .layoutWeight(1)
         }
         .width('100%')
         .padding(12)
         .borderRadius(8)
-        .border({ width: 1, color: this.selectedPayMethod === 1 ? Colors.PRIMARY : Colors.DIVIDER })
-        .backgroundColor(this.selectedPayMethod === 1 ? Colors.PRIMARY_BG : Color.Transparent)
+        .border({ width: 1, color: this.selectedPayMethod === 1 ? Theme.primary(this.theme) : Theme.divider(this.theme) })
+        .backgroundColor(this.selectedPayMethod === 1 ? Theme.primaryBg(this.theme) : Color.Transparent)
         .margin({ bottom: 8 })
         .onClick(() => { this.selectedPayMethod = 1 })
 
         Row() {
           Text(this.selectedPayMethod === 2 ? '●' : '○')
-            .fontSize(18)
-            .fontColor(this.selectedPayMethod === 2 ? Colors.PRIMARY : Colors.TEXT_HINT)
+            .fontSize(this.fs(18))
+            .fontColor(this.selectedPayMethod === 2 ? Theme.primary(this.theme) : Theme.textHint(this.theme))
             .margin({ right: 10 })
-          Text('💴 支付宝（模拟）')
-            .fontSize(14)
-            .fontColor(Colors.TEXT_PRIMARY)
+          Text(this.t('💴 支付宝（模拟）', '💴 Alipay (Simulated)'))
+            .fontSize(this.fs(14))
+            .fontColor(Theme.textPrimary(this.theme))
             .layoutWeight(1)
         }
         .width('100%')
         .padding(12)
         .borderRadius(8)
-        .border({ width: 1, color: this.selectedPayMethod === 2 ? Colors.PRIMARY : Colors.DIVIDER })
-        .backgroundColor(this.selectedPayMethod === 2 ? Colors.PRIMARY_BG : Color.Transparent)
+        .border({ width: 1, color: this.selectedPayMethod === 2 ? Theme.primary(this.theme) : Theme.divider(this.theme) })
+        .backgroundColor(this.selectedPayMethod === 2 ? Theme.primaryBg(this.theme) : Color.Transparent)
         .margin({ bottom: 8 })
         .onClick(() => { this.selectedPayMethod = 2 })
       }
       .width('100%')
       .margin({ bottom: 20 })
 
-      // 按钮
-      Button(this.paying ? '支付中...' : '确认支付 ¥' + ((this.payingOrder?.payAmount || 0) / 100).toFixed(2))
-        .fontSize(15)
-        .backgroundColor(this.paying ? Colors.TEXT_HINT : Colors.PRIMARY)
+      Button(this.paying
+        ? this.t('支付中...', 'Processing...')
+        : `${this.t('确认支付', 'Pay')} ¥${((this.payingOrder?.payAmount || 0) / 100).toFixed(2)}`)
+        .fontSize(this.fs(15))
+        .backgroundColor(this.paying ? Theme.textHint(this.theme) : Theme.primary(this.theme))
         .borderRadius(22)
         .height(44)
         .width('100%')
@@ -331,10 +343,10 @@ struct OrderList {
         })
         .margin({ bottom: 8 })
 
-      Button('取消')
-        .fontSize(14)
-        .backgroundColor(Colors.BG_PAPER)
-        .fontColor(Colors.TEXT_SECONDARY)
+      Button(this.t('取消', 'Cancel'))
+        .fontSize(this.fs(14))
+        .backgroundColor(Theme.bg(this.theme))
+        .fontColor(Theme.textSecondary(this.theme))
         .borderRadius(22)
         .height(40)
         .width('100%')
@@ -347,7 +359,7 @@ struct OrderList {
     }
     .width('84%')
     .padding({ left: 20, right: 20 })
-    .backgroundColor(Colors.BG_WHITE)
+    .backgroundColor(Theme.card(this.theme))
     .borderRadius(16)
     .position({ x: '8%', y: '20%' })
   }
@@ -355,26 +367,25 @@ struct OrderList {
   private async handlePay(): Promise<void> {
     if (!this.payingOrder) return
     this.paying = true
-    // 模拟支付延迟
     const resp = await OrderService.updateStatus(this.payingOrder.id, OrderStatus.PENDING_DELIVER)
     this.paying = false
     this.showPayModal = false
     this.payingOrder = undefined
     if (resp.code === 0) {
-      promptAction.showToast({ message: '支付成功！' })
+      promptAction.showToast({ message: this.t('支付成功！', 'Payment successful!') })
       this.loadOrders()
     } else {
-      promptAction.showToast({ message: resp.message || '支付失败' })
+      promptAction.showToast({ message: resp.message || this.t('支付失败', 'Payment failed') })
     }
   }
 
   private async handleConfirmReceive(order: Order): Promise<void> {
     const resp = await OrderService.updateStatus(order.id, OrderStatus.COMPLETED)
     if (resp.code === 0) {
-      promptAction.showToast({ message: '已确认收货' })
+      promptAction.showToast({ message: this.t('已确认收货', 'Receipt confirmed') })
       this.loadOrders()
     } else {
-      promptAction.showToast({ message: resp.message || '操作失败' })
+      promptAction.showToast({ message: resp.message || this.t('操作失败', 'Failed') })
     }
   }
 }

@@ -10,6 +10,8 @@ import { FavoriteService } from '../service/FavoriteService'
 import { AuthService } from '../service/AuthService'
 import { ArtisanService } from '../service/ArtisanService'
 import { RatingStars } from '../components/RatingStars'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 // 评论数据模型
 interface Comment {
@@ -56,6 +58,18 @@ struct ProductDetail {
   @State commentText: string = ''
   private productId: string = ''
 
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
+
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, string>
     if (params && params['productId']) {
@@ -82,9 +96,9 @@ struct ProductDetail {
       : await FavoriteService.remove(this.product.id)
     if (resp.code === 0) {
       this.product.isCollect = willCollect
-      promptAction.showToast({ message: willCollect ? '已收藏' : '已取消收藏' })
+      promptAction.showToast({ message: willCollect ? this.t('已收藏', 'Collected') : this.t('已取消收藏', 'Removed') })
     } else {
-      promptAction.showToast({ message: resp.message || '操作失败' })
+      promptAction.showToast({ message: resp.message || this.t('操作失败', 'Failed') })
     }
   }
 
@@ -92,14 +106,16 @@ struct ProductDetail {
     Column() {
       if (this.loading) {
         Column() {
-          LoadingProgress().width(32).height(32).color(Colors.PRIMARY)
+          LoadingProgress().width(32).height(32).color(Theme.primary(this.theme))
         }
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
+        .backgroundColor(Theme.bg(this.theme))
       } else if (!this.product) {
         Column() {
-          Text('作品不存在').fontSize(16).fontColor(Colors.TEXT_HINT)
+          Text(this.t('作品不存在', 'Not found')).fontSize(this.fs(16)).fontColor(Theme.textHint(this.theme))
         }
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
+        .backgroundColor(Theme.bg(this.theme))
       } else {
         Scroll() {
           Column() {
@@ -114,7 +130,7 @@ struct ProductDetail {
             }
             .width('100%')
             .height(375)
-            .indicatorStyle({ selectedColor: Colors.PRIMARY })
+            .indicatorStyle({ selectedColor: Theme.primary(this.theme) })
 
             // ===== 匠人信息 =====
             Row() {
@@ -123,16 +139,16 @@ struct ProductDetail {
                 .height(44)
                 .borderRadius(22)
                 .objectFit(ImageFit.Cover)
-                .border({ width: 1.5, color: Colors.GOLD })
+                .border({ width: 1.5, color: Theme.gold(this.theme) })
 
               Column() {
                 Text(this.product!.artisanName)
-                  .fontSize(15)
+                  .fontSize(this.fs(15))
                   .fontWeight(FontWeight.Medium)
-                  .fontColor(Colors.TEXT_PRIMARY)
-                Text('非遗传承人')
-                  .fontSize(11)
-                  .fontColor(Colors.GOLD)
+                  .fontColor(Theme.textPrimary(this.theme))
+                Text(this.t('非遗传承人', 'Heritage Artisan'))
+                  .fontSize(this.fs(11))
+                  .fontColor(Theme.gold(this.theme))
                   .margin({ top: 2 })
               }
               .margin({ left: 10 })
@@ -141,10 +157,10 @@ struct ProductDetail {
               Blank()
 
               Row() {
-                Text('💬 联系')
-                  .fontSize(12)
-                  .fontColor(Colors.BG_WHITE)
-                  .backgroundColor(Colors.PRIMARY)
+                Text('💬 ' + this.t('联系', 'Chat'))
+                  .fontSize(this.fs(12))
+                  .fontColor(Theme.WHITE)
+                  .backgroundColor(Theme.primary(this.theme))
                   .borderRadius(10)
                   .padding({ left: 10, right: 10, top: 4, bottom: 4 })
                   .margin({ right: 10 })
@@ -152,7 +168,7 @@ struct ProductDetail {
                     if (!this.product || !this.product.artisanId) return
                     const userResp = await AuthService.getUserInfo()
                     if (userResp.code !== 0 || !userResp.data) {
-                      promptAction.showToast({ message: '请先登录' })
+                      promptAction.showToast({ message: this.t('请先登录', 'Please login first') })
                       return
                     }
                     const artResp = await ArtisanService.fetchDetail(this.product!.artisanId)
@@ -160,7 +176,7 @@ struct ProductDetail {
                       const myId = Number(userResp.data.id)
                       const artUserId = Number(artResp.data.userId)
                       if (myId === artUserId) {
-                        promptAction.showToast({ message: '这是你自己的作品哦' })
+                        promptAction.showToast({ message: this.t('这是你自己的作品哦', 'This is your own work') })
                         return
                       }
                       router.pushUrl({
@@ -174,108 +190,100 @@ struct ProductDetail {
                     }
                   })
 
-                Text('匠人主页')
-                  .fontSize(12)
-                  .fontColor(Colors.PRIMARY)
+                Text(this.t('匠人主页', 'Profile'))
+                  .fontSize(this.fs(12))
+                  .fontColor(Theme.primary(this.theme))
                 Image($r('sys.media.ohos_ic_public_arrow_right'))
                   .width(12)
                   .height(12)
-                  .fillColor(Colors.PRIMARY)
-                  .onClick(() => {
-                    if (this.product && this.product.artisanId) {
-                      router.pushUrl({
-                        url: Constants.PAGE_ARTISAN_DETAIL,
-                        params: { artisanId: this.product.artisanId }
-                      })
-                    }
-                  })
+                  .fillColor(Theme.primary(this.theme))
               }
             }
             .width('100%')
             .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-            .backgroundColor(Colors.BG_WHITE)
+            .backgroundColor(Theme.card(this.theme))
             .margin({ top: 10 })
 
             // ===== 作品标题与描述 =====
             Column() {
               Text(this.product!.name)
-                .fontSize(20)
+                .fontSize(this.fs(20))
                 .fontWeight(FontWeight.Bold)
-                .fontColor(Colors.TEXT_PRIMARY)
+                .fontColor(Theme.textPrimary(this.theme))
                 .width('100%')
                 .lineHeight(28)
 
               Text(this.product!.description)
-                .fontSize(14)
-                .fontColor(Colors.TEXT_SECONDARY)
+                .fontSize(this.fs(14))
+                .fontColor(Theme.textSecondary(this.theme))
                 .width('100%')
                 .margin({ top: 8 })
                 .lineHeight(22)
 
               Row() {
                 Text(this.product!.categoryName)
-                  .fontSize(11)
-                  .fontColor(Colors.PRIMARY)
+                  .fontSize(this.fs(11))
+                  .fontColor(Theme.primary(this.theme))
                   .padding({ left: 10, right: 10, top: 3, bottom: 3 })
                   .borderRadius(3)
-                  .backgroundColor(Colors.PRIMARY_BG)
+                  .backgroundColor(Theme.primaryBg(this.theme))
 
                 Text(this.product!.region)
-                  .fontSize(11)
-                  .fontColor(Colors.TEXT_SECONDARY)
+                  .fontSize(this.fs(11))
+                  .fontColor(Theme.textSecondary(this.theme))
                   .margin({ left: 8 })
 
                 Text('·')
-                  .fontSize(11)
-                  .fontColor(Colors.TEXT_HINT)
+                  .fontSize(this.fs(11))
+                  .fontColor(Theme.textHint(this.theme))
 
                 Text(this.product!.craftType)
-                  .fontSize(11)
-                  .fontColor(Colors.TEXT_SECONDARY)
+                  .fontSize(this.fs(11))
+                  .fontColor(Theme.textSecondary(this.theme))
               }
               .width('100%')
               .margin({ top: 12 })
             }
             .width('100%')
             .padding({ left: 16, right: 16, top: 16, bottom: 20 })
-            .backgroundColor(Colors.BG_WHITE)
+            .backgroundColor(Theme.card(this.theme))
 
             // ===== 文化故事 =====
             Column() {
               Row() {
                 Column()
-                  .width(3).height(18).backgroundColor(Colors.PRIMARY)
+                  .width(3).height(18).backgroundColor(Theme.primary(this.theme))
                   .margin({ right: 8 })
-                Text('文化故事')
-                  .fontSize(17)
+                Text(this.t('文化故事', 'Story'))
+                  .fontSize(this.fs(17))
                   .fontWeight(FontWeight.Medium)
-                  .fontColor(Colors.TEXT_PRIMARY)
+                  .fontColor(Theme.textPrimary(this.theme))
               }
               .width('100%')
               .padding({ left: 16, right: 16, top: 16 })
 
               Text(this.product!.story)
-                .fontSize(14)
-                .fontColor(Colors.TEXT_SECONDARY)
+                .fontSize(this.fs(14))
+                .fontColor(Theme.textSecondary(this.theme))
                 .lineHeight(24)
                 .width('100%')
                 .padding({ left: 16, right: 16, top: 10, bottom: 20 })
             }
             .width('100%')
             .margin({ top: 10 })
-            .backgroundColor(Colors.BG_WHITE)
+            .backgroundColor(Theme.card(this.theme))
 
             // ===== 制作工艺 =====
             if (this.product!.craftProcess.length > 0) {
               Column() {
                 Row() {
                   Column()
-                    .width(3).height(18).backgroundColor(Colors.PRIMARY)
+                    .width(3).height(18).backgroundColor(Theme.primary(this.theme))
                     .margin({ right: 8 })
-                  Text('制作工艺')
-                    .fontSize(17)
+                  Text(this.t('制作工艺', 'Craft Process'))
+                    .fontSize(this.fs(17))
                     .fontWeight(FontWeight.Medium)
-                    .fontColor(Colors.TEXT_PRIMARY)
+                    .fontColor(Theme.textPrimary(this.theme))
                 }
                 .width('100%')
                 .padding({ left: 16, right: 16, top: 16 })
@@ -283,23 +291,23 @@ struct ProductDetail {
                 ForEach(this.product!.craftProcess, (step: CraftStep, index: number) => {
                   Row() {
                     Text(`${index + 1}`)
-                      .fontSize(13)
+                      .fontSize(this.fs(13))
                       .fontWeight(FontWeight.Bold)
-                      .fontColor(Colors.PRIMARY)
+                      .fontColor(Theme.primary(this.theme))
                       .width(24).height(24)
                       .borderRadius(12)
-                      .backgroundColor(Colors.PRIMARY_BG)
+                      .backgroundColor(Theme.primaryBg(this.theme))
                       .textAlign(TextAlign.Center)
                       .lineHeight(24)
 
                     Column() {
                       Text(step.title)
-                        .fontSize(14)
+                        .fontSize(this.fs(14))
                         .fontWeight(FontWeight.Medium)
-                        .fontColor(Colors.TEXT_PRIMARY)
+                        .fontColor(Theme.textPrimary(this.theme))
                       Text(step.description)
-                        .fontSize(12)
-                        .fontColor(Colors.TEXT_SECONDARY)
+                        .fontSize(this.fs(12))
+                        .fontColor(Theme.textSecondary(this.theme))
                         .margin({ top: 4 })
                         .lineHeight(18)
                     }
@@ -314,19 +322,19 @@ struct ProductDetail {
               }
               .width('100%')
               .margin({ top: 10 })
-              .backgroundColor(Colors.BG_WHITE)
+              .backgroundColor(Theme.card(this.theme))
             }
 
             // ===== 鉴赏评价 =====
             Column() {
               Row() {
                 Column()
-                  .width(3).height(18).backgroundColor(Colors.PRIMARY)
+                  .width(3).height(18).backgroundColor(Theme.primary(this.theme))
                   .margin({ right: 8 })
-                Text('鉴赏评价')
-                  .fontSize(17)
+                Text(this.t('鉴赏评价', 'Reviews'))
+                  .fontSize(this.fs(17))
                   .fontWeight(FontWeight.Medium)
-                  .fontColor(Colors.TEXT_PRIMARY)
+                  .fontColor(Theme.textPrimary(this.theme))
               }
               .width('100%')
               .padding({ left: 16, right: 16, top: 16 })
@@ -334,9 +342,9 @@ struct ProductDetail {
               Row() {
                 RatingStars({ rating: this.product!.rating, starSize: 18 })
                 Text(`${this.product!.rating.toFixed(1)}`)
-                  .fontSize(18)
+                  .fontSize(this.fs(18))
                   .fontWeight(FontWeight.Bold)
-                  .fontColor(Colors.GOLD)
+                  .fontColor(Theme.gold(this.theme))
                   .margin({ left: 8 })
               }
               .width('100%')
@@ -344,18 +352,18 @@ struct ProductDetail {
             }
             .width('100%')
             .margin({ top: 10 })
-            .backgroundColor(Colors.BG_WHITE)
+            .backgroundColor(Theme.card(this.theme))
 
             // ===== 评论区 =====
             Column() {
               Row() {
                 Column()
-                  .width(3).height(18).backgroundColor(Colors.PRIMARY)
+                  .width(3).height(18).backgroundColor(Theme.primary(this.theme))
                   .margin({ right: 8 })
-                Text(`评论 (${this.comments.length})`)
-                  .fontSize(17)
+                Text(`${this.t('评论', 'Comments')} (${this.comments.length})`)
+                  .fontSize(this.fs(17))
                   .fontWeight(FontWeight.Medium)
-                  .fontColor(Colors.TEXT_PRIMARY)
+                  .fontColor(Theme.textPrimary(this.theme))
               }
               .width('100%')
               .padding({ left: 16, right: 16, top: 16 })
@@ -365,30 +373,30 @@ struct ProductDetail {
                 Row() {
                   // 头像
                   Text(cmt.userName.charAt(0))
-                    .fontSize(14)
-                    .fontColor(Colors.BG_WHITE)
+                    .fontSize(this.fs(14))
+                    .fontColor(Theme.WHITE)
                     .width(32).height(32)
                     .borderRadius(16)
-                    .backgroundColor(Colors.GOLD)
+                    .backgroundColor(Theme.gold(this.theme))
                     .textAlign(TextAlign.Center)
                     .lineHeight(32)
 
                   Column() {
                     Row() {
                       Text(cmt.userName)
-                        .fontSize(13)
+                        .fontSize(this.fs(13))
                         .fontWeight(FontWeight.Medium)
-                        .fontColor(Colors.TEXT_PRIMARY)
+                        .fontColor(Theme.textPrimary(this.theme))
                       Blank()
                       Text(cmt.time)
-                        .fontSize(11)
-                        .fontColor(Colors.TEXT_HINT)
+                        .fontSize(this.fs(11))
+                        .fontColor(Theme.textHint(this.theme))
                     }
                     .width('100%')
 
                     Text(cmt.content)
-                      .fontSize(13)
-                      .fontColor(Colors.TEXT_SECONDARY)
+                      .fontSize(this.fs(13))
+                      .fontColor(Theme.textSecondary(this.theme))
                       .lineHeight(20)
                       .margin({ top: 4 })
                       .width('100%')
@@ -403,18 +411,18 @@ struct ProductDetail {
 
               // 评论输入区
               Row() {
-                TextInput({ placeholder: '写下你的想法…' })
-                  .fontSize(13)
-                  .placeholderColor(Colors.TEXT_HINT)
-                  .backgroundColor(Colors.BG_PAPER)
+                TextInput({ placeholder: this.t('写下你的想法…', 'Write your thoughts...') })
+                  .fontSize(this.fs(13))
+                  .placeholderColor(Theme.textHint(this.theme))
+                  .backgroundColor(Theme.bg(this.theme))
                   .borderRadius(16)
                   .height(34)
                   .layoutWeight(1)
                   .onChange((v: string) => { this.commentText = v })
 
-                Text('发送')
-                  .fontSize(13)
-                  .fontColor(this.commentText.trim() ? Colors.PRIMARY : Colors.TEXT_HINT)
+                Text(this.t('发送', 'Send'))
+                  .fontSize(this.fs(13))
+                  .fontColor(this.commentText.trim() ? Theme.primary(this.theme) : Theme.textHint(this.theme))
                   .margin({ left: 10 })
                   .onClick(() => {
                     if (this.commentText.trim()) {
@@ -435,23 +443,23 @@ struct ProductDetail {
             }
             .width('100%')
             .margin({ top: 10 })
-            .backgroundColor(Colors.BG_WHITE)
+            .backgroundColor(Theme.card(this.theme))
 
             // ===== 购买入口（可售卖时，折叠隐藏） =====
             if ((this.product!.isSellable !== false)) {
               Column() {
-                Divider().color(Colors.DIVIDER).width('100%').margin({ left: 16, right: 16 })
+                Divider().color(Theme.divider(this.theme)).width('100%').margin({ left: 16, right: 16 })
 
                 if (!this.showBuySection) {
                   // 折叠态：极小的入口提示
                   Row() {
                     Text(this.product!.isCollect ? '❤️' : '🤍')
-                      .fontSize(15)
+                      .fontSize(this.fs(15))
                       .margin({ right: 6 })
                       .onClick(() => { this.toggleCollect() })
-                    Text(`支持匠人 · ¥${((this.selectedSku?.price || 0) / 100).toFixed(2)}`)
-                      .fontSize(12)
-                      .fontColor(Colors.TEXT_HINT)
+                    Text(`${this.t('支持匠人', 'Support')} · ¥${((this.selectedSku?.price || 0) / 100).toFixed(2)}`)
+                      .fontSize(this.fs(12))
+                      .fontColor(Theme.textHint(this.theme))
                   }
                   .width('100%')
                   .padding({ left: 16, right: 16, top: 14, bottom: 14 })
@@ -460,26 +468,26 @@ struct ProductDetail {
                   // 展开态
                   Column() {
                     Row() {
-                      Text('支持这位手艺人')
-                        .fontSize(14)
-                        .fontColor(Colors.TEXT_PRIMARY)
+                      Text(this.t('支持这位手艺人', 'Support this artisan'))
+                        .fontSize(this.fs(14))
+                        .fontColor(Theme.textPrimary(this.theme))
                       Blank()
-                      Text('收起 ▲')
-                        .fontSize(11)
-                        .fontColor(Colors.TEXT_HINT)
+                      Text(this.t('收起 ▲', 'Collapse ▲'))
+                        .fontSize(this.fs(11))
+                        .fontColor(Theme.textHint(this.theme))
                         .onClick(() => { this.showBuySection = false })
                     }
                     .width('100%')
 
                     Row() {
                       Text(`¥${((this.selectedSku?.price || 0) / 100).toFixed(2)}`)
-                        .fontSize(16)
+                        .fontSize(this.fs(16))
                         .fontWeight(FontWeight.Bold)
-                        .fontColor(Colors.PRIMARY)
+                        .fontColor(Theme.primary(this.theme))
                       if (this.selectedSku) {
                         Text(this.selectedSku.name)
-                          .fontSize(11)
-                          .fontColor(Colors.TEXT_SECONDARY)
+                          .fontSize(this.fs(11))
+                          .fontColor(Theme.textSecondary(this.theme))
                           .margin({ left: 8 })
                       }
                     }
@@ -487,16 +495,16 @@ struct ProductDetail {
                     .margin({ top: 10 })
 
                     Row() {
-                      Button('加入购物车')
-                        .fontSize(12)
-                        .backgroundColor(Colors.GOLD)
+                      Button(this.t('加入购物车', 'Add to Cart'))
+                        .fontSize(this.fs(12))
+                        .backgroundColor(Theme.gold(this.theme))
                         .borderRadius(14)
                         .height(32)
                         .layoutWeight(1)
                         .margin({ right: 8 })
                         .onClick(async () => {
                           if (!this.product || !this.selectedSku) {
-                            promptAction.showToast({ message: '请先选择规格' })
+                            promptAction.showToast({ message: this.t('请先选择规格', 'Please select a spec') })
                             return
                           }
                           const resp = await CartService.addToCart(
@@ -510,15 +518,15 @@ struct ProductDetail {
                             this.selectedSku.price
                           )
                           if (resp.code === 0) {
-                            promptAction.showToast({ message: '已加入购物车' })
+                            promptAction.showToast({ message: this.t('已加入购物车', 'Added to cart') })
                           } else {
-                            promptAction.showToast({ message: resp.message || '加入购物车失败' })
+                            promptAction.showToast({ message: resp.message || this.t('加入购物车失败', 'Failed') })
                           }
                         })
 
-                      Button('立即购买')
-                        .fontSize(12)
-                        .backgroundColor(Colors.PRIMARY)
+                      Button(this.t('立即购买', 'Buy Now'))
+                        .fontSize(this.fs(12))
+                        .backgroundColor(Theme.primary(this.theme))
                         .borderRadius(14)
                         .height(32)
                         .layoutWeight(1)
@@ -537,7 +545,7 @@ struct ProductDetail {
                 }
               }
               .width('100%')
-              .backgroundColor(Colors.BG_WHITE)
+              .backgroundColor(Theme.card(this.theme))
               .margin({ top: 10 })
             }
 
@@ -546,11 +554,12 @@ struct ProductDetail {
         }
         .width('100%')
         .layoutWeight(1)
-        .backgroundColor(Colors.BG_PAPER)
+        .backgroundColor(Theme.bg(this.theme))
         .scrollBar(BarState.Off)
       }
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(Theme.bg(this.theme))
   }
 }

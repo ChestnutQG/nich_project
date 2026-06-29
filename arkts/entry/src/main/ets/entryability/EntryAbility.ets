@@ -1,17 +1,15 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { SettingsService } from '../service/SettingsService';
 
 const DOMAIN = 0x0000;
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-    try {
-      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
-    } catch (err) {
-      hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
-    }
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
+    // 显式传入 this.context，避免 SettingsService 内部 getContext() 在此阶段失效
+    SettingsService.init(this.context);
   }
 
   onDestroy(): void {
@@ -42,7 +40,8 @@ export default class EntryAbility extends UIAbility {
   }
 
   onBackground(): void {
-    // Ability has back to background
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
+    // 进入后台时主动刷盘，防止被系统杀进程前数据未落盘
+    SettingsService.flush();
   }
 }

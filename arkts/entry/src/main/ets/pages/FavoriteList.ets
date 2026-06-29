@@ -6,6 +6,8 @@ import { Product } from '../model/Product'
 import { FavoriteService } from '../service/FavoriteService'
 import { NavBar } from '../components/NavBar'
 import { ProductCard } from '../components/ProductCard'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 @Entry
 @Component
@@ -13,12 +15,23 @@ struct FavoriteList {
   @State products: Product[] = []
   @State loading: boolean = true
 
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
+
   aboutToAppear(): void {
     this.loadFavorites()
   }
 
   onPageShow(): void {
-    // 从详情页取消收藏后返回时刷新
     this.loadFavorites()
   }
 
@@ -33,20 +46,24 @@ struct FavoriteList {
 
   build() {
     Column() {
-      NavBar({ title: '我的收藏', showBack: true })
+      NavBar({ title: this.t('我的收藏', 'My Favorites'), showBack: true })
 
       if (this.loading) {
         Column() {
-          LoadingProgress().width(32).height(32).color(Colors.PRIMARY)
+          LoadingProgress().width(32).height(32).color(Theme.primary(this.theme))
         }
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
+        .backgroundColor(Theme.bg(this.theme))
       } else if (this.products.length === 0) {
         Column() {
-          Text('🤍').fontSize(48).opacity(0.6)
-          Text('还没有收藏的作品').fontSize(14).fontColor(Colors.TEXT_HINT).margin({ top: 8 })
+          Text('🤍').fontSize(this.fs(48)).opacity(0.6)
+          Text(this.t('还没有收藏的作品', 'No favorites yet'))
+            .fontSize(this.fs(14))
+            .fontColor(Theme.textHint(this.theme))
+            .margin({ top: 8 })
         }
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
-        .backgroundColor(Colors.BG_PAPER)
+        .backgroundColor(Theme.bg(this.theme))
       } else {
         Scroll() {
           Column() {
@@ -71,11 +88,12 @@ struct FavoriteList {
         }
         .width('100%')
         .layoutWeight(1)
-        .backgroundColor(Colors.BG_PAPER)
+        .backgroundColor(Theme.bg(this.theme))
         .scrollBar(BarState.Off)
       }
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(Theme.bg(this.theme))
   }
 }

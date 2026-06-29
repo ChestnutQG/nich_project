@@ -5,17 +5,18 @@ import { Address } from '../model/Address'
 import { NavBar } from '../components/NavBar'
 import { EmptyState } from '../components/EmptyState'
 import { AddressService, AddressPayload } from '../service/AddressService'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 @Entry
 @Component
 struct AddressList {
   @State addresses: Address[] = []
   @State loading: boolean = true
-  @State selectMode: boolean = false   // 从订单确认页进入时为“选择地址”模式
+  @State selectMode: boolean = false
 
-  // 新增/编辑表单
   @State showForm: boolean = false
-  @State editingId: string = ''   // 空表示新增
+  @State editingId: string = ''
   @State fName: string = ''
   @State fPhone: string = ''
   @State fProvince: string = ''
@@ -25,13 +26,24 @@ struct AddressList {
   @State fDefault: boolean = false
   @State saving: boolean = false
 
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
+
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, string>
     this.selectMode = params != null && params['mode'] === 'select'
     this.loadAddresses()
   }
 
-  // 选中某条地址，回传给订单确认页
   private pickAddress(addr: Address): void {
     AppStorage.setOrCreate('orderSelectedAddressId', addr.id)
     router.back()
@@ -43,7 +55,7 @@ struct AddressList {
     if (resp.code === 0) {
       this.addresses = resp.data
     } else {
-      promptAction.showToast({ message: resp.message || '加载失败' })
+      promptAction.showToast({ message: resp.message || this.t('加载失败', 'Load failed') })
     }
     this.loading = false
   }
@@ -51,10 +63,13 @@ struct AddressList {
   build() {
     Stack() {
       Column() {
-        NavBar({ title: this.selectMode ? '选择收货地址' : '收货地址', showBack: true })
+        NavBar({
+          title: this.selectMode ? this.t('选择收货地址', 'Select Address') : this.t('收货地址', 'My Addresses'),
+          showBack: true
+        })
 
         if (this.addresses.length === 0 && !this.loading) {
-          EmptyState({ message: '还没有收货地址', iconText: '📍' })
+          EmptyState({ message: this.t('还没有收货地址', 'No addresses yet'), iconText: '📍' })
         } else {
           Scroll() {
             Column() {
@@ -62,47 +77,47 @@ struct AddressList {
                 Column() {
                   Row() {
                     Text(addr.name)
-                      .fontSize(15)
+                      .fontSize(this.fs(15))
                       .fontWeight(FontWeight.Medium)
-                      .fontColor(Colors.TEXT_PRIMARY)
+                      .fontColor(Theme.textPrimary(this.theme))
                     Text(addr.phone)
-                      .fontSize(13)
-                      .fontColor(Colors.TEXT_SECONDARY)
+                      .fontSize(this.fs(13))
+                      .fontColor(Theme.textSecondary(this.theme))
                       .margin({ left: 16 })
                     Blank()
                     if (addr.isDefault) {
-                      Text('默认')
-                        .fontSize(10)
-                        .fontColor(Colors.PRIMARY)
+                      Text(this.t('默认', 'Default'))
+                        .fontSize(this.fs(10))
+                        .fontColor(Theme.primary(this.theme))
                         .padding({ left: 6, right: 6, top: 2, bottom: 2 })
                         .borderRadius(4)
-                        .border({ width: 1, color: Colors.PRIMARY })
+                        .border({ width: 1, color: Theme.primary(this.theme) })
                     }
                   }
                   .width('100%')
 
                   Text(`${addr.province}${addr.city}${addr.district} ${addr.detail}`)
-                    .fontSize(13)
-                    .fontColor(Colors.TEXT_SECONDARY)
+                    .fontSize(this.fs(13))
+                    .fontColor(Theme.textSecondary(this.theme))
                     .margin({ top: 6 })
                     .width('100%')
 
                   if (!this.selectMode) {
                     Row() {
                       if (!addr.isDefault) {
-                        Text('设为默认')
-                          .fontSize(12)
-                          .fontColor(Colors.TEXT_HINT)
+                        Text(this.t('设为默认', 'Set Default'))
+                          .fontSize(this.fs(12))
+                          .fontColor(Theme.textHint(this.theme))
                           .onClick(() => { this.setDefault(addr) })
                       }
                       Blank()
-                      Text('编辑')
-                        .fontSize(12)
-                        .fontColor(Colors.TEXT_HINT)
+                      Text(this.t('编辑', 'Edit'))
+                        .fontSize(this.fs(12))
+                        .fontColor(Theme.textHint(this.theme))
                         .onClick(() => { this.openForm(addr) })
-                      Text('删除')
-                        .fontSize(12)
-                        .fontColor('#C23B33')
+                      Text(this.t('删除', 'Delete'))
+                        .fontSize(this.fs(12))
+                        .fontColor(Theme.error(this.theme))
                         .margin({ left: 20 })
                         .onClick(() => { this.deleteAddress(addr) })
                     }
@@ -113,7 +128,7 @@ struct AddressList {
                 .width('100%')
                 .padding(16)
                 .borderRadius(8)
-                .backgroundColor(Colors.BG_WHITE)
+                .backgroundColor(Theme.card(this.theme))
                 .margin({ left: 16, right: 16, top: 10 })
                 .onClick(() => {
                   if (this.selectMode) { this.pickAddress(addr) }
@@ -123,15 +138,14 @@ struct AddressList {
           }
           .width('100%')
           .layoutWeight(1)
-          .backgroundColor(Colors.BG_PAPER)
+          .backgroundColor(Theme.bg(this.theme))
           .scrollBar(BarState.Off)
         }
 
-        // 新增地址按钮
-        Button('+ 新增收货地址')
-          .fontSize(15)
-          .fontColor(Colors.BG_WHITE)
-          .backgroundColor(Colors.PRIMARY)
+        Button(`+ ${this.t('新增收货地址', 'Add Address')}`)
+          .fontSize(this.fs(15))
+          .fontColor(Theme.WHITE)
+          .backgroundColor(Theme.primary(this.theme))
           .borderRadius(24)
           .height(44)
           .width('90%')
@@ -140,7 +154,7 @@ struct AddressList {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(Colors.BG_PAPER)
+      .backgroundColor(Theme.bg(this.theme))
 
       if (this.showForm) {
         this.FormPanel()
@@ -158,82 +172,82 @@ struct AddressList {
         .onClick(() => { this.showForm = false })
 
       Column() {
-        Text(this.editingId ? '编辑地址' : '新增地址')
-          .fontSize(16).fontWeight(FontWeight.Bold).fontColor(Colors.TEXT_PRIMARY)
+        Text(this.editingId ? this.t('编辑地址', 'Edit Address') : this.t('新增地址', 'Add Address'))
+          .fontSize(this.fs(16)).fontWeight(FontWeight.Bold).fontColor(Theme.textPrimary(this.theme))
           .margin({ bottom: 16 })
 
         Row() {
-          Text('收货人').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(80)
-          TextInput({ text: this.fName }).fontSize(14).fontColor(Colors.TEXT_PRIMARY)
+          Text(this.t('收货人', 'Name')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(80)
+          TextInput({ text: this.fName }).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme))
             .backgroundColor(Color.Transparent).layoutWeight(1)
             .onChange((v: string) => { this.fName = v })
         }
         .width('100%').padding({ top: 10, bottom: 10 })
-        .border({ width: { bottom: 0.5 }, color: Colors.DIVIDER })
+        .border({ width: { bottom: 0.5 }, color: Theme.divider(this.theme) })
 
         Row() {
-          Text('手机号').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(80)
-          TextInput({ text: this.fPhone }).fontSize(14).fontColor(Colors.TEXT_PRIMARY)
+          Text(this.t('手机号', 'Phone')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(80)
+          TextInput({ text: this.fPhone }).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme))
             .backgroundColor(Color.Transparent).layoutWeight(1).type(InputType.PhoneNumber)
             .onChange((v: string) => { this.fPhone = v })
         }
         .width('100%').padding({ top: 10, bottom: 10 })
-        .border({ width: { bottom: 0.5 }, color: Colors.DIVIDER })
+        .border({ width: { bottom: 0.5 }, color: Theme.divider(this.theme) })
 
         Row() {
-          Text('省份').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(80)
-          TextInput({ text: this.fProvince }).fontSize(14).fontColor(Colors.TEXT_PRIMARY)
+          Text(this.t('省份', 'Province')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(80)
+          TextInput({ text: this.fProvince }).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme))
             .backgroundColor(Color.Transparent).layoutWeight(1)
             .onChange((v: string) => { this.fProvince = v })
         }
         .width('100%').padding({ top: 10, bottom: 10 })
-        .border({ width: { bottom: 0.5 }, color: Colors.DIVIDER })
+        .border({ width: { bottom: 0.5 }, color: Theme.divider(this.theme) })
 
         Row() {
-          Text('城市').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(80)
-          TextInput({ text: this.fCity }).fontSize(14).fontColor(Colors.TEXT_PRIMARY)
+          Text(this.t('城市', 'City')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(80)
+          TextInput({ text: this.fCity }).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme))
             .backgroundColor(Color.Transparent).layoutWeight(1)
             .onChange((v: string) => { this.fCity = v })
         }
         .width('100%').padding({ top: 10, bottom: 10 })
-        .border({ width: { bottom: 0.5 }, color: Colors.DIVIDER })
+        .border({ width: { bottom: 0.5 }, color: Theme.divider(this.theme) })
 
         Row() {
-          Text('区县').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(80)
-          TextInput({ text: this.fDistrict }).fontSize(14).fontColor(Colors.TEXT_PRIMARY)
+          Text(this.t('区县', 'District')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(80)
+          TextInput({ text: this.fDistrict }).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme))
             .backgroundColor(Color.Transparent).layoutWeight(1)
             .onChange((v: string) => { this.fDistrict = v })
         }
         .width('100%').padding({ top: 10, bottom: 10 })
-        .border({ width: { bottom: 0.5 }, color: Colors.DIVIDER })
+        .border({ width: { bottom: 0.5 }, color: Theme.divider(this.theme) })
 
         Row() {
-          Text('详细地址').fontSize(14).fontColor(Colors.TEXT_PRIMARY).width(80)
-          TextInput({ text: this.fDetail }).fontSize(14).fontColor(Colors.TEXT_PRIMARY)
+          Text(this.t('详细地址', 'Detail')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).width(80)
+          TextInput({ text: this.fDetail }).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme))
             .backgroundColor(Color.Transparent).layoutWeight(1)
             .onChange((v: string) => { this.fDetail = v })
         }
         .width('100%').padding({ top: 10, bottom: 10 })
-        .border({ width: { bottom: 0.5 }, color: Colors.DIVIDER })
+        .border({ width: { bottom: 0.5 }, color: Theme.divider(this.theme) })
 
         Row() {
-          Text('设为默认地址').fontSize(14).fontColor(Colors.TEXT_PRIMARY).layoutWeight(1)
+          Text(this.t('设为默认地址', 'Set as default')).fontSize(this.fs(14)).fontColor(Theme.textPrimary(this.theme)).layoutWeight(1)
           Toggle({ type: ToggleType.Switch, isOn: this.fDefault })
-            .selectedColor(Colors.PRIMARY)
+            .selectedColor(Theme.primary(this.theme))
             .onChange((v: boolean) => { this.fDefault = v })
         }
         .width('100%').margin({ top: 8, bottom: 16 })
 
-        Button(this.saving ? '保存中...' : '保存')
+        Button(this.saving ? this.t('保存中...', 'Saving...') : this.t('保存', 'Save'))
           .width('100%').height(46)
-          .fontSize(16).fontColor(Colors.BG_WHITE)
-          .backgroundColor(Colors.PRIMARY).borderRadius(23)
+          .fontSize(this.fs(16)).fontColor(Theme.WHITE)
+          .backgroundColor(Theme.primary(this.theme)).borderRadius(23)
           .enabled(!this.saving)
           .onClick(() => { this.saveAddress() })
       }
       .width('100%')
       .padding(20)
-      .backgroundColor(Colors.BG_WHITE)
+      .backgroundColor(Theme.card(this.theme))
       .borderRadius({ topLeft: 16, topRight: 16 })
     }
     .width('100%').height('100%')
@@ -264,7 +278,7 @@ struct AddressList {
 
   private async saveAddress(): Promise<void> {
     if (!this.fName.trim() || !this.fPhone.trim() || !this.fDetail.trim()) {
-      promptAction.showToast({ message: '请填写收货人、手机号和详细地址' })
+      promptAction.showToast({ message: this.t('请填写收货人、手机号和详细地址', 'Please fill in name, phone and address') })
       return
     }
     const payload: AddressPayload = {
@@ -284,15 +298,14 @@ struct AddressList {
     this.saving = false
     if (resp.code === 0) {
       this.showForm = false
-      promptAction.showToast({ message: '保存成功' })
+      promptAction.showToast({ message: this.t('保存成功', 'Saved') })
       this.loadAddresses()
     } else {
-      promptAction.showToast({ message: resp.message || '保存失败' })
+      promptAction.showToast({ message: resp.message || this.t('保存失败', 'Save failed') })
     }
   }
 
   private async setDefault(item: Address): Promise<void> {
-    // 没有独立的设默认接口，提交整条地址并把 isDefault 置 1
     const payload: AddressPayload = {
       id: parseInt(item.id),
       name: item.name,
@@ -307,17 +320,17 @@ struct AddressList {
     if (resp.code === 0) {
       this.loadAddresses()
     } else {
-      promptAction.showToast({ message: resp.message || '操作失败' })
+      promptAction.showToast({ message: resp.message || this.t('操作失败', 'Failed') })
     }
   }
 
   private async deleteAddress(item: Address): Promise<void> {
     const resp = await AddressService.remove(item.id)
     if (resp.code === 0) {
-      promptAction.showToast({ message: '已删除' })
+      promptAction.showToast({ message: this.t('已删除', 'Deleted') })
       this.loadAddresses()
     } else {
-      promptAction.showToast({ message: resp.message || '删除失败' })
+      promptAction.showToast({ message: resp.message || this.t('删除失败', 'Delete failed') })
     }
   }
 }

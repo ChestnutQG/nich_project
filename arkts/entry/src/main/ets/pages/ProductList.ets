@@ -8,6 +8,8 @@ import { ProductService } from '../service/ProductService'
 import { NavBar } from '../components/NavBar'
 import { ProductCard } from '../components/ProductCard'
 import { LoadingMore } from '../components/LoadingMore'
+import { Theme } from '../common/Theme'
+import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 @Entry
 @Component
@@ -19,6 +21,18 @@ struct ProductList {
   @State sortBy: string = 'default'
   private categoryId: string = ''
   private categoryName: string = '全部商品'
+
+  @StorageProp('theme') theme: ThemeMode = 'light'
+  @StorageProp('fontScale') fontScale: FontScale = 'normal'
+  @StorageProp('language') language: Language = 'zh'
+
+  fs(n: number): number {
+    return Math.round(n * (this.fontScale === 'small' ? 0.85 : this.fontScale === 'large' ? 1.2 : 1.0))
+  }
+
+  t(zh: string, en: string): string {
+    return this.language === 'en' ? en : zh
+  }
 
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, string>
@@ -52,30 +66,30 @@ struct ProductList {
 
       // 排序栏
       Row() {
-        this.SortTab('综合', 'default', 0)
-        this.SortTab('销量', 'sales', 1)
-        this.SortTab('价格↑', 'price_asc', 2)
-        this.SortTab('价格↓', 'price_desc', 3)
+        this.SortTab(this.t('综合', 'Default'), 'default', 0)
+        this.SortTab(this.t('销量', 'Sales'), 'sales', 1)
+        this.SortTab(this.t('价格↑', 'Price↑'), 'price_asc', 2)
+        this.SortTab(this.t('价格↓', 'Price↓'), 'price_desc', 3)
       }
       .width('100%')
       .height(40)
-      .backgroundColor(Colors.BG_WHITE)
+      .backgroundColor(Theme.card(this.theme))
 
       // 商品网格
       if (this.products.length === 0 && !this.loading) {
         Column() {
           Text('📦')
-            .fontSize(48)
+            .fontSize(this.fs(48))
             .opacity(0.6)
-          Text('暂无商品')
-            .fontSize(14)
-            .fontColor(Colors.TEXT_HINT)
+          Text(this.t('暂无商品', 'No products'))
+            .fontSize(this.fs(14))
+            .fontColor(Theme.textHint(this.theme))
             .margin({ top: 8 })
         }
         .width('100%')
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
-        .backgroundColor(Colors.BG_PAPER)
+        .backgroundColor(Theme.bg(this.theme))
       } else {
         Scroll() {
           Column() {
@@ -102,7 +116,7 @@ struct ProductList {
         }
         .width('100%')
         .layoutWeight(1)
-        .backgroundColor(Colors.BG_PAPER)
+        .backgroundColor(Theme.bg(this.theme))
         .scrollBar(BarState.Off)
         .onReachEnd(() => {
           if (this.hasMore && !this.loading) {
@@ -114,13 +128,14 @@ struct ProductList {
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(Theme.bg(this.theme))
   }
 
   @Builder
   SortTab(label: string, sortKey: string, index: number) {
     Text(label)
-      .fontSize(13)
-      .fontColor(this.sortBy === sortKey ? Colors.PRIMARY : Colors.TEXT_SECONDARY)
+      .fontSize(this.fs(13))
+      .fontColor(this.sortBy === sortKey ? Theme.primary(this.theme) : Theme.textSecondary(this.theme))
       .fontWeight(this.sortBy === sortKey ? FontWeight.Medium : FontWeight.Normal)
       .layoutWeight(1)
       .textAlign(TextAlign.Center)
