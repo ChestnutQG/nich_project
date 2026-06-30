@@ -24,6 +24,10 @@ struct Index {
   @State feedProducts: Product[] = []
   @State feedLoading: boolean = true
   @State feedRefreshing: boolean = false
+  @State feedHasMore: boolean = true
+  @State feedLoadingMore: boolean = false
+  private feedPage: number = 1
+  private readonly feedPageSize: number = 10
 
   @State userId: string = ''
   @State userAvatar: string = ''
@@ -98,13 +102,29 @@ struct Index {
     }
   }
 
+  // 加载第一页（下拉刷新/进入页面）
   async loadFeedData(): Promise<void> {
     this.feedLoading = true
-    const resp = await ProductService.fetchRecommendProducts()
-    if (resp.code === 0) {
-      this.feedProducts = resp.data
+    this.feedPage = 1
+    const resp = await ProductService.fetchProductList(this.feedPage, this.feedPageSize, undefined, 'sales')
+    if (resp.code === 0 && resp.data) {
+      this.feedProducts = resp.data.list
+      this.feedHasMore = this.feedProducts.length < resp.data.total
     }
     this.feedLoading = false
+  }
+
+  // 触底加载更多
+  async loadMoreFeed(): Promise<void> {
+    if (this.feedLoadingMore || !this.feedHasMore) return
+    this.feedLoadingMore = true
+    const resp = await ProductService.fetchProductList(this.feedPage + 1, this.feedPageSize, undefined, 'sales')
+    if (resp.code === 0 && resp.data) {
+      this.feedPage += 1
+      this.feedProducts = this.feedProducts.concat(resp.data.list)
+      this.feedHasMore = this.feedProducts.length < resp.data.total
+    }
+    this.feedLoadingMore = false
   }
 
   async loadUserData(): Promise<void> {
@@ -283,11 +303,28 @@ struct Index {
                 }
                 .width('100%')
               })
+
+              // 底部：加载更多 / 没有更多了
+              ListItem() {
+                Row() {
+                  if (this.feedLoadingMore) {
+                    LoadingProgress().width(20).height(20).color(Theme.primary(this.theme))
+                    Text(this.t('加载中…', 'Loading...'))
+                      .fontSize(this.fs(12)).fontColor(Theme.textHint(this.theme)).margin({ left: 8 })
+                  } else if (!this.feedHasMore && this.feedProducts.length > 0) {
+                    Text(this.t('—— 没有更多了 ——', '—— No more ——'))
+                      .fontSize(this.fs(12)).fontColor(Theme.textHint(this.theme))
+                  }
+                }
+                .width('100%').height(44).justifyContent(FlexAlign.Center)
+              }
+              .width('100%')
             }
             .width('100%')
             .height('100%')
             .padding({ left: 16, right: 16 })
             .scrollBar(BarState.Off)
+            .onReachEnd(() => { this.loadMoreFeed() })
           }
           .layoutWeight(1)
           .onRefreshing(() => {

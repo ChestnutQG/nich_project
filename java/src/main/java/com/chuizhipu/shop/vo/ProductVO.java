@@ -29,6 +29,7 @@ public class ProductVO {
     private Double rating;
     private List<String> tags;
     private String auditStatus;    // pending | approved | rejected
+    private Boolean isSellable;
     private Boolean isCollect;
     private Long createTime;       // 毫秒时间戳
 
@@ -77,6 +78,8 @@ public class ProductVO {
     public void setTags(List<String> tags) { this.tags = tags; }
     public String getAuditStatus() { return auditStatus; }
     public void setAuditStatus(String auditStatus) { this.auditStatus = auditStatus; }
+    public Boolean getIsSellable() { return isSellable; }
+    public void setIsSellable(Boolean isSellable) { this.isSellable = isSellable; }
     public Boolean getIsCollect() { return isCollect; }
     public void setIsCollect(Boolean isCollect) { this.isCollect = isCollect; }
     public Long getCreateTime() { return createTime; }

@@ -78,7 +78,9 @@ public class ProductController {
         if (req.getName() == null || req.getName().isBlank()) {
             return R.error("商品名称不能为空");
         }
-        if (req.getPrice() == null || req.getPrice() <= 0) {
+        // 仅售卖商品才要求价格；纯展示（不售卖）免填
+        boolean sellable = req.getIsSellable() == null || req.getIsSellable();
+        if (sellable && (req.getPrice() == null || req.getPrice() <= 0)) {
             return R.error("价格不能为空");
         }
         Long id = productService.publishProduct(userId, req.toProduct(), req.toSkuList());
@@ -99,8 +101,11 @@ public class ProductController {
         private String craftType;
         private String story;
         private String tags;
+        private Boolean isSellable;
         private List<SkuReq> skus;
 
+        public Boolean getIsSellable() { return isSellable; }
+        public void setIsSellable(Boolean isSellable) { this.isSellable = isSellable; }
         public String getName() { return name; }
         public void setName(String name) { this.name = name; }
         public String getDescription() { return description; }
@@ -135,7 +140,9 @@ public class ProductController {
             p.setCategoryId(categoryId);
             p.setArtisanId(artisanId);
             p.setImages(com.chuizhipu.shop.common.EntityUtils.toJson(images));
-            p.setPrice(price);
+            boolean sellable = isSellable == null || isSellable;
+            p.setPrice(price != null ? price : 0L);   // 不售卖时价格缺省 0
+            p.setIsSellable(sellable ? 1 : 0);
             p.setOriginalPrice(originalPrice);
             p.setStock(stock != null ? stock : 1);
             p.setRegion(region);

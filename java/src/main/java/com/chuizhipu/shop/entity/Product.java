@@ -25,6 +25,7 @@ public class Product {
     private String tags;          // 逗号分隔
     private String auditStatus;   // pending | approved | rejected
     private Integer isOnSale;
+    private Integer isSellable;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
@@ -73,6 +74,8 @@ public class Product {
     public void setAuditStatus(String auditStatus) { this.auditStatus = auditStatus; }
     public Integer getIsOnSale() { return isOnSale; }
     public void setIsOnSale(Integer isOnSale) { this.isOnSale = isOnSale; }
+    public Integer getIsSellable() { return isSellable; }
+    public void setIsSellable(Integer isSellable) { this.isSellable = isSellable; }
     public LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
     public LocalDateTime getUpdateTime() { return updateTime; }

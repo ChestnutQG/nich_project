@@ -26,6 +26,7 @@
         <result property="tags" column="tags"/>
         <result property="auditStatus" column="audit_status"/>
         <result property="isOnSale" column="is_on_sale"/>
+        <result property="isSellable" column="is_sellable"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
     </resultMap>
@@ -38,7 +39,7 @@
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
         WHERE p.audit_status = 'approved' AND p.is_on_sale = 1
         ORDER BY p.sales DESC
-        LIMIT 10
+        LIMIT 50
     </select>
 
     <!-- 分页列表 — 只展示已审核通过的 -->
@@ -119,11 +120,11 @@
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO t_product (name, description, category_id, artisan_id,
                                images, video_url, price, original_price, stock, region,
-                               craft_type, story, craft_process, tags, audit_status, is_on_sale)
+                               craft_type, story, craft_process, tags, audit_status, is_on_sale, is_sellable)
         VALUES (#{name}, #{description}, #{categoryId}, #{artisanId},
                 #{images}, #{videoUrl}, #{price}, #{originalPrice}, #{stock}, #{region},
                 #{craftType}, #{story}, #{craftProcess}, #{tags},
-                COALESCE(#{auditStatus}, 'pending'), 0)
+                COALESCE(#{auditStatus}, 'pending'), 0, COALESCE(#{isSellable}, 1))
     </insert>
 
     <!-- ===== 审核相关 ===== -->

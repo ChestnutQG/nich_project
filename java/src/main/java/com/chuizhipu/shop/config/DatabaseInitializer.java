@@ -29,6 +29,15 @@ public class DatabaseInitializer {
                 jdbc.execute("DROP TABLE t_message");
             }
 
+            // t_product 补 is_sellable 列（旧库没有，纯展示商品需要它）
+            Integer sellableCol = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns " +
+                "WHERE table_schema = DATABASE() AND table_name = 't_product' AND column_name = 'is_sellable'",
+                Integer.class);
+            if (sellableCol != null && sellableCol == 0) {
+                jdbc.execute("ALTER TABLE t_product ADD COLUMN is_sellable TINYINT DEFAULT 1 COMMENT '是否售卖 1-售卖 0-纯展示'");
+            }
+
             // 私信
             jdbc.execute("""
                 CREATE TABLE IF NOT EXISTS t_message (

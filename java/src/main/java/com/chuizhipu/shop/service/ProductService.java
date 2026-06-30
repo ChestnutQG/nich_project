@@ -228,6 +228,8 @@ public class ProductService {
         vo.setImages(EntityUtils.parseStrList(p.getImages()));
         vo.setVideoUrl(p.getVideoUrl());
         vo.setAuditStatus(p.getAuditStatus());
+        // 默认按可售（兼容旧数据：null 视为可售）
+        vo.setIsSellable(p.getIsSellable() == null || p.getIsSellable() == 1);
         vo.setPrice(p.getPrice());
         vo.setOriginalPrice(p.getOriginalPrice());
         vo.setStock(p.getStock());
