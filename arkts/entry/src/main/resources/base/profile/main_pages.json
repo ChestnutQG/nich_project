@@ -23,6 +23,7 @@
     "pages/DisputeDetail",
     "pages/JuryInvitations",
     "pages/MessageCenter",
-    "pages/ChatDetail"
+    "pages/ChatDetail",
+    "pages/UserProfile"
   ]
 }

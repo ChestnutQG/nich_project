@@ -25,6 +25,7 @@ struct Index {
   @State feedLoading: boolean = true
   @State feedRefreshing: boolean = false
 
+  @State userId: string = ''
   @State userAvatar: string = ''
   @State userName: string = '未登录'
   @State userPhone: string = ''
@@ -116,6 +117,7 @@ struct Index {
 
     const resp = await AuthService.getUserInfo()
     if (resp.code === 0 && resp.data) {
+      this.userId = `${resp.data.id}`
       this.userName = resp.data.nickname || this.t('用户', 'User')
       this.userAvatar = resp.data.avatar || ''
       this.userPhone = resp.data.phone || ''
@@ -142,12 +144,23 @@ struct Index {
   }
 
   private resetUserState(): void {
+    this.userId = ''
     this.userName = this.t('未登录', 'Not logged in')
     this.userAvatar = ''
     this.userPhone = ''
     this.userCollectCount = 0
     this.userFollowCount = 0
     this.userOrderCount = 0
+  }
+
+  // 点侧边栏头像 → 自己的公开主页（未登录则去登录）
+  private openMyProfile(): void {
+    this.closeDrawer()
+    if (this.isLoggedIn && this.userId) {
+      router.pushUrl({ url: Constants.PAGE_USER_PROFILE, params: { userId: this.userId } })
+    } else {
+      router.pushUrl({ url: Constants.PAGE_LOGIN })
+    }
   }
 
   private openDrawer(): void {
@@ -316,6 +329,7 @@ struct Index {
                     .height(56)
                     .borderRadius(28)
                     .objectFit(ImageFit.Cover)
+                    .onClick(() => { this.openMyProfile() })
                 } else {
                   Text(this.userName.charAt(0))
                     .fontSize(this.fs(24))
@@ -326,6 +340,7 @@ struct Index {
                     .backgroundColor(Theme.primary(this.theme))
                     .textAlign(TextAlign.Center)
                     .lineHeight(56)
+                    .onClick(() => { this.openMyProfile() })
                 }
 
                 Column() {

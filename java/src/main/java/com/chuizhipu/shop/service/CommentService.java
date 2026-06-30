@@ -75,6 +75,7 @@ public class CommentService {
         for (Comment c : list) {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", c.getId().toString());
+            m.put("userId", c.getUserId() != null ? c.getUserId().toString() : "");
             m.put("userName", c.getUserName() != null ? c.getUserName() : "用户");
             m.put("avatar", c.getAvatar() != null ? c.getAvatar() : "");
             m.put("content", c.getContent());

@@ -46,6 +46,15 @@ public class UserController {
         return R.ok(user);
     }
 
+    /** GET /api/users/{id}/profile — 用户公开主页（任何人可看） */
+    @GetMapping("/{id}/profile")
+    public R publicProfile(HttpServletRequest request, @PathVariable Long id) {
+        Long currentUserId = (Long) request.getAttribute("currentUserId");
+        Map<String, Object> profile = userService.getPublicProfile(id, currentUserId);
+        if (profile == null) return R.error("用户不存在");
+        return R.ok(profile);
+    }
+
     /** POST /api/users/register — 密码注册 */
     @PostMapping("/register")
     public R register(@RequestBody RegisterReq req) {

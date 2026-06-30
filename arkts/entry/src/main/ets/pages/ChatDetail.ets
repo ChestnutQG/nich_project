@@ -1,5 +1,6 @@
 // 聊天详情页 — 与某用户的私信对话
 import { router, promptAction, KeyboardAvoidMode } from '@kit.ArkUI'
+import { Constants } from '../common/Constants'
 import { NavBar } from '../components/NavBar'
 import { Theme } from '../common/Theme'
 import { ThemeMode, FontScale, Language } from '../service/SettingsService'
@@ -66,7 +67,15 @@ struct ChatDetail {
 
   build() {
     Column() {
-      NavBar({ title: this.otherName, showBack: true })
+      NavBar({
+        title: this.otherName,
+        showBack: true,
+        onTitleClick: () => {
+          if (this.otherId) {
+            router.pushUrl({ url: Constants.PAGE_USER_PROFILE, params: { userId: this.otherId } })
+          }
+        }
+      })
 
       // 消息列表
       if (this.messages.length === 0) {

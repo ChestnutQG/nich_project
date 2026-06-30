@@ -5,6 +5,7 @@ import com.chuizhipu.shop.service.ArtisanService;
 import com.chuizhipu.shop.service.ProductService;
 import com.chuizhipu.shop.vo.ArtisanVO;
 import com.chuizhipu.shop.vo.ProductVO;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -70,5 +71,21 @@ public class ArtisanController {
                       @RequestParam(required = false) Long userId) {
         List<ProductVO> products = productService.getProductsByArtisan(id, userId);
         return R.ok(products);
+    }
+
+    /** PUT /api/artisans/me/intro — 修改自己的匠人简介（需登录） */
+    @PutMapping("/me/intro")
+    public R updateMyIntro(HttpServletRequest request, @RequestBody IntroReq req) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        if (userId == null) return R.error(401, "请先登录");
+        boolean ok = artisanService.updateMyIntro(userId, req.getIntro() != null ? req.getIntro().trim() : "");
+        if (!ok) return R.error("你还不是匠人，发布作品后才有匠人主页");
+        return R.ok(null);
+    }
+
+    public static class IntroReq {
+        private String intro;
+        public String getIntro() { return intro; }
+        public void setIntro(String intro) { this.intro = intro; }
     }
 }

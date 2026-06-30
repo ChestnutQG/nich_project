@@ -5,6 +5,7 @@ import { ApiResponse } from '../model/ApiResponse'
 // 与商品详情页 Comment 接口字段一致
 export interface CommentItem {
   id: string
+  userId: string
   userName: string
   avatar: string
   content: string

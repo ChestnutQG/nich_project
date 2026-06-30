@@ -10,6 +10,7 @@ export struct NavBar {
   @Prop showBack: boolean = false
   @Prop bgColor: ResourceColor = Colors.BG_PAPER
   onBack?: () => void
+  onTitleClick?: () => void
 
   @StorageProp('theme') theme: ThemeMode = 'light'
   @StorageProp('fontScale') fontScale: FontScale = 'normal'
@@ -44,6 +45,7 @@ export struct NavBar {
         .fontColor(Theme.textPrimary(this.theme))
         .layoutWeight(1)
         .textAlign(TextAlign.Center)
+        .onClick(() => { if (this.onTitleClick) { this.onTitleClick() } })
 
       if (this.showBack) {
         Row().width(24).height(24)

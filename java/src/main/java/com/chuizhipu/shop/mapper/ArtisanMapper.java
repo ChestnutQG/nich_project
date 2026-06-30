@@ -28,6 +28,9 @@ public interface ArtisanMapper {
     /** 新增匠人档案（自动回填 id） */
     int insert(Artisan artisan);
 
+    /** 更新匠人简介 */
+    int updateIntro(@Param("id") Long id, @Param("intro") String intro);
+
     /** 关注数增减（delta 为 +1 / -1） */
     int incrFollowers(@Param("id") Long id, @Param("delta") int delta);
 

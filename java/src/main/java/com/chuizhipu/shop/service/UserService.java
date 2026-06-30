@@ -1,6 +1,8 @@
 package com.chuizhipu.shop.service;
 
+import com.chuizhipu.shop.entity.Artisan;
 import com.chuizhipu.shop.entity.User;
+import com.chuizhipu.shop.mapper.ArtisanMapper;
 import com.chuizhipu.shop.mapper.FavoriteMapper;
 import com.chuizhipu.shop.mapper.FollowMapper;
 import com.chuizhipu.shop.mapper.OrderMapper;
@@ -9,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class UserService {
@@ -18,13 +22,47 @@ public class UserService {
     private final FavoriteMapper favoriteMapper;
     private final FollowMapper followMapper;
     private final OrderMapper orderMapper;
+    private final ArtisanMapper artisanMapper;
 
     public UserService(UserMapper userMapper, FavoriteMapper favoriteMapper,
-                       FollowMapper followMapper, OrderMapper orderMapper) {
+                       FollowMapper followMapper, OrderMapper orderMapper,
+                       ArtisanMapper artisanMapper) {
         this.userMapper = userMapper;
         this.favoriteMapper = favoriteMapper;
         this.followMapper = followMapper;
         this.orderMapper = orderMapper;
+        this.artisanMapper = artisanMapper;
+    }
+
+    /** 用户公开主页：基本资料 + 是否匠人（含匠人信息/关注状态） */
+    public Map<String, Object> getPublicProfile(Long targetId, Long currentUserId) {
+        User u = userMapper.selectById(targetId);
+        if (u == null) return null;
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", u.getId().toString());
+        m.put("nickname", u.getNickname() != null ? u.getNickname() : "用户");
+        m.put("avatar", u.getAvatar() != null ? u.getAvatar() : "");
+        m.put("role", u.getRole() != null ? u.getRole() : "user");
+
+        Artisan a = artisanMapper.selectByUserId(targetId);
+        boolean isArtisan = a != null;
+        m.put("isArtisan", isArtisan);
+        if (isArtisan) {
+            m.put("artisanId", a.getId().toString());
+            m.put("title", a.getTitle() != null ? a.getTitle() : "");
+            m.put("intro", a.getIntro() != null ? a.getIntro() : "");
+            m.put("craftType", a.getCraftType() != null ? a.getCraftType() : "");
+            m.put("level", a.getLevel() != null ? a.getLevel() : 1);
+            m.put("province", a.getProvince() != null ? a.getProvince() : "");
+            m.put("city", a.getCity() != null ? a.getCity() : "");
+            // 真实粉丝数：统计 t_follow 中关注该匠人的人数
+            int realFollowers = followMapper.selectUserIdsByArtisanId(a.getId()).size();
+            m.put("worksCount", a.getWorksCount() != null ? a.getWorksCount() : 0);
+            m.put("followersCount", realFollowers);
+            boolean followed = currentUserId != null && followMapper.exists(currentUserId, a.getId()) > 0;
+            m.put("isFollowed", followed);
+        }
+        return m;
     }
 
     public User getById(Long id) {

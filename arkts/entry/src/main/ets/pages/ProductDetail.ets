@@ -17,6 +17,7 @@ import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 // 评论数据模型（字段与后端返回一致）
 interface Comment {
   id: string
+  userId: string
   userName: string
   avatar: string
   content: string
@@ -70,6 +71,12 @@ struct ProductDetail {
     if (resp.code === 0) {
       this.comments = resp.data
     }
+  }
+
+  // 进入评论者的公开主页
+  private openUserProfile(userId: string): void {
+    if (!userId) return
+    router.pushUrl({ url: Constants.PAGE_USER_PROFILE, params: { userId } })
   }
 
   // 发表评论
@@ -187,13 +194,23 @@ struct ProductDetail {
                     }
                   })
 
-                Text(this.t('匠人主页', 'Profile'))
-                  .fontSize(this.fs(12))
-                  .fontColor(Theme.primary(this.theme))
-                Image($r('sys.media.ohos_ic_public_arrow_right'))
-                  .width(12)
-                  .height(12)
-                  .fillColor(Theme.primary(this.theme))
+                Row() {
+                  Text(this.t('匠人主页', 'Profile'))
+                    .fontSize(this.fs(12))
+                    .fontColor(Theme.primary(this.theme))
+                  Image($r('sys.media.ohos_ic_public_arrow_right'))
+                    .width(12)
+                    .height(12)
+                    .fillColor(Theme.primary(this.theme))
+                }
+                .onClick(() => {
+                  if (this.product && this.product.artisanId) {
+                    router.pushUrl({
+                      url: Constants.PAGE_ARTISAN_DETAIL,
+                      params: { artisanId: this.product.artisanId }
+                    })
+                  }
+                })
               }
             }
             .width('100%')
@@ -368,12 +385,13 @@ struct ProductDetail {
               // 评论列表
               ForEach(this.comments, (cmt: Comment) => {
                 Row() {
-                  // 头像：有图显示图片，无图退回名字首字
+                  // 头像：有图显示图片，无图退回名字首字（可点进主页）
                   if (cmt.avatar) {
                     Image(cmt.avatar)
                       .width(32).height(32)
                       .borderRadius(16)
                       .objectFit(ImageFit.Cover)
+                      .onClick(() => { this.openUserProfile(cmt.userId) })
                   } else {
                     Text(cmt.userName.charAt(0))
                       .fontSize(this.fs(14))
@@ -383,6 +401,7 @@ struct ProductDetail {
                       .backgroundColor(Theme.gold(this.theme))
                       .textAlign(TextAlign.Center)
                       .lineHeight(32)
+                      .onClick(() => { this.openUserProfile(cmt.userId) })
                   }
 
                   Column() {
@@ -391,6 +410,7 @@ struct ProductDetail {
                         .fontSize(this.fs(13))
                         .fontWeight(FontWeight.Medium)
                         .fontColor(Theme.textPrimary(this.theme))
+                        .onClick(() => { this.openUserProfile(cmt.userId) })
                       Blank()
                       Text(cmt.time)
                         .fontSize(this.fs(11))

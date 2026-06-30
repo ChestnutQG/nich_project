@@ -59,6 +59,10 @@
             (#{userId}, #{name}, #{avatar}, #{title}, #{level}, #{province}, #{city}, #{craftType}, #{intro}, #{worksCount}, #{followersCount})
     </insert>
 
+    <update id="updateIntro">
+        UPDATE t_artisan SET intro = #{intro} WHERE id = #{id}
+    </update>
+
     <update id="incrFollowers">
         UPDATE t_artisan
         SET followers_count = GREATEST(followers_count + #{delta}, 0)
