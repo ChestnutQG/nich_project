@@ -9,17 +9,11 @@ import { ApiResponse } from '../model/ApiResponse'
 import { Theme } from '../common/Theme'
 import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
-interface TestAccount {
-  label: string
-  phone: string
-  password: string
-}
-
 @Entry
 @Component
 struct Login {
-  @State phone: string = '13800000001'
-  @State password: string = '123456'
+  @State phone: string = ''
+  @State password: string = ''
   @State logging: boolean = false
   @State isRegister: boolean = false
   @State username: string = ''
@@ -36,12 +30,6 @@ struct Login {
   t(zh: string, en: string): string {
     return this.language === 'en' ? en : zh
   }
-
-  private testAccounts: TestAccount[] = [
-    { label: '管理员', phone: '13800000001', password: '123456' },
-    { label: '传承人', phone: '13800000002', password: '123456' },
-    { label: '用户', phone: '13800000003', password: '123456' }
-  ]
 
   build() {
     Column() {
@@ -81,28 +69,6 @@ struct Login {
           .margin({ top: 24 })
           .justifyContent(FlexAlign.Center)
           .width('100%')
-
-          // 测试账号快速切换 — 印章风
-          if (!this.isRegister) {
-            Row() {
-              ForEach(this.testAccounts, (acc: TestAccount) => {
-                Text(acc.label)
-                  .fontSize(this.fs(11))
-                  .fontColor(this.phone === acc.phone ? Theme.WHITE : Theme.textSecondary(this.theme))
-                  .padding({ left: 14, right: 14, top: 6, bottom: 6 })
-                  .borderRadius(3)
-                  .backgroundColor(this.phone === acc.phone ? Theme.primary(this.theme) : Theme.card(this.theme))
-                  .border({ width: 1, color: this.phone === acc.phone ? Theme.primary(this.theme) : Theme.divider(this.theme) })
-                  .margin({ right: 10 })
-                  .onClick(() => {
-                    this.phone = acc.phone
-                    this.password = acc.password
-                  })
-              })
-            }
-            .width('100%')
-            .margin({ top: 20 })
-          }
 
           // 注册时显示用户名输入
           if (this.isRegister) {

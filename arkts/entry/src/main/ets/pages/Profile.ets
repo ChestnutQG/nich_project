@@ -200,6 +200,7 @@ struct Profile {
               router.pushUrl({ url: Constants.PAGE_CART })
             })
             this.MenuItem('📦', this.t('发布作品', 'Publish'), () => router.pushUrl({ url: Constants.PAGE_PRODUCT_PUBLISH }))
+            this.MenuItem('🗂️', this.t('管理作品', 'Manage Works'), () => router.pushUrl({ url: Constants.PAGE_MY_PRODUCTS }))
             this.MenuItem('📋', this.t('我的订单', 'My Orders'), () => router.pushUrl({ url: Constants.PAGE_ORDER_LIST }))
             this.MenuItem('⚖️', this.t('我的维权', 'My Disputes'), () => router.pushUrl({ url: Constants.PAGE_DISPUTE_LIST }))
             this.MenuItem('👨‍⚖️', this.t('陪审邀请', 'Jury'), () => router.pushUrl({ url: Constants.PAGE_JURY_INVITATIONS }))

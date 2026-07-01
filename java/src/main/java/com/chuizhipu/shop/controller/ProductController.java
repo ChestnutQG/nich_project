@@ -87,6 +87,25 @@ public class ProductController {
         return R.ok(id);
     }
 
+    /** GET /api/products/mine — 管理当前用户自己发布的作品 */
+    @GetMapping("/mine")
+    public R mine(HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (userId == null) return R.error(401, "请先登录");
+        return R.ok(productService.getMyProducts(userId));
+    }
+
+    /** DELETE /api/products/{id} — 发布者删除自己的作品 */
+    @DeleteMapping("/{id}")
+    public R deleteOwnProduct(HttpServletRequest request, @PathVariable Long id) {
+        Long userId = getCurrentUserId(request);
+        if (userId == null) return R.error(401, "请先登录");
+        if (!productService.deleteOwnProduct(id, userId)) {
+            return R.error(403, "作品不存在或无权删除");
+        }
+        return R.ok("作品已删除");
+    }
+
     // 接收前端的发布请求体
     public static class PublishReq {
         private String name;

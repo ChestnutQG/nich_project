@@ -111,6 +111,8 @@ mvn spring-boot:run
 | GET | `/api/products` | 商品列表（分页+筛选） |
 | GET | `/api/products/{id}` | 商品详情 |
 | POST | `/api/products` | 发布商品（传承人） |
+| GET | `/api/products/mine` | 当前用户发布的作品 |
+| DELETE | `/api/products/{id}` | 删除自己的作品 |
 
 ### 订单
 | 方法 | 路径 | 说明 |
@@ -144,6 +146,8 @@ mvn spring-boot:run
 | PUT | `/api/admin/users/{id}/role` | 修改角色 |
 | GET | `/api/admin/products/pending` | 待审核商品 |
 | PUT | `/api/admin/products/{id}/audit` | 审核商品 |
+| GET | `/api/admin/products` | 全部未删除作品 |
+| DELETE | `/api/admin/products/{id}` | 管理员删除作品 |
 
 ## 小法庭维权流程
 

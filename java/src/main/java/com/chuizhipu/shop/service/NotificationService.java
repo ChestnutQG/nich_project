@@ -40,6 +40,7 @@ public class NotificationService {
             case "artisan_new": return "匠人上新";
             case "price_drop": return "降价提醒";
             case "jury_invite": return "陪审邀请";
+            case "product_deleted": return "作品删除通知";
             default:
                 if (type.startsWith("dispute")) return "维权通知";
                 return "通知";

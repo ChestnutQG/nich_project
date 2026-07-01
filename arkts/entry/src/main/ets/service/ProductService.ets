@@ -93,8 +93,16 @@ export class ProductService {
   static async publishProduct(body: object): Promise<ApiResponse<number>> {
     if (USE_MOCK) {
       await delay(500)
-      return { code: 0, message: '发布成功', data: 0 }
+      return { code: 0, message: '作品已提交，等待管理员审核', data: 0 }
     }
     return ApiClient.post<number>('/products', body)
+  }
+
+  static async fetchMyProducts(): Promise<ApiResponse<Product[]>> {
+    return ApiClient.get<Product[]>('/products/mine')
+  }
+
+  static async deleteMyProduct(id: string): Promise<ApiResponse<string>> {
+    return ApiClient.del<string>(`/products/${id}`)
   }
 }

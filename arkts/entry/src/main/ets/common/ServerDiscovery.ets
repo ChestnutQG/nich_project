@@ -36,7 +36,7 @@ async function probeCandidates(candidates: string[]): Promise<string | null> {
 async function probeOne(ip: string): Promise<string | null> {
   try {
     const req = http.createHttp()
-    const resp = await req.request(`http://${ip}:8080${PING_PATH}`, {
+    const resp = await req.request(`http://${ip}${PING_PATH}`, {
       method: http.RequestMethod.GET,
       connectTimeout: PING_TIMEOUT,
       readTimeout: PING_TIMEOUT

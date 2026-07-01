@@ -38,5 +38,6 @@ export interface Product {
   tags: string[]
   isCollect: boolean
   isSellable: boolean    // 是否可售卖，false 则纯展示不显示购买入口
+  auditStatus?: string   // pending | approved | rejected
   createTime: number
 }

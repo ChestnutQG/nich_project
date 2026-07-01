@@ -124,6 +124,7 @@ CREATE TABLE t_product (
     audit_status    VARCHAR(20) DEFAULT 'pending' COMMENT '审核状态: pending-待审核 approved-已通过 rejected-已驳回',
     is_on_sale      TINYINT DEFAULT 0 COMMENT '是否上架 1-上架 0-下架',
     is_sellable     TINYINT DEFAULT 1 COMMENT '是否售卖 1-售卖 0-纯展示',
+    is_deleted      TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除 0-正常 1-已删除',
     create_time     DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time     DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES t_category(id),

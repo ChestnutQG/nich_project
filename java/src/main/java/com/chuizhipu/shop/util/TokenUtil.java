@@ -1,6 +1,7 @@
 package com.chuizhipu.shop.util;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -10,17 +11,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TokenUtil {
 
     private static final Map<String, Long> TOKEN_STORE = new ConcurrentHashMap<>();
-    private static final Map<Long, String> USER_TOKENS = new ConcurrentHashMap<>(); // 一人一token
+    /** 同一用户可同时在 App、管理端等多个终端登录。 */
+    private static final Map<Long, Set<String>> USER_TOKENS = new ConcurrentHashMap<>();
 
-    public static String createToken(Long userId) {
-        // 旧 token 作废
-        String oldToken = USER_TOKENS.remove(userId);
-        if (oldToken != null) {
-            TOKEN_STORE.remove(oldToken);
-        }
+    public static synchronized String createToken(Long userId) {
         String token = UUID.randomUUID().toString().replace("-", "");
         TOKEN_STORE.put(token, userId);
-        USER_TOKENS.put(userId, token);
+        USER_TOKENS.computeIfAbsent(userId, id -> ConcurrentHashMap.newKeySet()).add(token);
         return token;
     }
 
@@ -29,17 +26,23 @@ public class TokenUtil {
         return TOKEN_STORE.get(token);
     }
 
-    public static void removeToken(String token) {
+    public static synchronized void removeToken(String token) {
         Long userId = TOKEN_STORE.remove(token);
         if (userId != null) {
-            USER_TOKENS.remove(userId);
+            Set<String> tokens = USER_TOKENS.get(userId);
+            if (tokens != null) {
+                tokens.remove(token);
+                if (tokens.isEmpty()) {
+                    USER_TOKENS.remove(userId, tokens);
+                }
+            }
         }
     }
 
-    public static void removeTokenByUserId(Long userId) {
-        String token = USER_TOKENS.remove(userId);
-        if (token != null) {
-            TOKEN_STORE.remove(token);
+    public static synchronized void removeTokenByUserId(Long userId) {
+        Set<String> tokens = USER_TOKENS.remove(userId);
+        if (tokens != null) {
+            tokens.forEach(TOKEN_STORE::remove);
         }
     }
 }

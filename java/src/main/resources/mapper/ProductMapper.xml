@@ -37,7 +37,7 @@
         FROM t_product p
         LEFT JOIN t_category c ON p.category_id = c.id
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
-        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1 AND p.is_deleted = 0
         ORDER BY p.sales DESC
         LIMIT 50
     </select>
@@ -48,7 +48,7 @@
         FROM t_product p
         LEFT JOIN t_category c ON p.category_id = c.id
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
-        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1 AND p.is_deleted = 0
         <if test="categoryId != null">
             AND p.category_id = #{categoryId}
         </if>
@@ -62,7 +62,7 @@
     </select>
 
     <select id="countPage" resultType="long">
-        SELECT COUNT(*) FROM t_product WHERE audit_status = 'approved' AND is_on_sale = 1
+        SELECT COUNT(*) FROM t_product WHERE audit_status = 'approved' AND is_on_sale = 1 AND is_deleted = 0
         <if test="categoryId != null">
             AND category_id = #{categoryId}
         </if>
@@ -74,7 +74,7 @@
         FROM t_product p
         LEFT JOIN t_category c ON p.category_id = c.id
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
-        WHERE p.id = #{id}
+        WHERE p.id = #{id} AND p.is_deleted = 0
     </select>
 
     <!-- 搜索 — 只搜索已审核通过的 -->
@@ -83,7 +83,7 @@
         FROM t_product p
         LEFT JOIN t_category c ON p.category_id = c.id
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
-        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1 AND p.is_deleted = 0
           AND (p.name LIKE CONCAT('%', #{keyword}, '%')
                OR p.craft_type LIKE CONCAT('%', #{keyword}, '%')
                OR p.region LIKE CONCAT('%', #{keyword}, '%')
@@ -97,7 +97,7 @@
     <select id="countSearch" resultType="long">
         SELECT COUNT(*) FROM t_product p
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
-        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1 AND p.is_deleted = 0
           AND (p.name LIKE CONCAT('%', #{keyword}, '%')
                OR p.craft_type LIKE CONCAT('%', #{keyword}, '%')
                OR p.region LIKE CONCAT('%', #{keyword}, '%')
@@ -112,7 +112,8 @@
         FROM t_product p
         LEFT JOIN t_category c ON p.category_id = c.id
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
-        WHERE p.artisan_id = #{artisanId} AND p.audit_status = 'approved' AND p.is_on_sale = 1
+        WHERE p.artisan_id = #{artisanId} AND p.audit_status = 'approved'
+          AND p.is_on_sale = 1 AND p.is_deleted = 0
         ORDER BY p.create_time DESC
     </select>
 
@@ -135,6 +136,7 @@
         FROM t_product p
         LEFT JOIN t_category c ON p.category_id = c.id
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.is_deleted = 0
         ORDER BY
             CASE p.audit_status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,
             p.create_time DESC
@@ -158,7 +160,22 @@
     <select id="selectArtisanUserIdByProductId" resultType="long">
         SELECT a.user_id FROM t_product p
         JOIN t_artisan a ON p.artisan_id = a.id
-        WHERE p.id = #{productId}
+        WHERE p.id = #{productId} AND p.is_deleted = 0
     </select>
+
+    <select id="selectByOwnerUserId" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name, a.avatar AS artisan_avatar
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE a.user_id = #{userId} AND p.is_deleted = 0
+        ORDER BY p.create_time DESC
+    </select>
+
+    <update id="softDelete">
+        UPDATE t_product
+        SET is_deleted = 1, is_on_sale = 0, update_time = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
 
 </mapper>

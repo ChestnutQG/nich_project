@@ -8,7 +8,7 @@ export class ApiConfig {
   static readonly USE_MOCK = false
 
   // Spring Boot 后端地址
-  static readonly BASE_URL = `http://${SERVER_IP}:8080`
+  static readonly BASE_URL = `http://${SERVER_IP}`
 
   // API 前缀
   static readonly API_PREFIX = '/api'

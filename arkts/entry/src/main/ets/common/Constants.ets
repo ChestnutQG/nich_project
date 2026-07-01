@@ -19,6 +19,7 @@ export class Constants {
   static readonly PAGE_ARTISAN_LIST = 'pages/ArtisanList'
   static readonly PAGE_ARTISAN_DETAIL = 'pages/ArtisanDetail'
   static readonly PAGE_PRODUCT_PUBLISH = 'pages/ProductPublish'
+  static readonly PAGE_MY_PRODUCTS = 'pages/MyProducts'
   static readonly PAGE_PROFILE = 'pages/Profile'
   static readonly PAGE_PROFILE_EDIT = 'pages/ProfileEdit'
   static readonly PAGE_DISPUTE_LIST = 'pages/DisputeList'

@@ -80,7 +80,7 @@ async function ensureBaseUrl(): Promise<void> {
   if (baseUrl) return
   if (!initPromise) {
     initPromise = discoverServerIp().then((ip) => {
-      baseUrl = `http://${ip}:8080/api`
+      baseUrl = `http://${ip}/api`
     })
   }
   await initPromise

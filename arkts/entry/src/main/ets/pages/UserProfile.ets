@@ -159,8 +159,8 @@ struct UserProfile {
             .width('100%').padding({ top: 24, bottom: 20 })
             .backgroundColor(Theme.card(this.theme)).alignItems(HorizontalAlign.Center)
 
-            // 匠人简介（自己是匠人时即使为空也显示，可编辑）
-            if (this.profile!.isArtisan && (this.profile!.intro || this.isSelf)) {
+            // 匠人简介
+            if (this.profile!.isArtisan) {
               Column() {
                 Row() {
                   Text(this.t('简介', 'About'))
@@ -175,7 +175,10 @@ struct UserProfile {
                 }
                 .width('100%')
 
-                Text(this.profile!.intro ? this.profile!.intro : this.t('还没有简介，点右上角编辑', 'No intro yet, tap Edit'))
+                Text(this.profile!.intro ? this.profile!.intro :
+                  (this.isSelf
+                    ? this.t('还没有简介，点右上角编辑', 'No intro yet, tap Edit')
+                    : this.t('这位传承人还没有填写简介', 'This artisan has not added an introduction yet')))
                   .fontSize(this.fs(13))
                   .fontColor(this.profile!.intro ? Theme.textSecondary(this.theme) : Theme.textHint(this.theme))
                   .lineHeight(22).width('100%').margin({ top: 8 })
@@ -194,6 +197,7 @@ struct UserProfile {
                     GridItem() {
                       ProductCard({
                         product: product,
+                        hideCommerceInfo: true,
                         onItemClick: (p: Product) => {
                           router.pushUrl({ url: Constants.PAGE_PRODUCT_DETAIL, params: { productId: p.id } })
                         }
@@ -205,6 +209,8 @@ struct UserProfile {
                 .width('100%').margin({ top: 10 })
               }
               .width('100%').padding(16).backgroundColor(Theme.card(this.theme)).margin({ top: 8 })
+            } else {
+              this.EmptyWorks()
             }
 
             Row().height(80)
@@ -245,6 +251,71 @@ struct UserProfile {
       }
     }
     .width('100%').height('100%')
+  }
+
+  @Builder
+  EmptyWorks() {
+    Column() {
+      Row() {
+        Text(this.t('发布的作品', 'Works'))
+          .fontSize(this.fs(15)).fontWeight(FontWeight.Medium)
+          .fontColor(Theme.textPrimary(this.theme))
+        Blank()
+        Text('0')
+          .fontSize(this.fs(11)).fontColor(Theme.textHint(this.theme))
+          .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+          .borderRadius(10).backgroundColor(Theme.bg(this.theme))
+      }
+      .width('100%')
+
+      Column() {
+        Stack() {
+          Column()
+            .width(76).height(76).borderRadius(38)
+            .backgroundColor(Theme.primaryBg(this.theme))
+          Text(this.profile && this.profile.isArtisan ? '🪡' : '🏺')
+            .fontSize(this.fs(34))
+        }
+        .width(76).height(76)
+
+        Text(this.isSelf
+          ? this.t('让第一件作品点亮主页', 'Let your first work light up this page')
+          : this.t('手艺正在酝酿中', 'New work is taking shape'))
+          .fontSize(this.fs(16)).fontWeight(FontWeight.Medium)
+          .fontColor(Theme.textPrimary(this.theme)).margin({ top: 16 })
+
+        Text(this.isSelf
+          ? this.t('分享作品背后的技艺与故事，让更多人看见你的手艺。',
+            'Share the craft and story behind your work.')
+          : this.t('这里暂时还没有作品，先认识一下这位创作者吧。',
+            'No works here yet. Get to know the creator first.'))
+          .fontSize(this.fs(13)).fontColor(Theme.textSecondary(this.theme))
+          .textAlign(TextAlign.Center).lineHeight(21)
+          .width('82%').margin({ top: 8 })
+
+        if (this.isSelf) {
+          Button('+ ' + this.t('发布第一件作品', 'Publish First Work'))
+            .fontSize(this.fs(14)).fontColor(Theme.WHITE)
+            .height(40).padding({ left: 22, right: 22 })
+            .borderRadius(20).backgroundColor(Theme.primary(this.theme))
+            .margin({ top: 18 })
+            .onClick(() => router.pushUrl({ url: Constants.PAGE_PRODUCT_PUBLISH }))
+        } else {
+          Row() {
+            Column().width(24).height(1).backgroundColor(Theme.divider(this.theme))
+            Text(this.t('敬请期待', 'Stay tuned'))
+              .fontSize(this.fs(11)).fontColor(Theme.textHint(this.theme))
+              .margin({ left: 8, right: 8 })
+            Column().width(24).height(1).backgroundColor(Theme.divider(this.theme))
+          }
+          .margin({ top: 18 })
+        }
+      }
+      .width('100%').padding({ top: 28, bottom: 26 })
+      .alignItems(HorizontalAlign.Center)
+    }
+    .width('100%').padding(16)
+    .backgroundColor(Theme.card(this.theme)).margin({ top: 8 })
   }
 
   @Builder

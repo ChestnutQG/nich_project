@@ -8,6 +8,7 @@ import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 @Component
 export struct ProductCard {
   @Prop product: Product
+  @Prop hideCommerceInfo: boolean = false
   onItemClick?: (product: Product) => void
 
   @StorageProp('theme') theme: ThemeMode = 'light'
@@ -44,29 +45,31 @@ export struct ProductCard {
           .fontColor(Theme.textSecondary(this.theme))
           .margin({ top: 4 })
 
-        // 价格行
-        Row() {
-          Text(Utils.formatPrice(this.product.price))
-            .fontSize(this.fs(16))
-            .fontWeight(FontWeight.Bold)
-            .fontColor(Theme.primary(this.theme))
+        if (!this.hideCommerceInfo) {
+          // 价格行
+          Row() {
+            Text(Utils.formatPrice(this.product.price))
+              .fontSize(this.fs(16))
+              .fontWeight(FontWeight.Bold)
+              .fontColor(Theme.primary(this.theme))
 
-          if (this.product.originalPrice > this.product.price) {
-            Text(Utils.formatPrice(this.product.originalPrice))
-              .fontSize(this.fs(11))
+            if (this.product.originalPrice > this.product.price) {
+              Text(Utils.formatPrice(this.product.originalPrice))
+                .fontSize(this.fs(11))
+                .fontColor(Theme.textHint(this.theme))
+                .decoration({ type: TextDecorationType.LineThrough })
+                .margin({ left: 6 })
+            }
+
+            Blank()
+
+            Text(`已售${Utils.formatCount(this.product.sales)}`)
+              .fontSize(this.fs(10))
               .fontColor(Theme.textHint(this.theme))
-              .decoration({ type: TextDecorationType.LineThrough })
-              .margin({ left: 6 })
           }
-
-          Blank()
-
-          Text(`已售${Utils.formatCount(this.product.sales)}`)
-            .fontSize(this.fs(10))
-            .fontColor(Theme.textHint(this.theme))
+          .width('100%')
+          .margin({ top: 6 })
         }
-        .width('100%')
-        .margin({ top: 6 })
       }
       .width('100%')
       .padding({ left: 10, right: 10, top: 8, bottom: 10 })

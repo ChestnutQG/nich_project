@@ -38,6 +38,14 @@ public class DatabaseInitializer {
                 jdbc.execute("ALTER TABLE t_product ADD COLUMN is_sellable TINYINT DEFAULT 1 COMMENT '是否售卖 1-售卖 0-纯展示'");
             }
 
+            Integer deletedCol = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns " +
+                "WHERE table_schema = DATABASE() AND table_name = 't_product' AND column_name = 'is_deleted'",
+                Integer.class);
+            if (deletedCol != null && deletedCol == 0) {
+                jdbc.execute("ALTER TABLE t_product ADD COLUMN is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除 0-正常 1-已删除'");
+            }
+
             // 私信
             jdbc.execute("""
                 CREATE TABLE IF NOT EXISTS t_message (

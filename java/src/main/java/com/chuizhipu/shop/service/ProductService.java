@@ -91,6 +91,37 @@ public class ProductService {
         return toVOList(products, userId);
     }
 
+    public List<ProductVO> getMyProducts(Long userId) {
+        return toVOList(productMapper.selectByOwnerUserId(userId), userId);
+    }
+
+    @Transactional
+    public boolean deleteOwnProduct(Long productId, Long userId) {
+        Long ownerId = productMapper.selectArtisanUserIdByProductId(productId);
+        if (ownerId == null || !ownerId.equals(userId)) return false;
+        return productMapper.softDelete(productId) > 0;
+    }
+
+    @Transactional
+    public boolean deleteProductAsAdmin(Long productId) {
+        Product product = productMapper.selectById(productId);
+        if (product == null) return false;
+        Long ownerId = productMapper.selectArtisanUserIdByProductId(productId);
+        if (productMapper.softDelete(productId) == 0) return false;
+
+        if (ownerId != null) {
+            String productName = product.getName() != null ? product.getName() : "未命名作品";
+            notificationService.notify(
+                    ownerId,
+                    "product_deleted",
+                    "作品删除通知",
+                    "您的作品《" + productName + "》已被管理员删除，如有疑问请联系平台管理员。",
+                    null
+            );
+        }
+        return true;
+    }
+
     /** 发布商品 — 匠人按发布者本人解析，避免都挂到同一个匠人 */
     @Transactional
     public Long publishProduct(Long userId, Product product, List<ProductSku> skus) {

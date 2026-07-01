@@ -13,6 +13,7 @@
     "pages/ArtisanList",
     "pages/ArtisanDetail",
     "pages/ProductPublish",
+    "pages/MyProducts",
     "pages/Profile",
     "pages/ProfileEdit",
     "pages/FavoriteList",

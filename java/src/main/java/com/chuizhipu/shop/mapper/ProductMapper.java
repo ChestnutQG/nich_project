@@ -49,4 +49,10 @@ public interface ProductMapper {
 
     /** 查商品所属匠人的 user_id */
     Long selectArtisanUserIdByProductId(@Param("productId") Long productId);
+
+    /** 查询用户自己发布的全部未删除作品（包含待审核和已驳回） */
+    List<Product> selectByOwnerUserId(@Param("userId") Long userId);
+
+    /** 逻辑删除作品，保留历史订单快照和关联数据 */
+    int softDelete(@Param("id") Long id);
 }

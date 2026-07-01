@@ -356,7 +356,9 @@ struct ProductPublish {
     this.submitting = false
 
     if (resp.code === 0) {
-      promptAction.showToast({ message: this.t('发布成功！', 'Published!') })
+      promptAction.showToast({
+        message: this.t('作品已提交，等待管理员审核', 'Submitted and awaiting review')
+      })
       router.back()
     } else {
       promptAction.showToast({ message: resp.message || this.t('发布失败', 'Publish failed') })

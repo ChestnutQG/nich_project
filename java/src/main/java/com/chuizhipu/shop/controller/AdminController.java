@@ -5,7 +5,9 @@ import com.chuizhipu.shop.entity.*;
 import com.chuizhipu.shop.mapper.*;
 import com.chuizhipu.shop.service.DisputeService;
 import com.chuizhipu.shop.service.NotificationService;
+import com.chuizhipu.shop.service.ProductService;
 import com.chuizhipu.shop.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -23,12 +25,13 @@ public class AdminController {
     private final DisputeService disputeService;
     private final JuryInvitationMapper invitationMapper;
     private final NotificationService notificationService;
+    private final ProductService productService;
 
     public AdminController(UserMapper userMapper, DisputeMapper disputeMapper,
                            OrderMapper orderMapper, ProductMapper productMapper,
                            FavoriteMapper favoriteMapper, FollowMapper followMapper,
                            DisputeService disputeService, JuryInvitationMapper invitationMapper,
-                           NotificationService notificationService) {
+                           NotificationService notificationService, ProductService productService) {
         this.userMapper = userMapper;
         this.disputeMapper = disputeMapper;
         this.orderMapper = orderMapper;
@@ -38,6 +41,14 @@ public class AdminController {
         this.disputeService = disputeService;
         this.invitationMapper = invitationMapper;
         this.notificationService = notificationService;
+        this.productService = productService;
+    }
+
+    private boolean isAdmin(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        if (userId == null) return false;
+        User user = userMapper.selectById(userId);
+        return user != null && "admin".equals(user.getRole());
     }
 
     /** GET /api/admin/disputes — 所有纠纷列表 */
@@ -149,6 +160,21 @@ public class AdminController {
             result.add(map);
         }
         return R.ok(result);
+    }
+
+    /** GET /api/admin/products — 管理端全部未删除作品 */
+    @GetMapping("/products")
+    public R allProducts(HttpServletRequest request) {
+        if (!isAdmin(request)) return R.error(403, "仅管理员可操作");
+        return pendingProducts();
+    }
+
+    /** DELETE /api/admin/products/{id} — 管理员删除任意作品 */
+    @DeleteMapping("/products/{id}")
+    public R deleteProduct(HttpServletRequest request, @PathVariable Long id) {
+        if (!isAdmin(request)) return R.error(403, "仅管理员可操作");
+        if (!productService.deleteProductAsAdmin(id)) return R.error("作品不存在或已删除");
+        return R.ok("作品已删除");
     }
 
     /** PUT /api/admin/products/{id}/audit — 审核通过/驳回 */
