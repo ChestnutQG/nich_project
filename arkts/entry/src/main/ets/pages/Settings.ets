@@ -1,8 +1,9 @@
-// 设置页面 — 主题/字体/语言，实时生效 + 持久化
+// 设置页面 — 国风版
 import { router } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { NavBar } from '../components/NavBar'
 import { SettingsService, ThemeMode, FontScale, Language } from '../service/SettingsService'
+import { Theme } from '../common/Theme'
 
 @Entry
 @Component
@@ -11,18 +12,8 @@ struct Settings {
   @StorageLink('fontScale') fontScale: FontScale = 'normal'
   @StorageLink('language') language: Language = 'zh'
 
-  // 根据主题返回对应色值
-  bgPage(): string { return this.theme === 'dark' ? '#121212' : '#F5F5F5' }
-  bgCard(): string { return this.theme === 'dark' ? '#1E1E1E' : '#FFFFFF' }
-  bgSelected(): string { return this.theme === 'dark' ? '#3A1F1F' : Colors.PRIMARY_BG }
-  textPrimary(): string { return this.theme === 'dark' ? '#EEEEEE' : Colors.TEXT_PRIMARY }
-  textSecondary(): string { return this.theme === 'dark' ? '#AAAAAA' : Colors.TEXT_SECONDARY }
-  dividerColor(): string { return this.theme === 'dark' ? '#2A2A2A' : Colors.DIVIDER }
-
-  // 双语文本
   t(zh: string, en: string): string { return this.language === 'en' ? en : zh }
 
-  // 字体基准尺寸
   baseFontSize(): number {
     if (this.fontScale === 'small') return 13
     if (this.fontScale === 'large') return 18
@@ -40,101 +31,224 @@ struct Settings {
       Scroll() {
         Column({ space: 0 }) {
 
-          // ── 外观 ──
+          // ══════ 外观 ══════
           this.SectionLabel(this.t('外观', 'Appearance'))
 
           Column() {
-            // 主题
+            // 主题 — 深浅切换
             Row() {
               Text(this.t('主题', 'Theme'))
                 .fontSize(this.baseFontSize())
-                .fontColor(this.textPrimary())
+                .fontColor(Theme.textPrimary(this.theme))
                 .layoutWeight(1)
 
               Row({ space: 8 }) {
-                this.ThemeChip('☀️ ' + this.t('浅色', 'Light'), 'light')
-                this.ThemeChip('🌙 ' + this.t('深色', 'Dark'), 'dark')
+                Text('☀️ ' + this.t('浅色', 'Light'))
+                  .fontSize(13)
+                  .fontColor(this.theme === 'light' ? Theme.WHITE : Theme.textSecondary(this.theme))
+                  .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+                  .borderRadius(3)
+                  .backgroundColor(this.theme === 'light' ? Theme.primary(this.theme) : Color.Transparent)
+                  .border({ width: 1, color: this.theme === 'light' ? Theme.primary(this.theme) : Theme.divider(this.theme) })
+                  .onClick(() => { SettingsService.setTheme('light') })
+
+                Text('🌙 ' + this.t('深色', 'Dark'))
+                  .fontSize(13)
+                  .fontColor(this.theme === 'dark' ? Theme.WHITE : Theme.textSecondary(this.theme))
+                  .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+                  .borderRadius(3)
+                  .backgroundColor(this.theme === 'dark' ? Theme.primary(this.theme) : Color.Transparent)
+                  .border({ width: 1, color: this.theme === 'dark' ? Theme.primary(this.theme) : Theme.divider(this.theme) })
+                  .onClick(() => { SettingsService.setTheme('dark') })
               }
             }
             .width('100%')
             .padding({ left: 16, right: 16, top: 14, bottom: 14 })
 
-            Divider()
-              .color(this.dividerColor())
+            // 绢色分割
+            Row()
+              .width('100%')
+              .height(0.5)
+              .backgroundColor(Theme.divider(this.theme))
               .margin({ left: 16 })
 
             // 字体大小
             Row() {
               Text(this.t('字体大小', 'Font Size'))
                 .fontSize(this.baseFontSize())
-                .fontColor(this.textPrimary())
+                .fontColor(Theme.textPrimary(this.theme))
                 .layoutWeight(1)
 
               Row({ space: 8 }) {
-                this.FontChip(this.t('小', 'S'), 12, 'small')
-                this.FontChip(this.t('标准', 'M'), 15, 'normal')
-                this.FontChip(this.t('大', 'L'), 18, 'large')
+                Text(this.t('小', 'S'))
+                  .fontSize(12)
+                  .fontColor(this.fontScale === 'small' ? Theme.WHITE : Theme.textSecondary(this.theme))
+                  .width(36).height(32)
+                  .textAlign(TextAlign.Center)
+                  .borderRadius(3)
+                  .backgroundColor(this.fontScale === 'small' ? Theme.primary(this.theme) : Color.Transparent)
+                  .border({ width: 1, color: this.fontScale === 'small' ? Theme.primary(this.theme) : Theme.divider(this.theme) })
+                  .onClick(() => { SettingsService.setFontScale('small') })
+
+                Text(this.t('标准', 'M'))
+                  .fontSize(15)
+                  .fontColor(this.fontScale === 'normal' ? Theme.WHITE : Theme.textSecondary(this.theme))
+                  .width(36).height(32)
+                  .textAlign(TextAlign.Center)
+                  .borderRadius(3)
+                  .backgroundColor(this.fontScale === 'normal' ? Theme.primary(this.theme) : Color.Transparent)
+                  .border({ width: 1, color: this.fontScale === 'normal' ? Theme.primary(this.theme) : Theme.divider(this.theme) })
+                  .onClick(() => { SettingsService.setFontScale('normal') })
+
+                Text(this.t('大', 'L'))
+                  .fontSize(18)
+                  .fontColor(this.fontScale === 'large' ? Theme.WHITE : Theme.textSecondary(this.theme))
+                  .width(36).height(32)
+                  .textAlign(TextAlign.Center)
+                  .borderRadius(3)
+                  .backgroundColor(this.fontScale === 'large' ? Theme.primary(this.theme) : Color.Transparent)
+                  .border({ width: 1, color: this.fontScale === 'large' ? Theme.primary(this.theme) : Theme.divider(this.theme) })
+                  .onClick(() => { SettingsService.setFontScale('large') })
               }
             }
             .width('100%')
             .padding({ left: 16, right: 16, top: 14, bottom: 14 })
           }
           .width('100%')
-          .backgroundColor(this.bgCard())
-          .borderRadius(8)
+          .backgroundColor(Theme.card(this.theme))
+          .borderRadius(4)
+          .border({ width: 0.5, color: Theme.divider(this.theme) })
           .margin({ left: 16, right: 16, top: 0 })
 
-          // ── 语言 ──
+          // ══════ 语言 ══════
           this.SectionLabel(this.t('语言', 'Language'))
 
           Column() {
             Row() {
               Text(this.t('显示语言', 'Display Language'))
                 .fontSize(this.baseFontSize())
-                .fontColor(this.textPrimary())
+                .fontColor(Theme.textPrimary(this.theme))
                 .layoutWeight(1)
 
               Row({ space: 8 }) {
-                this.LangChip('简体中文', 'zh')
-                this.LangChip('English', 'en')
+                Text('简体中文')
+                  .fontSize(13)
+                  .fontColor(this.language === 'zh' ? Theme.WHITE : Theme.textSecondary(this.theme))
+                  .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+                  .borderRadius(3)
+                  .backgroundColor(this.language === 'zh' ? Theme.primary(this.theme) : Color.Transparent)
+                  .border({ width: 1, color: this.language === 'zh' ? Theme.primary(this.theme) : Theme.divider(this.theme) })
+                  .onClick(() => { SettingsService.setLanguage('zh') })
+
+                Text('English')
+                  .fontSize(13)
+                  .fontColor(this.language === 'en' ? Theme.WHITE : Theme.textSecondary(this.theme))
+                  .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+                  .borderRadius(3)
+                  .backgroundColor(this.language === 'en' ? Theme.primary(this.theme) : Color.Transparent)
+                  .border({ width: 1, color: this.language === 'en' ? Theme.primary(this.theme) : Theme.divider(this.theme) })
+                  .onClick(() => { SettingsService.setLanguage('en') })
               }
             }
             .width('100%')
             .padding({ left: 16, right: 16, top: 14, bottom: 14 })
           }
           .width('100%')
-          .backgroundColor(this.bgCard())
-          .borderRadius(8)
+          .backgroundColor(Theme.card(this.theme))
+          .borderRadius(4)
+          .border({ width: 0.5, color: Theme.divider(this.theme) })
           .margin({ left: 16, right: 16, top: 0 })
 
-          // ── 预览 ──
+          // ══════ 效果预览 ══════
           this.SectionLabel(this.t('效果预览', 'Preview'))
 
           Column() {
-            Text(this.t('这是正文文本，感受字体大小变化', 'This is body text — feel the font size change'))
-              .fontSize(this.baseFontSize())
-              .fontColor(this.textPrimary())
-              .padding({ left: 16, right: 16, top: 16, bottom: 8 })
-
-            Text(this.t('这是次要说明文字，颜色稍浅', 'Secondary text with lighter color'))
-              .fontSize(this.baseFontSize() - 2)
-              .fontColor(this.textSecondary())
-              .padding({ left: 16, right: 16, bottom: 16 })
-
+            // 预览卡片标题
             Row() {
-              Text(this.t('当前配置', 'Current Config'))
+              Column()
+                .width(3).height(16)
+                .backgroundColor(Theme.primary(this.theme))
+                .margin({ right: 8 })
+              Text(this.t('锤子铺', 'Chuizhi'))
+                .fontSize(18)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(Theme.textPrimary(this.theme))
+                .letterSpacing(2)
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 16 })
+
+            Text(this.t('正文文本 — 感受字体大小与墨色', 'Body text — feel the font size & ink color'))
+              .fontSize(this.baseFontSize())
+              .fontColor(Theme.textPrimary(this.theme))
+              .width('100%')
+              .padding({ left: 16, right: 16, top: 12, bottom: 6 })
+
+            Text(this.t('次要说明 — 茶色，轻于墨', 'Secondary text — tea color, lighter than ink'))
+              .fontSize(this.baseFontSize() - 2)
+              .fontColor(Theme.textSecondary(this.theme))
+              .width('100%')
+              .padding({ left: 16, right: 16, bottom: 4 })
+
+            Text(this.t('提示文字 — 烟灰色，若有似无', 'Hint text — smoke gray, barely there'))
+              .fontSize(this.baseFontSize() - 3)
+              .fontColor(Theme.textHint(this.theme))
+              .width('100%')
+              .padding({ left: 16, right: 16, bottom: 12 })
+
+            // 配色预览条
+            Row({ space: 6 }) {
+              Column().width(24).height(24).borderRadius(3).backgroundColor(Theme.primary(this.theme))
+              Column().width(24).height(24).borderRadius(3).backgroundColor(Theme.gold(this.theme))
+              Column().width(24).height(24).borderRadius(3).backgroundColor(Theme.accent(this.theme))
+              Column().width(24).height(24).borderRadius(3).backgroundColor(Theme.success(this.theme))
+              Column().width(24).height(24).borderRadius(3).backgroundColor(Theme.warning(this.theme))
+              Column().width(24).height(24).borderRadius(3).backgroundColor(Theme.error(this.theme))
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, bottom: 8 })
+
+            // 当前配置摘要
+            Row() {
+              Text(this.t('当前', 'Current') + '：')
                 .fontSize(12)
-                .fontColor(this.textSecondary())
+                .fontColor(Theme.textSecondary(this.theme))
               Text(this.configSummary())
                 .fontSize(12)
-                .fontColor(Colors.PRIMARY)
-                .margin({ left: 8 })
+                .fontColor(Theme.primary(this.theme))
+                .fontWeight(FontWeight.Medium)
             }
+            .width('100%')
             .padding({ left: 16, right: 16, bottom: 16 })
           }
           .width('100%')
-          .backgroundColor(this.bgCard())
-          .borderRadius(8)
+          .backgroundColor(Theme.card(this.theme))
+          .borderRadius(4)
+          .border({ width: 0.5, color: Theme.divider(this.theme) })
+          .margin({ left: 16, right: 16, top: 0 })
+
+          // ══════ 关于 ══════
+          this.SectionLabel(this.t('关于', 'About'))
+
+          Column() {
+            Row() {
+              Text(this.t('锤子铺 · 非遗手工艺品平台', 'Chuizhi · Heritage Crafts'))
+                .fontSize(this.baseFontSize())
+                .fontColor(Theme.textPrimary(this.theme))
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 14, bottom: 4 })
+
+            Text('v1.0.0')
+              .fontSize(12)
+              .fontColor(Theme.textHint(this.theme))
+              .width('100%')
+              .padding({ left: 16, right: 16, bottom: 14 })
+          }
+          .width('100%')
+          .backgroundColor(Theme.card(this.theme))
+          .borderRadius(4)
+          .border({ width: 0.5, color: Theme.divider(this.theme) })
           .margin({ left: 16, right: 16, top: 0 })
 
           Row().height(24)
@@ -143,12 +257,12 @@ struct Settings {
       }
       .width('100%')
       .layoutWeight(1)
-      .backgroundColor(this.bgPage())
+      .backgroundColor(Theme.bg(this.theme))
       .scrollBar(BarState.Off)
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.bgPage())
+    .backgroundColor(Theme.bg(this.theme))
   }
 
   configSummary(): string {
@@ -164,49 +278,8 @@ struct Settings {
   SectionLabel(label: string) {
     Text(label)
       .fontSize(12)
-      .fontColor(this.textSecondary())
+      .fontColor(Theme.textSecondary(this.theme))
       .width('100%')
-      .padding({ left: 28, top: 16, bottom: 6 })
-  }
-
-  // 主题选项按钮 — 在 builder 内部读 this.theme，保证响应式
-  @Builder
-  ThemeChip(label: string, value: ThemeMode) {
-    Text(label)
-      .fontSize(13)
-      .fontColor(this.theme === value ? Colors.PRIMARY : this.textSecondary())
-      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-      .borderRadius(6)
-      .border({ width: 1.5, color: this.theme === value ? Colors.PRIMARY : this.dividerColor() })
-      .backgroundColor(this.theme === value ? this.bgSelected() : 'transparent')
-      .onClick(() => { SettingsService.setTheme(value) })
-  }
-
-  // 语言选项按钮 — 同理，在 builder 内部读 this.language
-  @Builder
-  LangChip(label: string, value: Language) {
-    Text(label)
-      .fontSize(13)
-      .fontColor(this.language === value ? Colors.PRIMARY : this.textSecondary())
-      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-      .borderRadius(6)
-      .border({ width: 1.5, color: this.language === value ? Colors.PRIMARY : this.dividerColor() })
-      .backgroundColor(this.language === value ? this.bgSelected() : 'transparent')
-      .onClick(() => { SettingsService.setLanguage(value) })
-  }
-
-  // 字体大小选项按钮，文字本身即示例
-  @Builder
-  FontChip(label: string, size: number, scale: FontScale) {
-    Text(label)
-      .fontSize(size)
-      .fontColor(this.fontScale === scale ? Colors.PRIMARY : this.textSecondary())
-      .width(36)
-      .height(32)
-      .textAlign(TextAlign.Center)
-      .borderRadius(6)
-      .border({ width: 1.5, color: this.fontScale === scale ? Colors.PRIMARY : this.dividerColor() })
-      .backgroundColor(this.fontScale === scale ? this.bgSelected() : 'transparent')
-      .onClick(() => { SettingsService.setFontScale(scale) })
+      .padding({ left: 28, top: 20, bottom: 8 })
   }
 }

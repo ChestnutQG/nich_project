@@ -1,4 +1,4 @@
-// 价格展示组件
+// 价格展示组件 — 国风版
 import { Colors } from '../common/Colors'
 import { Utils } from '../common/Utils'
 import { Theme } from '../common/Theme'

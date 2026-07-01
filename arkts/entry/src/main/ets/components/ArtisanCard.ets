@@ -1,4 +1,4 @@
-// 匠人卡片组件
+// 匠人卡片组件 — 国风版
 import { Artisan } from '../model/Artisan'
 import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
@@ -27,7 +27,7 @@ export struct ArtisanCard {
         .height(64)
         .borderRadius(32)
         .objectFit(ImageFit.Cover)
-        .border({ width: 2, color: Theme.gold(this.theme) })
+        .border({ width: 2.5, color: Theme.gold(this.theme) })
 
       // 姓名
       Text(this.artisan.name)
@@ -37,10 +37,15 @@ export struct ArtisanCard {
         .margin({ top: 8 })
         .maxLines(1)
 
-      // 头衔
+      // 头衔 — 印章风
       Text(this.artisan.title)
-        .fontSize(this.fs(10))
-        .fontColor(this.artisan.level >= 3 ? Theme.gold(this.theme) : Theme.textSecondary(this.theme))
+        .fontSize(this.fs(9))
+        .fontColor(this.artisan.level >= 3 ? Theme.WHITE : Theme.textSecondary(this.theme))
+        .backgroundColor(this.artisan.level >= 3 ? Theme.gold(this.theme) : 'transparent')
+        .borderRadius(3)
+        .padding(this.artisan.level >= 3
+          ? { left: 6, right: 6, top: 2, bottom: 2 }
+          : { left: 0, right: 0, top: 0, bottom: 0 })
         .margin({ top: 2 })
         .maxLines(1)
 
@@ -51,10 +56,11 @@ export struct ArtisanCard {
         .margin({ top: 2 })
     }
     .alignItems(HorizontalAlign.Center)
-    .width(96)
+    .width(100)
     .padding({ top: 12, bottom: 12, left: 6, right: 6 })
-    .borderRadius(8)
+    .borderRadius(4)
     .backgroundColor(Theme.card(this.theme))
+    .border({ width: 0.5, color: Theme.divider(this.theme) })
     .onClick(() => {
       if (this.onItemClick) {
         this.onItemClick(this.artisan)

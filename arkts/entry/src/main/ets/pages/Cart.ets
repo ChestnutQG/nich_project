@@ -1,4 +1,4 @@
-// 购物车页面（独立 @Entry 页面，无底部 Tab 栏）
+// 购物车页面 — 国风版
 import { router } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
@@ -68,8 +68,10 @@ struct Cart {
         .backgroundColor(Theme.bg(this.theme))
       } else if (this.items.length === 0) {
         Column() {
-          Text('🛒').fontSize(this.fs(48)).margin({ bottom: 12 })
-          Text(this.t('购物车还是空的', 'Your cart is empty')).fontSize(this.fs(14)).fontColor(Theme.textHint(this.theme))
+          Text('🏺').fontSize(this.fs(48)).margin({ bottom: 12 }).opacity(0.5)
+          Text(this.t('购物车还是空的', 'Your cart is empty'))
+            .fontSize(this.fs(14))
+            .fontColor(Theme.textHint(this.theme))
         }
         .width('100%')
         .layoutWeight(1)
@@ -91,7 +93,7 @@ struct Cart {
                   })
 
                 Image(item.productImage)
-                  .width(80).height(80).borderRadius(8).objectFit(ImageFit.Cover)
+                  .width(80).height(80).borderRadius(4).objectFit(ImageFit.Cover)
 
                 Column() {
                   Text(item.productName)
@@ -131,14 +133,15 @@ struct Cart {
                           await CartService.updateQuantity(item.id, item.quantity)
                         })
                     }
-                    .borderRadius(4).border({ width: 1, color: Theme.divider(this.theme) })
+                    .borderRadius(3).border({ width: 1, color: Theme.divider(this.theme) })
                   }
                   .width('100%').margin({ top: 8 })
                 }
                 .layoutWeight(1).margin({ left: 10 }).alignItems(HorizontalAlign.Start)
               }
-              .width('100%').padding(12).borderRadius(8)
+              .width('100%').padding(12).borderRadius(4)
               .backgroundColor(Theme.card(this.theme))
+              .border({ width: 0.5, color: Theme.divider(this.theme) })
               .margin({ left: 16, right: 16, top: 10 })
             })
           }
@@ -171,7 +174,7 @@ struct Cart {
           Button(`${this.t('结算', 'Checkout')}(${this.calcCheckedCount()})`)
             .fontSize(this.fs(14))
             .backgroundColor(this.calcCheckedCount() > 0 ? Theme.primary(this.theme) : Theme.textHint(this.theme))
-            .borderRadius(20).height(36).width(100)
+            .borderRadius(4).height(36).width(100)
             .enabled(this.calcCheckedCount() > 0)
             .onClick(() => {
               router.pushUrl({ url: Constants.PAGE_ORDER_CONFIRM })
@@ -180,6 +183,7 @@ struct Cart {
         .width('100%').height(56)
         .padding({ left: 16, right: 16 })
         .backgroundColor(Theme.card(this.theme))
+        .border({ width: { top: 0.5 }, color: Theme.divider(this.theme) })
       }
     }
     .width('100%').height('100%')

@@ -1,4 +1,4 @@
-// 商品列表页
+// 商品列表页 — 国风版
 import { router } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
@@ -64,23 +64,25 @@ struct ProductList {
     Column() {
       NavBar({ title: this.categoryName, showBack: true })
 
-      // 排序栏
+      // 排序栏 — 印章风选中态
       Row() {
-        this.SortTab(this.t('综合', 'Default'), 'default', 0)
-        this.SortTab(this.t('销量', 'Sales'), 'sales', 1)
-        this.SortTab(this.t('价格↑', 'Price↑'), 'price_asc', 2)
-        this.SortTab(this.t('价格↓', 'Price↓'), 'price_desc', 3)
+        this.SortTab(this.t('综合', 'Default'), 'default')
+        this.SortTab(this.t('销量', 'Sales'), 'sales')
+        this.SortTab(this.t('价格↑', 'Price↑'), 'price_asc')
+        this.SortTab(this.t('价格↓', 'Price↓'), 'price_desc')
       }
       .width('100%')
-      .height(40)
+      .height(42)
+      .padding({ left: 12, right: 12 })
       .backgroundColor(Theme.card(this.theme))
+      .border({ width: { bottom: 0.5 }, color: Theme.divider(this.theme) })
 
       // 商品网格
       if (this.products.length === 0 && !this.loading) {
         Column() {
-          Text('📦')
+          Text('🏺')
             .fontSize(this.fs(48))
-            .opacity(0.6)
+            .opacity(0.5)
           Text(this.t('暂无商品', 'No products'))
             .fontSize(this.fs(14))
             .fontColor(Theme.textHint(this.theme))
@@ -132,13 +134,15 @@ struct ProductList {
   }
 
   @Builder
-  SortTab(label: string, sortKey: string, index: number) {
+  SortTab(label: string, sortKey: string) {
     Text(label)
-      .fontSize(this.fs(13))
-      .fontColor(this.sortBy === sortKey ? Theme.primary(this.theme) : Theme.textSecondary(this.theme))
+      .fontSize(this.fs(12))
+      .fontColor(this.sortBy === sortKey ? Theme.WHITE : Theme.textSecondary(this.theme))
       .fontWeight(this.sortBy === sortKey ? FontWeight.Medium : FontWeight.Normal)
-      .layoutWeight(1)
-      .textAlign(TextAlign.Center)
+      .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+      .borderRadius(3)
+      .backgroundColor(this.sortBy === sortKey ? Theme.primary(this.theme) : Color.Transparent)
+      .margin({ right: 6 })
       .onClick(() => {
         this.sortBy = sortKey
         this.page = 1

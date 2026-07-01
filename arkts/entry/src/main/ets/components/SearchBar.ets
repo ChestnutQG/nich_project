@@ -1,11 +1,11 @@
-// 搜索栏组件
+// 搜索栏组件 — 国风版
 import { Colors } from '../common/Colors'
 import { Theme } from '../common/Theme'
 import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
 @Component
 export struct SearchBar {
-  @Prop placeholder: string = '搜索非遗好物...'
+  @Prop placeholder: string = '寻访非遗好物…'
   onSearch?: (keyword: string) => void
   onTap?: () => void
 
@@ -20,7 +20,7 @@ export struct SearchBar {
   build() {
     Row() {
       Text('🔍')
-        .fontSize(this.fs(16))
+        .fontSize(this.fs(15))
         .margin({ right: 8 })
 
       Text(this.placeholder)
@@ -30,8 +30,9 @@ export struct SearchBar {
     }
     .width('100%')
     .height(40)
-    .borderRadius(20)
+    .borderRadius(4)
     .backgroundColor(Theme.card(this.theme))
+    .border({ width: 0.5, color: Theme.divider(this.theme) })
     .padding({ left: 16, right: 16 })
     .margin({ left: 16, right: 16, top: 8, bottom: 8 })
     .onClick(() => {

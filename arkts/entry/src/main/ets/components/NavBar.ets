@@ -1,4 +1,4 @@
-// 通用导航栏
+// 通用导航栏 — 国风版
 import { router } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { Theme } from '../common/Theme'
@@ -23,8 +23,8 @@ export struct NavBar {
   build() {
     Row() {
       if (this.showBack) {
-        Text('‹')
-          .fontSize(this.fs(28))
+        Text('←')
+          .fontSize(this.fs(22))
           .fontColor(Theme.textPrimary(this.theme))
           .width(24)
           .height(24)
@@ -45,6 +45,7 @@ export struct NavBar {
         .fontColor(Theme.textPrimary(this.theme))
         .layoutWeight(1)
         .textAlign(TextAlign.Center)
+        .letterSpacing(1)
         .onClick(() => { if (this.onTitleClick) { this.onTitleClick() } })
 
       if (this.showBack) {
@@ -55,5 +56,6 @@ export struct NavBar {
     .height(44)
     .padding({ left: 16, right: 16 })
     .backgroundColor(Theme.bg(this.theme))
+    .border({ width: { bottom: 0.5 }, color: Theme.divider(this.theme) })
   }
 }

@@ -1,4 +1,4 @@
-// 登录页 — 手机号+密码登录
+// 登录页 — 手机号+密码登录 · 国风版
 import { router } from '@kit.ArkUI'
 import { promptAction } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
@@ -46,8 +46,8 @@ struct Login {
   build() {
     Column() {
       Row() {
-        Text('‹')
-          .fontSize(this.fs(28))
+        Text('←')
+          .fontSize(this.fs(22))
           .fontColor(Theme.textPrimary(this.theme))
           .width(24)
           .height(24)
@@ -60,16 +60,29 @@ struct Login {
       Scroll() {
         Column() {
           Text(this.isRegister ? this.t('注册账号', 'Register') : this.t('欢迎来到锤子铺', 'Welcome to Chuizhi'))
-            .fontSize(this.fs(26))
+            .fontSize(this.fs(28))
             .fontWeight(FontWeight.Bold)
             .fontColor(Theme.textPrimary(this.theme))
+            .letterSpacing(2)
 
           Text(this.isRegister ? this.t('加入非遗守护者', 'Join as a heritage guardian') : this.t('发现并拥有中国手艺', 'Discover Chinese craftsmanship'))
             .fontSize(this.fs(14))
             .fontColor(Theme.textSecondary(this.theme))
-            .margin({ top: 8 })
+            .margin({ top: 10 })
 
-          // 测试账号快速切换
+          // 装饰分隔线
+          Row() {
+            Column().width(40).height(1).backgroundColor(Theme.divider(this.theme))
+            Text(' · ')
+              .fontSize(16)
+              .fontColor(Theme.textHint(this.theme))
+            Column().width(40).height(1).backgroundColor(Theme.divider(this.theme))
+          }
+          .margin({ top: 24 })
+          .justifyContent(FlexAlign.Center)
+          .width('100%')
+
+          // 测试账号快速切换 — 印章风
           if (!this.isRegister) {
             Row() {
               ForEach(this.testAccounts, (acc: TestAccount) => {
@@ -77,8 +90,9 @@ struct Login {
                   .fontSize(this.fs(11))
                   .fontColor(this.phone === acc.phone ? Theme.WHITE : Theme.textSecondary(this.theme))
                   .padding({ left: 14, right: 14, top: 6, bottom: 6 })
-                  .borderRadius(14)
-                  .backgroundColor(this.phone === acc.phone ? Theme.primary(this.theme) : Theme.bg(this.theme))
+                  .borderRadius(3)
+                  .backgroundColor(this.phone === acc.phone ? Theme.primary(this.theme) : Theme.card(this.theme))
+                  .border({ width: 1, color: this.phone === acc.phone ? Theme.primary(this.theme) : Theme.divider(this.theme) })
                   .margin({ right: 10 })
                   .onClick(() => {
                     this.phone = acc.phone
@@ -105,7 +119,7 @@ struct Login {
             .width('100%')
             .padding({ left: 16, right: 16 })
             .height(48)
-            .borderRadius(8)
+            .borderRadius(4)
             .border({ width: 1, color: Theme.divider(this.theme) })
             .margin({ top: 24 })
           }
@@ -131,7 +145,7 @@ struct Login {
           .width('100%')
           .padding({ left: 16, right: 16 })
           .height(48)
-          .borderRadius(8)
+          .borderRadius(4)
           .border({ width: 1, color: Theme.divider(this.theme) })
           .margin({ top: 24 })
 
@@ -149,7 +163,7 @@ struct Login {
           .width('100%')
           .padding({ left: 16, right: 16 })
           .height(48)
-          .borderRadius(8)
+          .borderRadius(4)
           .border({ width: 1, color: Theme.divider(this.theme) })
           .margin({ top: 16 })
 
@@ -175,7 +189,7 @@ struct Login {
             .fontSize(this.fs(16))
             .fontWeight(FontWeight.Medium)
             .backgroundColor(Theme.primary(this.theme))
-            .borderRadius(24)
+            .borderRadius(4)
             .height(48)
             .width('100%')
             .margin({ top: 32 })

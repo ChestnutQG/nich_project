@@ -1,4 +1,4 @@
-// 空状态组件
+// 空状态组件 — 国风版
 import { Colors } from '../common/Colors'
 import { Theme } from '../common/Theme'
 import { ThemeMode, FontScale, Language } from '../service/SettingsService'
@@ -6,7 +6,7 @@ import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 @Component
 export struct EmptyState {
   @Prop message: string = '暂无内容'
-  @Prop iconText: string = '📦'
+  @Prop iconText: string = '🏺'
 
   @StorageProp('theme') theme: ThemeMode = 'light'
   @StorageProp('fontScale') fontScale: FontScale = 'normal'
@@ -20,7 +20,7 @@ export struct EmptyState {
     Column() {
       Text(this.iconText)
         .fontSize(this.fs(48))
-        .opacity(0.6)
+        .opacity(0.5)
 
       Text(this.message)
         .fontSize(this.fs(14))

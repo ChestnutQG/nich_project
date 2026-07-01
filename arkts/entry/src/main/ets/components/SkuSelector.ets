@@ -1,4 +1,4 @@
-// SKU 规格选择器
+// SKU 规格选择器 — 国风版
 import { Sku } from '../model/Product'
 import { Colors } from '../common/Colors'
 import { Utils } from '../common/Utils'
@@ -40,7 +40,7 @@ export struct SkuSelector {
                 .width(60)
                 .height(60)
                 .objectFit(ImageFit.Cover)
-                .borderRadius(6)
+                .borderRadius(3)
 
               Text(sku.name)
                 .fontSize(this.fs(12))
@@ -65,7 +65,7 @@ export struct SkuSelector {
             }
             .width(100)
             .padding(8)
-            .borderRadius(8)
+            .borderRadius(4)
             .border({
               width: sku.id === this.selectedSkuId ? 2 : 1,
               color: sku.id === this.selectedSkuId ? Theme.primary(this.theme) : Theme.divider(this.theme)

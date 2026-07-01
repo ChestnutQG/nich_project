@@ -1,4 +1,4 @@
-// 作品详情页 — 以非遗文化展示为核心
+// 作品详情页 — 以非遗文化展示为核心 · 国风版
 // 购买入口折叠隐藏，底部有评论区
 import { router, promptAction } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
@@ -14,7 +14,7 @@ import { RatingStars } from '../components/RatingStars'
 import { Theme } from '../common/Theme'
 import { ThemeMode, FontScale, Language } from '../service/SettingsService'
 
-// 评论数据模型（字段与后端返回一致）
+// 评论数据模型
 interface Comment {
   id: string
   userId: string
@@ -65,7 +65,6 @@ struct ProductDetail {
     this.loading = false
   }
 
-  // 加载评论
   async loadComments(): Promise<void> {
     const resp = await CommentService.fetchComments(this.productId)
     if (resp.code === 0) {
@@ -73,13 +72,11 @@ struct ProductDetail {
     }
   }
 
-  // 进入评论者的公开主页
   private openUserProfile(userId: string): void {
     if (!userId) return
     router.pushUrl({ url: Constants.PAGE_USER_PROFILE, params: { userId } })
   }
 
-  // 发表评论
   async submitComment(): Promise<void> {
     const text = this.commentText.trim()
     if (!text) return
@@ -92,7 +89,6 @@ struct ProductDetail {
     }
   }
 
-  // 收藏 / 取消收藏
   async toggleCollect(): Promise<void> {
     if (!this.product) return
     const willCollect = !this.product.isCollect
@@ -117,7 +113,13 @@ struct ProductDetail {
         .backgroundColor(Theme.bg(this.theme))
       } else if (!this.product) {
         Column() {
-          Text(this.t('作品不存在', 'Not found')).fontSize(this.fs(16)).fontColor(Theme.textHint(this.theme))
+          Text('🏺')
+            .fontSize(this.fs(48))
+            .opacity(0.5)
+          Text(this.t('作品不存在', 'Not found'))
+            .fontSize(this.fs(14))
+            .fontColor(Theme.textHint(this.theme))
+            .margin({ top: 12 })
         }
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
         .backgroundColor(Theme.bg(this.theme))
@@ -144,7 +146,7 @@ struct ProductDetail {
                 .height(44)
                 .borderRadius(22)
                 .objectFit(ImageFit.Cover)
-                .border({ width: 1.5, color: Theme.gold(this.theme) })
+                .border({ width: 2, color: Theme.gold(this.theme) })
 
               Column() {
                 Text(this.product!.artisanName)
@@ -152,7 +154,7 @@ struct ProductDetail {
                   .fontWeight(FontWeight.Medium)
                   .fontColor(Theme.textPrimary(this.theme))
                 Text(this.t('非遗传承人', 'Heritage Artisan'))
-                  .fontSize(this.fs(11))
+                  .fontSize(this.fs(10))
                   .fontColor(Theme.gold(this.theme))
                   .margin({ top: 2 })
               }
@@ -163,10 +165,10 @@ struct ProductDetail {
 
               Row() {
                 Text('💬 ' + this.t('联系', 'Chat'))
-                  .fontSize(this.fs(12))
+                  .fontSize(this.fs(11))
                   .fontColor(Theme.WHITE)
                   .backgroundColor(Theme.primary(this.theme))
-                  .borderRadius(10)
+                  .borderRadius(3)
                   .padding({ left: 10, right: 10, top: 4, bottom: 4 })
                   .margin({ right: 10 })
                   .onClick(async () => {
@@ -216,7 +218,7 @@ struct ProductDetail {
             .width('100%')
             .padding({ left: 16, right: 16, top: 14, bottom: 14 })
             .backgroundColor(Theme.card(this.theme))
-            .margin({ top: 10 })
+            .border({ width: { bottom: 0.5 }, color: Theme.divider(this.theme) })
 
             // ===== 作品标题与描述 =====
             Column() {
@@ -236,7 +238,7 @@ struct ProductDetail {
 
               Row() {
                 Text(this.product!.categoryName)
-                  .fontSize(this.fs(11))
+                  .fontSize(this.fs(10))
                   .fontColor(Theme.primary(this.theme))
                   .padding({ left: 10, right: 10, top: 3, bottom: 3 })
                   .borderRadius(3)
@@ -286,6 +288,7 @@ struct ProductDetail {
             .width('100%')
             .margin({ top: 10 })
             .backgroundColor(Theme.card(this.theme))
+            .border({ width: { left: 2 }, color: Theme.primaryBg(this.theme) })
 
             // ===== 制作工艺 =====
             if (this.product!.craftProcess.length > 0) {
@@ -309,7 +312,7 @@ struct ProductDetail {
                       .fontWeight(FontWeight.Bold)
                       .fontColor(Theme.primary(this.theme))
                       .width(24).height(24)
-                      .borderRadius(12)
+                      .borderRadius(3)
                       .backgroundColor(Theme.primaryBg(this.theme))
                       .textAlign(TextAlign.Center)
                       .lineHeight(24)
@@ -382,10 +385,8 @@ struct ProductDetail {
               .width('100%')
               .padding({ left: 16, right: 16, top: 16 })
 
-              // 评论列表
               ForEach(this.comments, (cmt: Comment) => {
                 Row() {
-                  // 头像：有图显示图片，无图退回名字首字（可点进主页）
                   if (cmt.avatar) {
                     Image(cmt.avatar)
                       .width(32).height(32)
@@ -439,7 +440,7 @@ struct ProductDetail {
                   .fontSize(this.fs(13))
                   .placeholderColor(Theme.textHint(this.theme))
                   .backgroundColor(Theme.bg(this.theme))
-                  .borderRadius(16)
+                  .borderRadius(4)
                   .height(34)
                   .layoutWeight(1)
                   .onChange((v: string) => { this.commentText = v })
@@ -447,6 +448,7 @@ struct ProductDetail {
                 Text(this.t('发送', 'Send'))
                   .fontSize(this.fs(13))
                   .fontColor(this.commentText.trim() ? Theme.primary(this.theme) : Theme.textHint(this.theme))
+                  .fontWeight(FontWeight.Medium)
                   .margin({ left: 10 })
                   .onClick(() => { this.submitComment() })
               }
@@ -457,13 +459,12 @@ struct ProductDetail {
             .margin({ top: 10 })
             .backgroundColor(Theme.card(this.theme))
 
-            // ===== 购买入口（可售卖时，折叠隐藏） =====
+            // ===== 购买入口 =====
             if ((this.product!.isSellable !== false)) {
               Column() {
                 Divider().color(Theme.divider(this.theme)).width('100%').margin({ left: 16, right: 16 })
 
                 if (!this.showBuySection) {
-                  // 折叠态：极小的入口提示
                   Row() {
                     Text(this.product!.isCollect ? '❤️' : '🤍')
                       .fontSize(this.fs(15))
@@ -477,7 +478,6 @@ struct ProductDetail {
                   .padding({ left: 16, right: 16, top: 14, bottom: 14 })
                   .onClick(() => { this.showBuySection = true })
                 } else {
-                  // 展开态
                   Column() {
                     Row() {
                       Text(this.t('支持这位手艺人', 'Support this artisan'))
@@ -509,8 +509,8 @@ struct ProductDetail {
                     Row() {
                       Button(this.t('加入购物车', 'Add to Cart'))
                         .fontSize(this.fs(12))
-                        .backgroundColor(Theme.gold(this.theme))
-                        .borderRadius(14)
+                        .backgroundColor(Theme.accent(this.theme))
+                        .borderRadius(4)
                         .height(32)
                         .layoutWeight(1)
                         .margin({ right: 8 })
@@ -539,7 +539,7 @@ struct ProductDetail {
                       Button(this.t('立即购买', 'Buy Now'))
                         .fontSize(this.fs(12))
                         .backgroundColor(Theme.primary(this.theme))
-                        .borderRadius(14)
+                        .borderRadius(4)
                         .height(32)
                         .layoutWeight(1)
                         .onClick(() => {

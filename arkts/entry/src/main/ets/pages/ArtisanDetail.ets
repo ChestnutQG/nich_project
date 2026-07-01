@@ -1,4 +1,4 @@
-// 匠人详情页
+// 匠人详情页 — 国风版
 import { router, promptAction } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
 import { Constants } from '../common/Constants'
@@ -74,9 +74,13 @@ struct ArtisanDetail {
 
       if (!this.artisan) {
         Column() {
+          Text('🏺')
+            .fontSize(this.fs(48))
+            .opacity(0.5)
           Text(this.t('匠人不存在', 'Artisan not found'))
             .fontSize(this.fs(14))
             .fontColor(Theme.textHint(this.theme))
+            .margin({ top: 12 })
         }
         .width('100%')
         .layoutWeight(1)
@@ -85,65 +89,70 @@ struct ArtisanDetail {
       } else {
         Scroll() {
           Column() {
-            // 个人信息头部
+            // 个人信息头部 — 国风背景
             Column() {
               Image(this.artisan!.avatar)
-                .width(80)
-                .height(80)
-                .borderRadius(40)
+                .width(88)
+                .height(88)
+                .borderRadius(44)
                 .objectFit(ImageFit.Cover)
                 .border({ width: 3, color: Theme.gold(this.theme) })
 
               Text(this.artisan!.name)
-                .fontSize(this.fs(22))
+                .fontSize(this.fs(24))
                 .fontWeight(FontWeight.Bold)
                 .fontColor(Theme.textPrimary(this.theme))
-                .margin({ top: 12 })
+                .margin({ top: 14 })
+                .letterSpacing(2)
 
-              Row() {
-                Text(this.artisan!.title)
-                  .fontSize(this.fs(13))
-                  .fontColor(this.artisan!.level >= 3 ? Theme.gold(this.theme) : Theme.primary(this.theme))
-                  .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-                  .borderRadius(4)
-                  .backgroundColor(this.artisan!.level >= 3 ? Theme.primaryBg(this.theme) : Theme.primaryBg(this.theme))
-              }
-              .margin({ top: 8 })
+              // 认证头衔 — 印章式
+              Text(this.artisan!.title)
+                .fontSize(this.fs(12))
+                .fontColor(this.artisan!.level >= 3 ? Theme.gold(this.theme) : Theme.primary(this.theme))
+                .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+                .border({ width: 1.5, color: this.artisan!.level >= 3 ? Theme.gold(this.theme) : Theme.primary(this.theme) })
+                .borderRadius(3)
+                .margin({ top: 10 })
 
               Text(`${this.artisan!.craftType} · ${this.artisan!.province}${this.artisan!.city}`)
                 .fontSize(this.fs(13))
                 .fontColor(Theme.textSecondary(this.theme))
-                .margin({ top: 8 })
+                .margin({ top: 10 })
             }
             .width('100%')
-            .padding({ top: 24, bottom: 20 })
+            .padding({ top: 28, bottom: 24 })
             .backgroundColor(Theme.card(this.theme))
             .alignItems(HorizontalAlign.Center)
 
             // 数据统计
             Row() {
               this.NumItem(this.t('作品', 'Works'), this.artisan!.worksCount)
+              Divider().vertical(true).height(32).color(Theme.divider(this.theme))
               this.NumItem(this.t('关注', 'Followers'), this.artisan!.followersCount)
             }
             .width('100%')
-            .padding(14)
+            .padding(16)
             .backgroundColor(Theme.card(this.theme))
-            .justifyContent(FlexAlign.SpaceEvenly)
 
             // 个人介绍
             Column() {
-              Text(this.t('匠人简介', 'About'))
-                .fontSize(this.fs(16))
-                .fontWeight(FontWeight.Medium)
-                .fontColor(Theme.textPrimary(this.theme))
-                .width('100%')
+              Row() {
+                Column()
+                  .width(3).height(18).backgroundColor(Theme.primary(this.theme))
+                  .margin({ right: 8 })
+                Text(this.t('匠人简介', 'About'))
+                  .fontSize(this.fs(16))
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(Theme.textPrimary(this.theme))
+              }
+              .width('100%')
 
               Text(this.artisan!.intro)
                 .fontSize(this.fs(13))
                 .fontColor(Theme.textSecondary(this.theme))
                 .lineHeight(22)
                 .width('100%')
-                .margin({ top: 8 })
+                .margin({ top: 10 })
             }
             .width('100%')
             .padding(16)
@@ -152,11 +161,16 @@ struct ArtisanDetail {
 
             // 作品列表
             Column() {
-              Text(this.t('在售作品', 'Works for Sale'))
-                .fontSize(this.fs(16))
-                .fontWeight(FontWeight.Medium)
-                .fontColor(Theme.textPrimary(this.theme))
-                .width('100%')
+              Row() {
+                Column()
+                  .width(3).height(18).backgroundColor(Theme.primary(this.theme))
+                  .margin({ right: 8 })
+                Text(this.t('在售作品', 'Works for Sale'))
+                  .fontSize(this.fs(16))
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(Theme.textPrimary(this.theme))
+              }
+              .width('100%')
 
               Grid() {
                 ForEach(this.works, (product: Product) => {
@@ -193,9 +207,9 @@ struct ArtisanDetail {
         Row() {
           Button(this.artisan!.isFollowed ? this.t('已关注', 'Following') : `+ ${this.t('关注匠人', 'Follow')}`)
             .fontSize(this.fs(15))
-            .backgroundColor(this.artisan!.isFollowed ? Theme.divider(this.theme) : Theme.primary(this.theme))
+            .backgroundColor(this.artisan!.isFollowed ? Theme.divider(this.theme) : Theme.accent(this.theme))
             .fontColor(this.artisan!.isFollowed ? Theme.textHint(this.theme) : Theme.WHITE)
-            .borderRadius(24)
+            .borderRadius(4)
             .height(44)
             .layoutWeight(1)
             .onClick(() => { this.toggleFollow() })
@@ -204,7 +218,7 @@ struct ArtisanDetail {
             .fontSize(this.fs(15))
             .backgroundColor(Theme.primary(this.theme))
             .fontColor(Theme.WHITE)
-            .borderRadius(24)
+            .borderRadius(4)
             .height(44)
             .layoutWeight(1)
             .margin({ left: 12 })
@@ -233,6 +247,7 @@ struct ArtisanDetail {
         .width('100%')
         .padding({ left: 16, right: 16, top: 10, bottom: 10 })
         .backgroundColor(Theme.card(this.theme))
+        .border({ width: { top: 0.5 }, color: Theme.divider(this.theme) })
       }
     }
     .width('100%')
@@ -252,5 +267,6 @@ struct ArtisanDetail {
         .fontColor(Theme.textSecondary(this.theme))
         .margin({ top: 2 })
     }
+    .layoutWeight(1)
   }
 }

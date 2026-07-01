@@ -1,4 +1,4 @@
-// 商品卡片组件
+// 商品卡片组件 — 国风版
 import { Product } from '../model/Product'
 import { Colors } from '../common/Colors'
 import { Utils } from '../common/Utils'
@@ -25,7 +25,7 @@ export struct ProductCard {
         .width('100%')
         .aspectRatio(1)
         .objectFit(ImageFit.Cover)
-        .borderRadius({ topLeft: 8, topRight: 8 })
+        .borderRadius({ topLeft: 4, topRight: 4 })
 
       // 信息区
       Column() {
@@ -72,8 +72,9 @@ export struct ProductCard {
       .padding({ left: 10, right: 10, top: 8, bottom: 10 })
     }
     .width('100%')
-    .borderRadius(8)
+    .borderRadius(4)
     .backgroundColor(Theme.card(this.theme))
+    .border({ width: 0.5, color: Theme.divider(this.theme) })
     .onClick(() => {
       if (this.onItemClick) {
         this.onItemClick(this.product)

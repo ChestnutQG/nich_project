@@ -1,4 +1,4 @@
-// 主页 — 非遗文化内容 Feed 流
+// 主页 — 非遗文化内容 Feed 流 · 国风版
 // 顶部导航 + 分类 chip + 作品卡片
 // 左上角头像点击弹出侧边栏（从左侧滑入）
 import { router } from '@kit.ArkUI'
@@ -75,17 +75,16 @@ struct Index {
 
   onPageHide(): void {
     this.stopPolling()
-    // 不主动断 WS，后台也能收推送
   }
 
-  // 定时轮询未读数（无 WebSocket，靠轮询刷新红点）
+  // 定时轮询未读数
   startPolling(): void {
     if (this.pollTimer !== -1) {
       return
     }
     this.pollTimer = setInterval(() => {
       this.loadUnreadCount()
-    }, 15000) // 15 秒轮询
+    }, 15000)
   }
 
   stopPolling(): void {
@@ -102,7 +101,6 @@ struct Index {
     }
   }
 
-  // 加载第一页（下拉刷新/进入页面）
   async loadFeedData(): Promise<void> {
     this.feedLoading = true
     this.feedPage = 1
@@ -114,7 +112,6 @@ struct Index {
     this.feedLoading = false
   }
 
-  // 触底加载更多
   async loadMoreFeed(): Promise<void> {
     if (this.feedLoadingMore || !this.feedHasMore) return
     this.feedLoadingMore = true
@@ -144,7 +141,6 @@ struct Index {
       this.userCollectCount = resp.data.collectCount || 0
       this.userFollowCount = resp.data.followCount || 0
       this.userOrderCount = resp.data.orderCount || 0
-      // 登录态确认后立即拉一次未读数
       this.loadUnreadCount()
     } else {
       await clearToken()
@@ -173,7 +169,6 @@ struct Index {
     this.userOrderCount = 0
   }
 
-  // 点侧边栏头像 → 自己的公开主页（未登录则去登录）
   private openMyProfile(): void {
     this.closeDrawer()
     if (this.isLoggedIn && this.userId) {
@@ -223,8 +218,8 @@ struct Index {
                 .width(10)
                 .height(10)
                 .borderRadius(5)
-                .backgroundColor('#E74C3C')
-                .border({ width: 1.5, color: Colors.BG_WHITE })
+                .backgroundColor(Colors.ERROR)
+                .border({ width: 1.5, color: Colors.BG_CARD })
                 .position({ x: 18, y: -2 })
             }
           }
@@ -235,12 +230,17 @@ struct Index {
             .fontSize(this.fs(22))
             .fontWeight(FontWeight.Bold)
             .fontColor(Theme.textPrimary(this.theme))
+            .letterSpacing(2)
 
           Blank()
 
           Text(this.t('发布', 'Publish'))
-            .fontSize(this.fs(14))
+            .fontSize(this.fs(13))
             .fontColor(Theme.primary(this.theme))
+            .fontWeight(FontWeight.Medium)
+            .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+            .border({ width: 1, color: Theme.primary(this.theme) })
+            .borderRadius(3)
             .margin({ right: 16 })
             .onClick(() => {
               router.pushUrl({ url: Constants.PAGE_PRODUCT_PUBLISH })
@@ -253,16 +253,17 @@ struct Index {
         .width('100%')
         .padding({ left: 16, right: 16, top: 12, bottom: 8 })
         .backgroundColor(Theme.card(this.theme))
+        .border({ width: { bottom: 0.5 }, color: Theme.divider(this.theme) })
 
-        // 分类 chip 横滚
+        // 分类 chip 横滚 — 印章风
         Scroll() {
           Row() {
             ForEach(this.categories, (cat: Category) => {
               Text(cat.icon + ' ' + cat.name)
-                .fontSize(this.fs(12))
+                .fontSize(this.fs(11))
                 .fontColor(Theme.textSecondary(this.theme))
-                .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-                .borderRadius(14)
+                .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+                .borderRadius(3)
                 .border({ width: 1, color: Theme.divider(this.theme) })
                 .margin({ right: 8 })
                 .backgroundColor(Theme.card(this.theme))
@@ -274,21 +275,25 @@ struct Index {
                 })
             })
           }
-          .padding({ left: 16, right: 16, top: 4, bottom: 4 })
+          .padding({ left: 16, right: 16, top: 6, bottom: 6 })
         }
         .scrollable(ScrollDirection.Horizontal)
         .scrollBar(BarState.Off)
         .width('100%')
-        .height(40)
+        .height(42)
         .backgroundColor(Theme.card(this.theme))
         .border({ width: { bottom: 0.5 }, color: Theme.divider(this.theme) })
 
         // Feed 列表
         if (this.feedProducts.length === 0 && !this.feedLoading) {
           Column() {
+            Text('🏺')
+              .fontSize(this.fs(48))
+              .opacity(0.5)
             Text(this.t('暂无内容', 'No content'))
-              .fontSize(this.fs(16))
+              .fontSize(this.fs(14))
               .fontColor(Theme.textHint(this.theme))
+              .margin({ top: 12 })
           }
           .width('100%')
           .layoutWeight(1)
@@ -304,15 +309,15 @@ struct Index {
                 .width('100%')
               })
 
-              // 底部：加载更多 / 没有更多了
+              // 底部
               ListItem() {
                 Row() {
                   if (this.feedLoadingMore) {
                     LoadingProgress().width(20).height(20).color(Theme.primary(this.theme))
-                    Text(this.t('加载中…', 'Loading...'))
+                    Text(this.t('寻觅中…', 'Loading...'))
                       .fontSize(this.fs(12)).fontColor(Theme.textHint(this.theme)).margin({ left: 8 })
                   } else if (!this.feedHasMore && this.feedProducts.length > 0) {
-                    Text(this.t('—— 没有更多了 ——', '—— No more ——'))
+                    Text(this.t('—— 已是全部珍品 ——', '—— No more ——'))
                       .fontSize(this.fs(12)).fontColor(Theme.textHint(this.theme))
                   }
                 }
@@ -358,7 +363,7 @@ struct Index {
         Column() {
           Scroll() {
             Column() {
-              // 用户信息区
+              // 用户信息区 — 宣纸质感
               Row() {
                 if (this.userAvatar) {
                   Image(this.userAvatar)
@@ -468,8 +473,8 @@ struct Index {
                   if (this.unreadMsgCount > 0) {
                     Text(`${this.unreadMsgCount}`)
                       .fontSize(12)
-                      .fontColor(Colors.BG_WHITE)
-                      .backgroundColor('#E74C3C')
+                      .fontColor(Colors.BG_CARD)
+                      .backgroundColor(Colors.ERROR)
                       .borderRadius(10)
                       .constraintSize({ minWidth: 18 })
                       .textAlign(TextAlign.Center)
@@ -582,7 +587,7 @@ struct Index {
     .onClick(onClick)
   }
 
-  // Feed 卡片
+  // Feed 卡片 — 国风版
   @Builder
   FeedCard(product: Product) {
     Column() {
@@ -590,6 +595,7 @@ struct Index {
         .width('100%')
         .height(200)
         .objectFit(ImageFit.Cover)
+        .borderRadius({ topLeft: 4, topRight: 4 })
 
       Text(product.name)
         .fontSize(this.fs(15))
@@ -598,7 +604,7 @@ struct Index {
         .maxLines(2)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .width('100%')
-        .margin({ top: 10 })
+        .margin({ top: 12 })
 
       Row() {
         Text(product.artisanName)
@@ -608,20 +614,21 @@ struct Index {
         Blank()
 
         Text(product.craftType)
-          .fontSize(this.fs(11))
+          .fontSize(this.fs(10))
           .fontColor(Theme.primary(this.theme))
-          .padding({ left: 8, right: 8, top: 2, bottom: 2 })
-          .borderRadius(4)
+          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+          .borderRadius(3)
           .backgroundColor(Theme.primaryBg(this.theme))
       }
       .width('100%')
       .margin({ top: 8 })
     }
     .width('100%')
-    .padding(12)
-    .borderRadius(8)
+    .padding(14)
+    .borderRadius(4)
     .backgroundColor(Theme.card(this.theme))
-    .margin({ top: 10 })
+    .border({ width: 0.5, color: Theme.divider(this.theme) })
+    .margin({ top: 12 })
     .onClick(() => {
       router.pushUrl({ url: Constants.PAGE_PRODUCT_DETAIL, params: { productId: product.id } })
     })

@@ -1,4 +1,4 @@
-// 我的 — 独立页面（从首页顶部头像图标进入）
+// 我的 — 国风版
 import { router } from '@kit.ArkUI'
 import { promptAction } from '@kit.ArkUI'
 import { Colors } from '../common/Colors'
@@ -117,30 +117,30 @@ struct Profile {
 
       Scroll() {
         Column() {
-          // 用户信息卡片
+          // 用户信息卡片 — 宣纸质感
           Row() {
             if (this.userAvatar) {
               Image(this.userAvatar)
-                .width(56)
-                .height(56)
-                .borderRadius(28)
+                .width(60)
+                .height(60)
+                .borderRadius(30)
                 .objectFit(ImageFit.Cover)
             } else {
               Text(this.userName.charAt(0))
-                .fontSize(this.fs(24))
+                .fontSize(this.fs(26))
                 .fontColor(Theme.WHITE)
-                .width(56)
-                .height(56)
-                .borderRadius(28)
+                .width(60)
+                .height(60)
+                .borderRadius(30)
                 .backgroundColor(Theme.primary(this.theme))
                 .textAlign(TextAlign.Center)
-                .lineHeight(56)
+                .lineHeight(60)
             }
 
             Column() {
               Row() {
                 Text(this.userName)
-                  .fontSize(this.fs(16))
+                  .fontSize(this.fs(17))
                   .fontWeight(FontWeight.Medium)
                   .fontColor(Theme.textPrimary(this.theme))
                 Text(this.roleLabel())
@@ -148,7 +148,7 @@ struct Profile {
                   .fontColor(Theme.WHITE)
                   .backgroundColor(this.userRole === 'admin' ? Theme.error(this.theme) :
                     this.userRole === 'artisan' ? Theme.gold(this.theme) : Theme.primary(this.theme))
-                  .borderRadius(4)
+                  .borderRadius(3)
                   .padding({ left: 6, right: 6, top: 2, bottom: 2 })
                   .margin({ left: 8 })
               }
@@ -177,8 +177,9 @@ struct Profile {
           .width('100%')
           .padding(20)
           .backgroundColor(Theme.card(this.theme))
-          .borderRadius(8)
-          .margin({ left: 16, right: 16, top: 20 })
+          .borderRadius(4)
+          .border({ width: 0.5, color: Theme.divider(this.theme) })
+          .margin({ left: 16, right: 16, top: 16 })
 
           // 统计数据
           Row() {
@@ -189,8 +190,9 @@ struct Profile {
           .width('100%')
           .padding({ top: 16, bottom: 16 })
           .backgroundColor(Theme.card(this.theme))
-          .borderRadius(8)
-          .margin({ left: 16, right: 16, top: 12 })
+          .borderRadius(4)
+          .border({ width: 0.5, color: Theme.divider(this.theme) })
+          .margin({ left: 16, right: 16, top: 10 })
 
           // 菜单列表
           Column() {
@@ -201,7 +203,7 @@ struct Profile {
             this.MenuItem('📋', this.t('我的订单', 'My Orders'), () => router.pushUrl({ url: Constants.PAGE_ORDER_LIST }))
             this.MenuItem('⚖️', this.t('我的维权', 'My Disputes'), () => router.pushUrl({ url: Constants.PAGE_DISPUTE_LIST }))
             this.MenuItem('👨‍⚖️', this.t('陪审邀请', 'Jury'), () => router.pushUrl({ url: Constants.PAGE_JURY_INVITATIONS }))
-            // 消息通知 — 带红点提醒
+            // 消息通知
             Row() {
               Text('🔔')
                 .fontSize(20)
@@ -217,12 +219,12 @@ struct Profile {
                   .width(9)
                   .height(9)
                   .borderRadius(5)
-                  .backgroundColor('#E74C3C')
+                  .backgroundColor(Colors.ERROR)
                   .margin({ right: 8 })
                 Text(`${this.unreadMsgCount}`)
                   .fontSize(12)
-                  .fontColor(Colors.BG_WHITE)
-                  .backgroundColor('#E74C3C')
+                  .fontColor(Theme.WHITE)
+                  .backgroundColor(Colors.ERROR)
                   .borderRadius(10)
                   .padding({ left: 7, right: 7, top: 2, bottom: 2 })
               }
@@ -244,8 +246,9 @@ struct Profile {
           }
           .width('100%')
           .backgroundColor(Theme.card(this.theme))
-          .borderRadius(8)
-          .margin({ left: 16, right: 16, top: 12 })
+          .borderRadius(4)
+          .border({ width: 0.5, color: Theme.divider(this.theme) })
+          .margin({ left: 16, right: 16, top: 10 })
 
           // 退出登录
           Column() {
@@ -267,8 +270,9 @@ struct Profile {
           }
           .width('100%')
           .backgroundColor(Theme.card(this.theme))
-          .borderRadius(8)
-          .margin({ left: 16, right: 16, top: 12 })
+          .borderRadius(4)
+          .border({ width: 0.5, color: Theme.divider(this.theme) })
+          .margin({ left: 16, right: 16, top: 10 })
 
           Row().height(20)
         }
