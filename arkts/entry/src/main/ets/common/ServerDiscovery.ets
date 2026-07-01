@@ -1,7 +1,7 @@
 // 服务器地址自动探测 — 启动时并行探测候选 IP，缓存结果
 import { http } from '@kit.NetworkKit'
 import { preferences } from '@kit.ArkData'
-import { SERVER_IP } from './LocalConfig'
+import { ApiConfig } from './ApiConfig'
 
 const PREF_NAME = 'server_config'
 const KEY_LAST_IP = 'last_server_ip'
@@ -104,8 +104,8 @@ export async function discoverServerIp(): Promise<string> {
     return found
   }
 
-  // 全部失败，回退 LocalConfig 中配置的 IP
-  return SERVER_IP
+  // 全部失败，回退到随源码发布的公网服务器
+  return ApiConfig.SERVER_HOST
 }
 
 // 重置探测结果（IP 变更后调用）
