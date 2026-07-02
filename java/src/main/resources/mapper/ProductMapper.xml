@@ -27,19 +27,32 @@
         <result property="auditStatus" column="audit_status"/>
         <result property="isOnSale" column="is_on_sale"/>
         <result property="isSellable" column="is_sellable"/>
+        <result property="approvedAt" column="approved_at"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
     <!-- 首页推荐 — 只展示已审核通过的 -->
-    <select id="selectRecommend" resultMap="productMap">
+    <select id="selectPopular" resultMap="productMap">
         SELECT p.*, c.name AS category_name, a.name AS artisan_name
         FROM t_product p
         LEFT JOIN t_category c ON p.category_id = c.id
         LEFT JOIN t_artisan a ON p.artisan_id = a.id
         WHERE p.audit_status = 'approved' AND p.is_on_sale = 1 AND p.is_deleted = 0
-        ORDER BY p.sales DESC
-        LIMIT 50
+        ORDER BY p.sales DESC, p.rating DESC, p.approved_at DESC, p.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- Products approved recently receive protected homepage exposure. -->
+    <select id="selectRecentApproved" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1 AND p.is_deleted = 0
+          AND p.approved_at >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        ORDER BY p.approved_at DESC, p.id DESC
+        LIMIT #{limit}
     </select>
 
     <!-- 分页列表 — 只展示已审核通过的 -->
@@ -143,7 +156,12 @@
     </select>
 
     <update id="updateAuditStatus">
-        UPDATE t_product SET audit_status = #{auditStatus},
+        UPDATE t_product
+        SET approved_at = CASE
+                WHEN #{auditStatus} = 'approved' AND audit_status != 'approved' THEN NOW()
+                ELSE approved_at
+            END,
+               audit_status = #{auditStatus},
                is_on_sale = CASE WHEN #{auditStatus} = 'approved' THEN 1 ELSE 0 END,
                update_time = NOW()
         WHERE id = #{id}

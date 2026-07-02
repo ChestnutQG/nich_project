@@ -26,6 +26,7 @@ public class Product {
     private String auditStatus;   // pending | approved | rejected
     private Integer isOnSale;
     private Integer isSellable;
+    private LocalDateTime approvedAt;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
@@ -76,6 +77,8 @@ public class Product {
     public void setIsOnSale(Integer isOnSale) { this.isOnSale = isOnSale; }
     public Integer getIsSellable() { return isSellable; }
     public void setIsSellable(Integer isSellable) { this.isSellable = isSellable; }
+    public LocalDateTime getApprovedAt() { return approvedAt; }
+    public void setApprovedAt(LocalDateTime approvedAt) { this.approvedAt = approvedAt; }
     public LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
     public LocalDateTime getUpdateTime() { return updateTime; }

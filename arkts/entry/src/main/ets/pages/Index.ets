@@ -28,6 +28,7 @@ struct Index {
   @State feedLoadingMore: boolean = false
   private feedPage: number = 1
   private readonly feedPageSize: number = 10
+  private feedRecommendations: Product[] = []
 
   @State userId: string = ''
   @State userAvatar: string = ''
@@ -104,10 +105,11 @@ struct Index {
   async loadFeedData(): Promise<void> {
     this.feedLoading = true
     this.feedPage = 1
-    const resp = await ProductService.fetchProductList(this.feedPage, this.feedPageSize, undefined, 'sales')
+    const resp = await ProductService.fetchRecommendProducts()
     if (resp.code === 0 && resp.data) {
-      this.feedProducts = resp.data.list
-      this.feedHasMore = this.feedProducts.length < resp.data.total
+      this.feedRecommendations = resp.data
+      this.feedProducts = this.feedRecommendations.slice(0, this.feedPageSize)
+      this.feedHasMore = this.feedProducts.length < this.feedRecommendations.length
     }
     this.feedLoading = false
   }
@@ -115,12 +117,10 @@ struct Index {
   async loadMoreFeed(): Promise<void> {
     if (this.feedLoadingMore || !this.feedHasMore) return
     this.feedLoadingMore = true
-    const resp = await ProductService.fetchProductList(this.feedPage + 1, this.feedPageSize, undefined, 'sales')
-    if (resp.code === 0 && resp.data) {
-      this.feedPage += 1
-      this.feedProducts = this.feedProducts.concat(resp.data.list)
-      this.feedHasMore = this.feedProducts.length < resp.data.total
-    }
+    this.feedPage += 1
+    const end = this.feedPage * this.feedPageSize
+    this.feedProducts = this.feedRecommendations.slice(0, end)
+    this.feedHasMore = this.feedProducts.length < this.feedRecommendations.length
     this.feedLoadingMore = false
   }
 

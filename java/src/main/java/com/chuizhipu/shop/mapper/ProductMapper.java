@@ -10,7 +10,9 @@ import java.util.List;
 public interface ProductMapper {
 
     /** 首页推荐 — 按销量倒序 */
-    List<Product> selectRecommend();
+    List<Product> selectPopular(@Param("limit") int limit);
+
+    List<Product> selectRecentApproved(@Param("days") int days, @Param("limit") int limit);
 
     /** 分页列表 */
     List<Product> selectPage(@Param("categoryId") Long categoryId,

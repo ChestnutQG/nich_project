@@ -23,6 +23,10 @@ import java.util.stream.Collectors;
 @Service
 public class ProductService {
 
+    private static final int RECOMMEND_LIMIT = 50;
+    private static final int NEW_PRODUCT_DAYS = 7;
+    private static final int NEW_PRODUCT_CANDIDATE_LIMIT = 20;
+
     private final ProductMapper productMapper;
     private final ProductSkuMapper skuMapper;
     private final FavoriteMapper favoriteMapper;
@@ -49,8 +53,48 @@ public class ProductService {
 
     /** 首页推荐 */
     public List<ProductVO> getRecommendProducts(Long userId) {
-        List<Product> products = productMapper.selectRecommend();
+        List<Product> popular = productMapper.selectPopular(RECOMMEND_LIMIT);
+        List<Product> recent = productMapper.selectRecentApproved(
+                NEW_PRODUCT_DAYS, NEW_PRODUCT_CANDIDATE_LIMIT);
+        List<Product> products = mixRecommendations(popular, recent, RECOMMEND_LIMIT);
         return toVOList(products, userId);
+    }
+
+    static List<Product> mixRecommendations(List<Product> popular,
+                                            List<Product> recent,
+                                            int limit) {
+        List<Product> result = new ArrayList<>(limit);
+        Set<Long> addedIds = new HashSet<>();
+        Iterator<Product> popularIterator = popular.iterator();
+        Iterator<Product> recentIterator = recent.iterator();
+
+        while (result.size() < limit) {
+            boolean newProductSlot = result.size() % 3 == 1;
+            Product next = newProductSlot
+                    ? nextUnique(recentIterator, addedIds)
+                    : nextUnique(popularIterator, addedIds);
+
+            if (next == null) {
+                next = newProductSlot
+                        ? nextUnique(popularIterator, addedIds)
+                        : nextUnique(recentIterator, addedIds);
+            }
+            if (next == null) break;
+
+            result.add(next);
+            addedIds.add(next.getId());
+        }
+        return result;
+    }
+
+    private static Product nextUnique(Iterator<Product> iterator, Set<Long> addedIds) {
+        while (iterator.hasNext()) {
+            Product product = iterator.next();
+            if (product != null && product.getId() != null && !addedIds.contains(product.getId())) {
+                return product;
+            }
+        }
+        return null;
     }
 
     /** 分页商品列表 */

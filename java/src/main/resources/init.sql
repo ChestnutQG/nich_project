@@ -125,6 +125,7 @@ CREATE TABLE t_product (
     is_on_sale      TINYINT DEFAULT 0 COMMENT '是否上架 1-上架 0-下架',
     is_sellable     TINYINT DEFAULT 1 COMMENT '是否售卖 1-售卖 0-纯展示',
     is_deleted      TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除 0-正常 1-已删除',
+    approved_at     DATETIME COMMENT '审核通过时间，用于新品流量保护',
     create_time     DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time     DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES t_category(id),
@@ -132,7 +133,8 @@ CREATE TABLE t_product (
     INDEX idx_category (category_id),
     INDEX idx_artisan  (artisan_id),
     INDEX idx_sales    (sales),
-    INDEX idx_price    (price)
+    INDEX idx_price    (price),
+    INDEX idx_product_approved_at (audit_status, is_on_sale, is_deleted, approved_at)
 ) COMMENT '非遗商品';
 
 -- ==========================================
