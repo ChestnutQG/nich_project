@@ -29,6 +29,7 @@ struct Index {
   private feedPage: number = 1
   private readonly feedPageSize: number = 10
   private feedRecommendations: Product[] = []
+  private hasShown: boolean = false
 
   @State userId: string = ''
   @State userAvatar: string = ''
@@ -68,6 +69,11 @@ struct Index {
   }
 
   onPageShow(): void {
+    if (this.hasShown) {
+      this.loadFeedData()
+    } else {
+      this.hasShown = true
+    }
     CartService.loadCartCount().then((c: number) => { this.cartCount = c })
     this.loadUserData()
     this.loadUnreadCount()
