@@ -1,238 +1,207 @@
-# 国风非遗 - 非物质文化遗产展示与交易平台
+# 锤子铺 — 国风非遗手工艺品电商平台
 
-> HarmonyOS + SpringBoot + MySQL 全栈期末项目
-
-## 项目简介
-
-国风非遗是一个集非遗内容展示、商品交易、小法庭维权于一体的移动应用。用户可以浏览非遗文化内容、购买非遗相关商品，在交易纠纷时通过"小法庭"陪审团机制进行民主裁决。
-
-**前端**：HarmonyOS ArkTS 应用（API 12）  
-**后端**：Spring Boot 2.7.18 RESTful API  
-**数据库**：MySQL 8.0
+非遗文化传承人与消费者之间的垂直电商应用，内置**小法庭维权系统**，以社区陪审团机制解决交易纠纷。
 
 ## 技术栈
 
-| 层级 | 技术 | 版本 |
-|------|------|------|
-| 前端框架 | HarmonyOS ArkTS (Stage 模型) | API 12 / 5.0.0 |
-| 开发工具 | DevEco Studio | 6.1.0.830 |
-| 后端框架 | Spring Boot | 2.7.18 |
-| 持久层 | Spring Data JPA / Hibernate | - |
-| 数据库 | MySQL | 8.0 |
-| 构建工具 | Maven | 3.x |
-| 语言 | Java / ArkTS | 17 / TypeScript |
+| 层级 | 技术 |
+|------|------|
+| 移动端 | HarmonyOS ArkTS (API 12) |
+| 后端 | Spring Boot 3.2 + MyBatis |
+| 数据库 | MySQL 8.0 |
+| 管理端 | 纯 HTML/CSS/JS（单页，直接调用 API） |
 
 ## 功能模块
 
-### 用户模块
-- 手机号注册/登录
-- Token 身份认证
-- 个人信用分体系
-- 角色管理（普通用户 / 管理员）
+### 用户端（HarmonyOS App）
 
-### 内容模块
-- 非遗内容发布（图文/视频）
-- 内容列表浏览（最新/最热排序）
-- 标签筛选
-- 点赞、浏览统计
-- 内容审核（管理员通过/驳回）
+- 手机号登录/注册
+- 非遗商品浏览、搜索、按分类筛选
+- 商品详情（视频、文化故事、工艺步骤、SKU 选择）
+- 购物车、下单、订单管理
+- 收货地址管理
+- 匠人列表与详情、关注匠人
+- 商品收藏
+- **小法庭维权**：发起纠纷、申请陪审团、投票裁决
 
-### 商城模块
-- 商品发布（关联非遗内容）
-- 商品购买（下单 → 付款 → 发货 → 确认收货）
-- 库存管理
+### 管理端（Web）
 
-### 小法庭维权模块
-- 交易纠纷发起
-- 协商 / 申请陪审团介入
-- 随机抽取陪审员（信用分 ≥ 60）
-- 陪审团投票（支持买家/卖家）
-- 自动裁决（24 小时内投票超时自动判定）
-
-## 系统架构
-
-```
-┌─────────────────────────────────────────┐
-│         HarmonyOS App (ArkTS)            │
-│  Login → Feed → Detail → Order → Dispute │
-│         HttpUtil (Bearer Token)          │
-└──────────────────┬──────────────────────┘
-                   │ HTTP REST
-┌──────────────────▼──────────────────────┐
-│       Spring Boot Backend (8080)         │
-│  Interceptor → Controller → Service      │
-│                    → Repository (JPA)    │
-└──────────────────┬──────────────────────┘
-                   │ JDBC
-┌──────────────────▼──────────────────────┐
-│         MySQL 8.0 (nonheritage_db)       │
-│  8 tables: user, content, product,       │
-│  order_table, dispute, jury_invitation,  │
-│  jury_vote, audit_log                    │
-└─────────────────────────────────────────┘
-```
-
-## 数据库设计
-
-| 表名 | 说明 | 核心字段 |
-|------|------|----------|
-| `user` | 用户 | id, username, password, phone, role, credit_score, status |
-| `content` | 非遗内容 | id, user_id, title, type, media_urls, tags, status, like_count |
-| `product` | 商品 | id, content_id, seller_id, name, price, stock, status |
-| `order_table` | 订单 | id, buyer_id, seller_id, product_id, amount, status, after_sale_status |
-| `dispute` | 纠纷 | id, order_id, initiator_id, reason, status, result, buyer_support_rate |
-| `jury_invitation` | 陪审邀请 | id, dispute_id, user_id, status, invite_time |
-| `jury_vote` | 陪审投票 | id, dispute_id, voter_id, vote_side |
-| `audit_log` | 审核日志 | id, content_id, auditor_id, action, reason |
-
-完整建表语句包含外键约束，见 `init.sql`。
-
-## API 接口一览
-
-### 用户
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| POST | `/api/users/register` | 注册 | 否 |
-| POST | `/api/users/login` | 登录 | 否 |
-| GET | `/api/users/me` | 当前用户信息 | 是 |
-
-### 内容
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| GET | `/api/contents` | 内容列表（分页+排序） | 否 |
-| GET | `/api/contents/{id}` | 内容详情 | 否 |
-| POST | `/api/contents` | 发布内容 | 是 |
-| PUT | `/api/contents/{id}/like` | 点赞 | 否 |
-| GET | `/api/contents/mine` | 我的发布 | 是 |
-| GET | `/api/contents/tag/{tag}` | 标签筛选 | 否 |
-
-### 商品
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| GET | `/api/products` | 商品列表 | 否 |
-| GET | `/api/products?contentId=` | 按内容查商品 | 否 |
-
-### 订单
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| POST | `/api/orders` | 下单 | 是 |
-| GET | `/api/orders/{id}` | 订单详情 | 是 |
-| PUT | `/api/orders/{id}/pay` | 付款 | 是 |
-| PUT | `/api/orders/{id}/ship` | 发货 | 是 |
-| PUT | `/api/orders/{id}/confirm` | 确认收货 | 是 |
-| GET | `/api/orders/bought` | 买到的 | 是 |
-| GET | `/api/orders/sold` | 卖出的 | 是 |
-
-### 纠纷
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| POST | `/api/disputes` | 发起纠纷 | 是 |
-| GET | `/api/disputes/{id}` | 纠纷详情 | 是 |
-| GET | `/api/disputes/mine` | 我的纠纷 | 是 |
-| PUT | `/api/disputes/{id}/request-jury` | 申请陪审团 | 是 |
-| GET | `/api/disputes/{id}/vote-stats` | 投票统计 | 是 |
-
-### 陪审
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| GET | `/api/jury/invitations/mine` | 我的陪审邀请 | 是 |
-| POST | `/api/jury/votes` | 投票 | 是 |
-
-### 管理
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| GET | `/api/admin/audit/list` | 待审核列表 | 是 |
-| PUT | `/api/admin/audit/{id}/pass` | 审核通过 | 是 |
-| PUT | `/api/admin/audit/{id}/reject` | 审核驳回 | 是 |
-
-## 快速开始
-
-### 环境要求
-- JDK 17+
-- Maven 3.6+
-- MySQL 8.0+
-- DevEco Studio 5.0+ (API 12+)
-- Node.js 18+ (用于 ohpm)
-
-### 1. 数据库初始化
-```bash
-mysql -u root -p < init.sql
-```
-数据库名：`nonheritage_db`，默认包含 5 个测试用户和模拟数据。
-
-### 2. 后端启动
-```bash
-cd backend
-# 修改 application.yml 中的数据库密码
-mvn spring-boot:run
-```
-服务运行在 `http://localhost:8080`。
-
-> 如需手机/模拟器访问，修改 `application.yml` 中 `server.address` 为 `0.0.0.0`，并确保防火墙放行 8080 端口。
-
-### 3. 前端运行
-1. 用 DevEco Studio 打开 `harmony_app_new` 目录
-2. 修改 `entry/src/main/ets/common/HttpUtil.ets` 中的 `BASE_URL` 为你的后端 IP
-3. 签名配置：File → Project Structure → Signing Configs
-4. Build → Run 到模拟器或真机
-
-### 测试账号
-| 角色 | 手机号 | 密码 |
-|------|--------|------|
-| 管理员 | 13800000000 | 123456 |
-| 普通用户 | 13800000001 | 123456 |
-| 普通用户 | 13800000002 | 123456 |
+- 纠纷管理：查看所有纠纷、直接裁决（通过/驳回）、查看陪审员列表
+- 用户管理：冻结/解冻、调整信用分、修改角色
+- 内容审核：商品上架通过/驳回
+- 统计面板：纠纷数量、待审核商品数
 
 ## 项目结构
 
 ```
-nonheritage-app/
-├── init.sql                          # 数据库初始化脚本
-├── admin_audit.html                  # 管理员审核页面（独立）
-├── backend/                          # SpringBoot 后端
-│   ├── pom.xml
+├── arkts/                          # HarmonyOS 前端
+│   └── entry/src/main/ets/
+│       ├── pages/                  # 22 个页面组件
+│       ├── components/             # 公共组件（NavBar、ProductCard 等）
+│       ├── service/                # API 请求层
+│       ├── model/                  # 数据模型
+│       ├── mock/                   # Mock 数据
+│       └── util/                   # 工具（ServerDiscovery 等）
+├── java/                           # Spring Boot 后端
 │   └── src/main/
-│       ├── resources/application.yml
-│       └── java/com/nonheritage/demo/
-│           ├── NonHeritageApplication.java
-│           ├── config/               # 拦截器、CORS、数据源配置
-│           ├── entity/               # JPA 实体（8 张表）
-│           ├── dto/                  # 请求/响应 DTO
-│           ├── controller/           # REST 控制器（7 个）
-│           ├── service/              # 业务逻辑（6 个）
-│           ├── repository/           # JPA 仓库（8 个）
-│           ├── util/                 # Token 工具
-│           ├── exception/            # 全局异常处理
-│           └── scheduler/            # 定时任务（纠纷自动裁决）
-└── harmony_app_new/                  # HarmonyOS 前端
-    ├── build-profile.json5
-    ├── AppScope/app.json5
-    └── entry/src/main/
-        ├── module.json5
-        ├── ets/
-        │   ├── entryability/         # 应用入口
-        │   ├── common/               # HttpUtil、DataModels
-        │   └── pages/                # 13 个页面/组件
-        └── resources/
-            └── base/profile/main_pages.json
+│       ├── java/com/chuizhipu/shop/
+│       │   ├── controller/         # REST 控制器
+│       │   ├── service/            # 业务逻辑
+│       │   ├── mapper/             # MyBatis Mapper 接口
+│       │   ├── entity/             # 实体类
+│       │   ├── vo/                 # 视图对象
+│       │   ├── config/             # CORS、静态资源配置
+│       │   ├── interceptor/        # 认证拦截器
+│       │   ├── scheduler/          # 定时任务（纠纷超时裁决）
+│       │   └── util/               # Token 工具
+│       └── resources/
+│           ├── mapper/             # MyBatis XML 映射
+│           ├── static/             # 管理端 HTML
+│           ├── init.sql            # 数据库初始化脚本
+│           └── application.properties
+└── admin.html                      # 管理端入口（同 resources/static/）
 ```
 
-## 业务流程
+## 快速开始
 
-### 完整交易 + 维权流程
+### 1. 数据库
+
+在 MySQL 中创建数据库并导入初始化脚本：
+
+```sql
+CREATE DATABASE chuizhi_shop DEFAULT CHARACTER SET utf8mb4;
+USE chuizhi_shop;
+SOURCE java/src/main/resources/init.sql;
 ```
-发布内容 → 审核通过 → 用户浏览 → 购买商品
-  → 下单 → 付款 → 卖家发货 → 确认收货
-  → (如有纠纷) 发起纠纷 → 协商不成就申请陪审团
-  → 随机抽取陪审员 → 投票 → 自动裁决
+
+### 2. 后端
+
+环境要求：JDK 17+、Maven 3.6+
+
+```bash
+cd java
+# 修改 src/main/resources/application.properties 中的数据库连接信息
+mvn spring-boot:run
+# 或 Windows: 双击 dev.bat
 ```
 
-### 小法庭裁决规则
-- 陪审员资格：信用分 ≥ 60，非纠纷当事人
-- 每案随机抽取 10-20 名陪审员
-- 24 小时内投票数 > 10 票时自动判定
-- 买家支持率 > 66% → 买家胜诉，否则卖家胜诉
+服务启动在 `http://localhost:8080`。
 
-## 说明
+### 3. 前端
 
-本项目为 HarmonyOS 应用开发课程期末作业，演示了完整的移动端全栈开发流程，包括用户认证、内容管理、电商交易和众包裁决等核心功能。
+1. DevEco Studio 打开 `arkts/` 目录
+2. 复制 `entry/src/main/ets/util/LocalConfig.example.ets` 为 `LocalConfig.ets`
+3. 修改 `SERVER_IP` 为后端服务器 IP（模拟器用 `10.0.2.2`，真机用局域网 IP）
+4. Build → Run
+
+## API 概览
+
+所有接口统一返回 `{code: 0, message: "ok", data: ...}` 格式。
+
+### 用户
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/users/login` | 手机号登录 |
+| GET | `/api/users/me` | 当前用户信息 |
+| PUT | `/api/users/profile` | 修改个人资料 |
+
+### 商品
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/products` | 商品列表（分页+筛选） |
+| GET | `/api/products/{id}` | 商品详情 |
+| POST | `/api/products` | 发布商品（传承人） |
+| GET | `/api/products/mine` | 当前用户发布的作品 |
+| DELETE | `/api/products/{id}` | 删除自己的作品 |
+
+### 订单
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/orders` | 创建订单 |
+| GET | `/api/orders` | 我的订单列表 |
+| GET | `/api/orders/{id}` | 订单详情 |
+| PUT | `/api/orders/{id}/status` | 更新订单状态 |
+
+### 小法庭
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/disputes` | 创建纠纷 |
+| GET | `/api/disputes/{id}` | 纠纷详情 |
+| GET | `/api/disputes/mine` | 我的纠纷 |
+| PUT | `/api/disputes/{id}/request-jury` | 申请陪审团 |
+| GET | `/api/disputes/{id}/vote-stats` | 投票统计 |
+| POST | `/api/jury/vote` | 投陪审票 |
+| GET | `/api/jury/invitations` | 我的陪审邀请 |
+
+### 管理端
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/admin/stats` | 统计面板 |
+| GET | `/api/admin/disputes` | 所有纠纷 |
+| PUT | `/api/admin/disputes/{id}/resolve` | 管理员裁决 |
+| GET | `/api/admin/disputes/{id}/jurors` | 纠纷陪审员列表 |
+| GET | `/api/admin/users` | 用户列表 |
+| PUT | `/api/admin/users/{id}/freeze` | 冻结/解冻 |
+| PUT | `/api/admin/users/{id}/credit` | 调整信用分 |
+| PUT | `/api/admin/users/{id}/role` | 修改角色 |
+| GET | `/api/admin/products/pending` | 待审核商品 |
+| PUT | `/api/admin/products/{id}/audit` | 审核商品 |
+| GET | `/api/admin/products` | 全部未删除作品 |
+| DELETE | `/api/admin/products/{id}` | 管理员删除作品 |
+
+## 小法庭维权流程
+
+```
+买家收货 → 发起维权（协商阶段）
+              ↓
+        双方协商无果 → 申请陪审团
+              ↓
+        系统随机选取 15-20 名合格陪审员
+              ↓
+        陪审员投票（买家方 / 卖家方）
+              ↓
+        满足条件（≥10票 或 全员已投）→ 自动裁决
+        买家得票 ≥66% → 买家胜诉（退款）
+        否则 → 卖家胜诉（订单恢复正常）
+              ↓
+        超时 24h → 追加 3 名陪审员 → 强制裁决
+```
+
+管理员可在任意阶段通过管理端直接裁决纠纷。
+
+## 数据库表
+
+| 表 | 说明 |
+|----|------|
+| t_user | 用户（角色、信用分、状态） |
+| t_address | 收货地址 |
+| t_category | 非遗分类（树形，10 个一级类目） |
+| t_artisan | 传承人（认证等级、证书、地区） |
+| t_product | 商品（图片/视频/文化故事/工艺步骤） |
+| t_product_sku | 商品规格 |
+| t_cart_item | 购物车 |
+| t_order | 订单（状态 0-5，地址快照） |
+| t_order_item | 订单明细 |
+| t_favorite | 商品收藏 |
+| t_follow | 匠人关注 |
+| t_dispute | 纠纷（状态、结果、投票数） |
+| t_jury_invitation | 陪审邀请 |
+| t_jury_vote | 陪审投票 |
+
+## 默认账号
+
+| 角色 | 手机号 | 密码 |
+|------|--------|------|
+| 管理员 | 13800000001 | 123456 |
+| 传承人 | 13800000002 | 123456 |
+| 用户 | 13800000003 | 123456 |
+
+管理端地址：`http://localhost:8080/admin.html`
+
+## 开发说明
+
+- 前端认证：登录后 token 持久化到 HarmonyOS Preferences，后续请求自动携带 `Authorization: Bearer <token>`
+- 后端认证：`AuthInterceptor` 拦截所有请求，`currentUserId` 通过 request attribute 注入 Controller
+- 图片上传：`FileController` 处理 multipart 上传，文件存 `uploads/` 目录
+- 定时任务：`DisputeScheduler` 每 60 秒检查超时纠纷
+- 价格单位：数据库中价格以**分**存储，前端以**元**展示

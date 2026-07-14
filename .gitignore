@@ -1,36 +1,44 @@
-# Maven
-backend/target/
-backend/*.jar
-backend/*.war
+# ========== 构建产物 ==========
+# HarmonyOS
+.hvigor/
+**/build/
+*.hap
+*.app
+*.hsp
 
-# DevEco Studio / HarmonyOS
-harmony_app_new/.hvigor/
-harmony_app_new/build/
-harmony_app_new/entry/build/
-harmony_app_new/node_modules/
-harmony_app_new/local.properties
-harmony_app_new/.idea/
+# Maven / Java
+**/target/
+*.class
+*.jar
+*.war
 
-# IDE
+# ========== IDE ==========
 .idea/
 *.iml
-.vscode/
-*.swp
-*.swo
 
-# OS
-.DS_Store
-Thumbs.db
-ehthumbs.db
+# ========== 依赖 ==========
+node_modules/
+oh_modules/
 
-# Logs
+# ========== 敏感配置 ==========
+application.properties
+application.yml
+**/application-*.properties
+**/application-*.yml
+
+# ========== Claude 本地配置 ==========
+.claude/
+
+# ========== 本地配置（IP 等因人而异） ==========
+**/LocalConfig.ets
+
+# ========== 上传文件 ==========
+uploads/
+
+# ========== 日志 ==========
 *.log
 logs/
 
-# Env
-.env
-.env.local
-
-# Claude
-.codebuddy/
-CLAUDE.md
+# ========== 系统文件 ==========
+.DS_Store
+Thumbs.db

@@ -1,0 +1,30 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/Search",
+    "pages/Cart",
+    "pages/ProductList",
+    "pages/ProductDetail",
+    "pages/OrderConfirm",
+    "pages/OrderList",
+    "pages/OrderDetail",
+    "pages/Login",
+    "pages/AddressList",
+    "pages/ArtisanList",
+    "pages/ArtisanDetail",
+    "pages/ProductPublish",
+    "pages/MyProducts",
+    "pages/Profile",
+    "pages/ProfileEdit",
+    "pages/FavoriteList",
+    "pages/FollowList",
+    "pages/Settings",
+    "pages/DisputeList",
+    "pages/DisputeApply",
+    "pages/DisputeDetail",
+    "pages/JuryInvitations",
+    "pages/MessageCenter",
+    "pages/ChatDetail",
+    "pages/UserProfile"
+  ]
+}

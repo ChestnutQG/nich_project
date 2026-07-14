@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chuizhipu.shop.mapper.MessageMapper">
+
+    <resultMap id="msgMap" type="com.chuizhipu.shop.entity.Message">
+        <id property="id" column="id"/>
+        <result property="fromUserId" column="from_user_id"/>
+        <result property="toUserId" column="to_user_id"/>
+        <result property="content" column="content"/>
+        <result property="isRead" column="is_read"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_message (from_user_id, to_user_id, content)
+        VALUES (#{fromUserId}, #{toUserId}, #{content})
+    </insert>
+
+    <select id="selectConversation" resultMap="msgMap">
+        SELECT * FROM t_message
+        WHERE (from_user_id = #{userId} AND to_user_id = #{otherId})
+           OR (from_user_id = #{otherId} AND to_user_id = #{userId})
+        ORDER BY id ASC
+    </select>
+
+    <select id="selectConversationList" resultType="java.util.LinkedHashMap">
+        SELECT
+            m.other_id   AS otherId,
+            u.nickname   AS otherName,
+            u.avatar     AS otherAvatar,
+            lm.content   AS lastContent,
+            lm.create_time AS lastTime,
+            (SELECT COUNT(*) FROM t_message x
+               WHERE x.to_user_id = #{userId} AND x.from_user_id = m.other_id AND x.is_read = 0) AS unread
+        FROM (
+            SELECT
+                CASE WHEN from_user_id = #{userId} THEN to_user_id ELSE from_user_id END AS other_id,
+                MAX(id) AS last_id
+            FROM t_message
+            WHERE from_user_id = #{userId} OR to_user_id = #{userId}
+            GROUP BY other_id
+        ) m
+        JOIN t_message lm ON lm.id = m.last_id
+        JOIN t_user u ON u.id = m.other_id
+        ORDER BY lm.create_time DESC
+    </select>
+
+    <select id="countUnread" resultType="int">
+        SELECT COUNT(*) FROM t_message WHERE to_user_id = #{userId} AND is_read = 0
+    </select>
+
+    <update id="markConversationRead">
+        UPDATE t_message SET is_read = 1
+        WHERE to_user_id = #{userId} AND from_user_id = #{otherId} AND is_read = 0
+    </update>
+
+</mapper>

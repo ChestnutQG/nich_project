@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chuizhipu.shop.mapper.ProductMapper">
+
+    <resultMap id="productMap" type="com.chuizhipu.shop.entity.Product">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="artisanId" column="artisan_id"/>
+        <result property="artisanName" column="artisan_name"/>
+        <result property="artisanAvatar" column="artisan_avatar"/>
+        <result property="images" column="images"/>
+        <result property="videoUrl" column="video_url"/>
+        <result property="price" column="price"/>
+        <result property="originalPrice" column="original_price"/>
+        <result property="stock" column="stock"/>
+        <result property="sales" column="sales"/>
+        <result property="region" column="region"/>
+        <result property="craftType" column="craft_type"/>
+        <result property="story" column="story"/>
+        <result property="craftProcess" column="craft_process"/>
+        <result property="rating" column="rating"/>
+        <result property="tags" column="tags"/>
+        <result property="auditStatus" column="audit_status"/>
+        <result property="isOnSale" column="is_on_sale"/>
+        <result property="isSellable" column="is_sellable"/>
+        <result property="approvedAt" column="approved_at"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 首页推荐 — 只展示已审核通过的 -->
+    <select id="selectPopular" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1 AND p.is_deleted = 0
+        ORDER BY p.sales DESC, p.rating DESC, p.approved_at DESC, p.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- Products approved recently receive protected homepage exposure. -->
+    <select id="selectRecentApproved" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1 AND p.is_deleted = 0
+          AND p.approved_at >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        ORDER BY p.approved_at DESC, p.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 分页列表 — 只展示已审核通过的 -->
+    <select id="selectPage" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1 AND p.is_deleted = 0
+        <if test="categoryId != null">
+            AND p.category_id = #{categoryId}
+        </if>
+        <choose>
+            <when test="sortBy == 'price_asc'">ORDER BY p.price ASC</when>
+            <when test="sortBy == 'price_desc'">ORDER BY p.price DESC</when>
+            <when test="sortBy == 'sales'">ORDER BY p.sales DESC</when>
+            <otherwise>ORDER BY p.create_time DESC</otherwise>
+        </choose>
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) FROM t_product WHERE audit_status = 'approved' AND is_on_sale = 1 AND is_deleted = 0
+        <if test="categoryId != null">
+            AND category_id = #{categoryId}
+        </if>
+    </select>
+
+    <!-- 商品详情 -->
+    <select id="selectById" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name, a.avatar AS artisan_avatar
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.id = #{id} AND p.is_deleted = 0
+    </select>
+
+    <!-- 搜索 — 只搜索已审核通过的 -->
+    <select id="search" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1 AND p.is_deleted = 0
+          AND (p.name LIKE CONCAT('%', #{keyword}, '%')
+               OR p.craft_type LIKE CONCAT('%', #{keyword}, '%')
+               OR p.region LIKE CONCAT('%', #{keyword}, '%')
+               OR p.tags LIKE CONCAT('%', #{keyword}, '%')
+               OR a.name LIKE CONCAT('%', #{keyword}, '%')
+               OR p.description LIKE CONCAT('%', #{keyword}, '%'))
+        ORDER BY p.sales DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countSearch" resultType="long">
+        SELECT COUNT(*) FROM t_product p
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.audit_status = 'approved' AND p.is_on_sale = 1 AND p.is_deleted = 0
+          AND (p.name LIKE CONCAT('%', #{keyword}, '%')
+               OR p.craft_type LIKE CONCAT('%', #{keyword}, '%')
+               OR p.region LIKE CONCAT('%', #{keyword}, '%')
+               OR p.tags LIKE CONCAT('%', #{keyword}, '%')
+               OR a.name LIKE CONCAT('%', #{keyword}, '%')
+               OR p.description LIKE CONCAT('%', #{keyword}, '%'))
+    </select>
+
+    <!-- 根据匠人查商品 — 只查已通过的 -->
+    <select id="selectByArtisanId" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.artisan_id = #{artisanId} AND p.audit_status = 'approved'
+          AND p.is_on_sale = 1 AND p.is_deleted = 0
+        ORDER BY p.create_time DESC
+    </select>
+
+    <!-- 发布商品 — 默认待审核 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_product (name, description, category_id, artisan_id,
+                               images, video_url, price, original_price, stock, region,
+                               craft_type, story, craft_process, tags, audit_status, is_on_sale, is_sellable)
+        VALUES (#{name}, #{description}, #{categoryId}, #{artisanId},
+                #{images}, #{videoUrl}, #{price}, #{originalPrice}, #{stock}, #{region},
+                #{craftType}, #{story}, #{craftProcess}, #{tags},
+                COALESCE(#{auditStatus}, 'pending'), 0, COALESCE(#{isSellable}, 1))
+    </insert>
+
+    <!-- ===== 审核相关 ===== -->
+
+    <!-- 待审核商品列表 -->
+    <select id="selectPending" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        LEFT JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.is_deleted = 0
+        ORDER BY
+            CASE p.audit_status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,
+            p.create_time DESC
+    </select>
+
+    <update id="updateAuditStatus">
+        UPDATE t_product
+        SET approved_at = CASE
+                WHEN #{auditStatus} = 'approved' AND audit_status != 'approved' THEN NOW()
+                ELSE approved_at
+            END,
+               audit_status = #{auditStatus},
+               is_on_sale = CASE WHEN #{auditStatus} = 'approved' THEN 1 ELSE 0 END,
+               update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="update">
+        UPDATE t_product
+        SET name = #{name}, description = #{description}, price = #{price},
+            original_price = #{originalPrice}, stock = #{stock},
+            images = #{images}, tags = #{tags}, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectArtisanUserIdByProductId" resultType="long">
+        SELECT a.user_id FROM t_product p
+        JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE p.id = #{productId} AND p.is_deleted = 0
+    </select>
+
+    <select id="selectByOwnerUserId" resultMap="productMap">
+        SELECT p.*, c.name AS category_name, a.name AS artisan_name, a.avatar AS artisan_avatar
+        FROM t_product p
+        LEFT JOIN t_category c ON p.category_id = c.id
+        JOIN t_artisan a ON p.artisan_id = a.id
+        WHERE a.user_id = #{userId} AND p.is_deleted = 0
+        ORDER BY p.create_time DESC
+    </select>
+
+    <update id="softDelete">
+        UPDATE t_product
+        SET is_deleted = 1, is_on_sale = 0, update_time = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+</mapper>
