@@ -1,4 +1,4 @@
-http://111.228.8.229 {
+http://YOUR_SERVER_IP {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:8080
 }

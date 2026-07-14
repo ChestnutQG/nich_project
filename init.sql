@@ -147,12 +147,13 @@ CREATE TABLE audit_log (
 -- ============================================================
 
 -- 5个用户（密码均为 123456 的简单哈希模拟，实际项目请用BCrypt）
+-- 注意：以下为演示用种子数据，密码已 BCrypt 加密（明文为 123456），手机号已脱敏
 INSERT INTO user (id, username, password, phone, avatar_url, role, credit_score, status) VALUES
-(1, 'admin',    '123456', '13800000001', 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',   'admin', 100, 'active'),
-(2, 'zhangsan', '123456', '13800000002', 'https://api.dicebear.com/7.x/avataaars/svg?seed=zhangsan', 'user',  95,  'active'),
-(3, 'lisi',     '123456', '13800000003', 'https://api.dicebear.com/7.x/avataaars/svg?seed=lisi',     'user',  88,  'active'),
-(4, 'wangwu',   '123456', '13800000004', 'https://api.dicebear.com/7.x/avataaars/svg?seed=wangwu',   'user',  72,  'active'),
-(5, 'zhaoliu',  '123456', '13800000005', 'https://api.dicebear.com/7.x/avataaars/svg?seed=zhaoliu',  'user',  60,  'active');
+(1, 'admin',    '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', '138****0001', 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',   'admin', 100, 'active'),
+(2, 'zhangsan', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', '138****0002', 'https://api.dicebear.com/7.x/avataaars/svg?seed=zhangsan', 'user',  95,  'active'),
+(3, 'lisi',     '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', '138****0003', 'https://api.dicebear.com/7.x/avataaars/svg?seed=lisi',     'user',  88,  'active'),
+(4, 'wangwu',   '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', '138****0004', 'https://api.dicebear.com/7.x/avataaars/svg?seed=wangwu',   'user',  72,  'active'),
+(5, 'zhaoliu',  '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', '138****0005', 'https://api.dicebear.com/7.x/avataaars/svg?seed=zhaoliu',  'user',  60,  'active');
 
 -- 5条已通过审核的国风内容
 INSERT INTO content (id, user_id, title, description, type, media_urls, tags, status, like_count, view_count, is_sellable, created_at) VALUES

@@ -330,20 +330,20 @@ CREATE TABLE t_notification (
 -- 示例数据
 -- ==========================================
 
--- 用户（密码 123456 的 MD5：e10adc3949ba59abbe56e057f20f883e）
+-- 种子数据：密码已BCrypt加密（测试密码已私密管理），手机号已脱敏
 INSERT INTO t_user (id, nickname, avatar, phone, password, role, credit_score, status, collect_count, follow_count, order_count) VALUES
-(1, '爱非遗的小明', 'https://picsum.photos/seed/user01/200/200', '13800000001', 'e10adc3949ba59abbe56e057f20f883e', 'admin', 100, 'active', 12, 5, 3),
-(2, '沈桂芳', 'https://picsum.photos/seed/user02/200/200', '13800000002', 'e10adc3949ba59abbe56e057f20f883e', 'artisan', 100, 'active', 8, 3, 0),
-(3, '非遗守护者李华', 'https://picsum.photos/seed/user03/200/200', '13800000003', 'e10adc3949ba59abbe56e057f20f883e', 'user', 95, 'active', 5, 2, 0),
-(4, '刘远山', 'https://picsum.photos/seed/user04/200/200', '13800000004', 'e10adc3949ba59abbe56e057f20f883e', 'artisan', 95, 'active', 0, 0, 0),
-(5, '赵德胜', 'https://picsum.photos/seed/user05/200/200', '13800000005', 'e10adc3949ba59abbe56e057f20f883e', 'artisan', 100, 'active', 0, 0, 0),
-(6, '非遗小白', 'https://picsum.photos/seed/user06/200/200', '13800000006', 'e10adc3949ba59abbe56e057f20f883e', 'user', 85, 'active', 0, 0, 0),
-(7, '传统文化迷', 'https://picsum.photos/seed/user07/200/200', '13800000007', 'e10adc3949ba59abbe56e057f20f883e', 'user', 90, 'active', 0, 0, 0),
-(8, '手艺爱好者', 'https://picsum.photos/seed/user08/200/200', '13800000008', 'e10adc3949ba59abbe56e057f20f883e', 'user', 80, 'active', 0, 0, 0),
-(9, '国风少年', 'https://picsum.photos/seed/user09/200/200', '13800000009', 'e10adc3949ba59abbe56e057f20f883e', 'user', 95, 'active', 0, 0, 0),
-(10, '文化传承者', 'https://picsum.photos/seed/user10/200/200', '13800000010', 'e10adc3949ba59abbe56e057f20f883e', 'user', 100, 'active', 0, 0, 0),
-(11, '民间艺术迷', 'https://picsum.photos/seed/user11/200/200', '13800000011', 'e10adc3949ba59abbe56e057f20f883e', 'user', 88, 'active', 0, 0, 0),
-(12, '匠心独运', 'https://picsum.photos/seed/user12/200/200', '13800000012', 'e10adc3949ba59abbe56e057f20f883e', 'user', 92, 'active', 0, 0, 0);
+(1, '爱非遗的小明', 'https://picsum.photos/seed/user01/200/200', '138****0001', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', 'admin', 100, 'active', 12, 5, 3),
+(2, '沈桂芳', 'https://picsum.photos/seed/user02/200/200', '138****0002', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', 'artisan', 100, 'active', 8, 3, 0),
+(3, '非遗守护者李华', 'https://picsum.photos/seed/user03/200/200', '138****0003', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', 'user', 95, 'active', 5, 2, 0),
+(4, '刘远山', 'https://picsum.photos/seed/user04/200/200', '138****0004', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', 'artisan', 95, 'active', 0, 0, 0),
+(5, '赵德胜', 'https://picsum.photos/seed/user05/200/200', '138****0005', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', 'artisan', 100, 'active', 0, 0, 0),
+(6, '非遗小白', 'https://picsum.photos/seed/user06/200/200', '138****0006', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', 'user', 85, 'active', 0, 0, 0),
+(7, '传统文化迷', 'https://picsum.photos/seed/user07/200/200', '138****0007', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', 'user', 90, 'active', 0, 0, 0),
+(8, '手艺爱好者', 'https://picsum.photos/seed/user08/200/200', '138****0008', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', 'user', 80, 'active', 0, 0, 0),
+(9, '国风少年', 'https://picsum.photos/seed/user09/200/200', '138****0009', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', 'user', 95, 'active', 0, 0, 0),
+(10, '文化传承者', 'https://picsum.photos/seed/user10/200/200', '138****0010', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', 'user', 100, 'active', 0, 0, 0),
+(11, '民间艺术迷', 'https://picsum.photos/seed/user11/200/200', '138****0011', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', 'user', 88, 'active', 0, 0, 0),
+(12, '匠心独运', 'https://picsum.photos/seed/user12/200/200', '138****0012', '$2b$12$WfUpS9AlKYsezs0odnw0pOGgdAPVv7rfg40n.Ol9kMqLhXnSjNQAS', 'user', 92, 'active', 0, 0, 0);
 
 -- 分类（10 大非遗类别）
 INSERT INTO t_category (id, name, icon, parent_id, sort_order) VALUES
@@ -440,10 +440,10 @@ INSERT INTO t_product_sku (id, product_id, name, price, stock, image) VALUES
 -- 订单
 INSERT INTO t_order (id, order_no, user_id, status, total_amount, discount_amount, freight, pay_amount, address_json, pay_time, deliver_time, create_time) VALUES
 (1, '20240615142033001', 1, 2, 128000, 0, 0, 128000,
-   '{"name":"张明","phone":"13912345678","province":"北京市","city":"北京市","district":"朝阳区","detail":"建国路88号SOHO现代城A座1201"}',
+   '{"name":"张明","phone":"139****5678","province":"北京市","city":"北京市","district":"朝阳区","detail":"建国路88号SOHO现代城A座1201"}',
    '2024-06-15 14:25:00', '2024-06-16 09:30:00', '2024-06-15 14:20:33'),
 (2, '20240618163512002', 1, 3, 86000, 0, 0, 86000,
-   '{"name":"张明","phone":"13912345678","province":"北京市","city":"北京市","district":"朝阳区","detail":"建国路88号SOHO现代城A座1201"}',
+   '{"name":"张明","phone":"139****5678","province":"北京市","city":"北京市","district":"朝阳区","detail":"建国路88号SOHO现代城A座1201"}',
    '2024-06-18 16:36:00', NULL, '2024-06-18 16:35:12');
 
 -- 订单项
@@ -453,8 +453,8 @@ INSERT INTO t_order_item (id, order_id, product_id, product_name, product_image,
 
 -- 收货地址
 INSERT INTO t_address (id, user_id, name, phone, province, city, district, detail, is_default) VALUES
-(1, 1, '张明', '13912345678', '北京市', '北京市', '朝阳区', '建国路88号SOHO现代城A座1201', 1),
-(2, 1, '张明', '13912345678', '江苏省', '苏州市', '姑苏区', '平江路128号', 0);
+(1, 1, '张明', '139****5678', '北京市', '北京市', '朝阳区', '建国路88号SOHO现代城A座1201', 1),
+(2, 1, '张明', '139****5678', '江苏省', '苏州市', '姑苏区', '平江路128号', 0);
 
 -- 收藏 & 关注
 INSERT INTO t_favorite (user_id, product_id) VALUES (1, 1), (1, 3), (2, 2);

@@ -10,8 +10,8 @@ spring:
     # MySQL 8.0 连接（请按实际环境修改密码）
     url: jdbc:mysql://127.0.0.1:3306/nonheritage_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: nonheritage
-    password: 0000
+    username: your_db_username
+    password: your_db_password
   jpa:
     hibernate:
       ddl-auto: update  # 自动更新表结构（开发模式，生产请改为 validate）
