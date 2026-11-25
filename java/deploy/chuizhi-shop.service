@@ -1,0 +1,24 @@
+[Unit]
+Description=Chuizhi Shop Spring Boot API
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=chuizhi
+Group=chuizhi
+WorkingDirectory=/opt/chuizhi-shop
+EnvironmentFile=/etc/chuizhi-shop.env
+Environment=SERVER_ADDRESS=127.0.0.1
+ExecStart=/usr/bin/java -Xms256m -Xmx768m -jar /opt/chuizhi-shop/chuizhi-shop.jar
+Restart=on-failure
+RestartSec=5
+SuccessExitStatus=143
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/chuizhi-shop/uploads
+
+[Install]
+WantedBy=multi-user.target

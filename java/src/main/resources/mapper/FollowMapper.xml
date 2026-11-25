@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chuizhipu.shop.mapper.FollowMapper">
+
+    <insert id="insert">
+        INSERT INTO t_follow (user_id, artisan_id) VALUES (#{userId}, #{artisanId})
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM t_follow WHERE user_id = #{userId} AND artisan_id = #{artisanId}
+    </delete>
+
+    <select id="exists" resultType="int">
+        SELECT COUNT(*) FROM t_follow WHERE user_id = #{userId} AND artisan_id = #{artisanId}
+    </select>
+
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(*) FROM t_follow WHERE user_id = #{userId}
+    </select>
+
+    <select id="selectArtisanIdsByUserId" resultType="long">
+        SELECT artisan_id FROM t_follow WHERE user_id = #{userId} ORDER BY id DESC
+    </select>
+
+    <select id="selectUserIdsByArtisanId" resultType="long">
+        SELECT user_id FROM t_follow WHERE artisan_id = #{artisanId}
+    </select>
+
+</mapper>

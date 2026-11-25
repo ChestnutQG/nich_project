@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chuizhipu.shop.mapper.JuryVoteMapper">
+
+    <insert id="insert">
+        INSERT INTO t_jury_vote (dispute_id, voter_id, vote_side, vote_time)
+        VALUES (#{disputeId}, #{voterId}, #{voteSide}, NOW())
+    </insert>
+
+    <select id="existsByDisputeAndVoter" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM t_jury_vote
+        WHERE dispute_id = #{disputeId} AND voter_id = #{voterId}
+    </select>
+
+    <select id="countByDisputeId" resultType="int">
+        SELECT COUNT(*) FROM t_jury_vote WHERE dispute_id = #{disputeId}
+    </select>
+
+    <select id="countByDisputeAndSide" resultType="int">
+        SELECT COUNT(*) FROM t_jury_vote
+        WHERE dispute_id = #{disputeId} AND vote_side = #{voteSide}
+    </select>
+
+</mapper>

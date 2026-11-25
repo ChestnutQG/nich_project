@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chuizhipu.shop.mapper.ArtisanMapper">
+
+    <resultMap id="artisanMap" type="com.chuizhipu.shop.entity.Artisan">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="name" column="name"/>
+        <result property="avatar" column="avatar"/>
+        <result property="title" column="title"/>
+        <result property="level" column="level"/>
+        <result property="province" column="province"/>
+        <result property="city" column="city"/>
+        <result property="craftType" column="craft_type"/>
+        <result property="intro" column="intro"/>
+        <result property="certificateImages" column="certificate_images"/>
+        <result property="worksCount" column="works_count"/>
+        <result property="followersCount" column="followers_count"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <select id="selectList" resultMap="artisanMap">
+        SELECT * FROM t_artisan
+        <where>
+            <if test="craftType != null and craftType != ''">
+                AND craft_type = #{craftType}
+            </if>
+        </where>
+        ORDER BY level DESC, followers_count DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countList" resultType="long">
+        SELECT COUNT(*) FROM t_artisan
+        <where>
+            <if test="craftType != null and craftType != ''">
+                AND craft_type = #{craftType}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectTop" resultMap="artisanMap">
+        SELECT * FROM t_artisan ORDER BY followers_count DESC LIMIT #{limit}
+    </select>
+
+    <select id="selectById" resultMap="artisanMap">
+        SELECT * FROM t_artisan WHERE id = #{id}
+    </select>
+
+    <select id="selectByUserId" resultMap="artisanMap">
+        SELECT * FROM t_artisan WHERE user_id = #{userId} LIMIT 1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_artisan
+            (user_id, name, avatar, title, level, province, city, craft_type, intro, works_count, followers_count)
+        VALUES
+            (#{userId}, #{name}, #{avatar}, #{title}, #{level}, #{province}, #{city}, #{craftType}, #{intro}, #{worksCount}, #{followersCount})
+    </insert>
+
+    <update id="updateIntro">
+        UPDATE t_artisan SET intro = #{intro} WHERE id = #{id}
+    </update>
+
+    <update id="incrFollowers">
+        UPDATE t_artisan
+        SET followers_count = GREATEST(followers_count + #{delta}, 0)
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectByName" resultMap="artisanMap">
+        SELECT * FROM t_artisan
+        WHERE name LIKE CONCAT('%', #{keyword}, '%')
+           OR craft_type LIKE CONCAT('%', #{keyword}, '%')
+           OR intro LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY level DESC, followers_count DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByName" resultType="long">
+        SELECT COUNT(*) FROM t_artisan
+        WHERE name LIKE CONCAT('%', #{keyword}, '%')
+           OR craft_type LIKE CONCAT('%', #{keyword}, '%')
+           OR intro LIKE CONCAT('%', #{keyword}, '%')
+    </select>
+
+</mapper>

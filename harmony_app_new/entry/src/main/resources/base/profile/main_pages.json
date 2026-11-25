@@ -1,0 +1,14 @@
+{
+  "src": [
+    "pages/LoginPage",
+    "pages/RegisterPage",
+    "pages/MainPage",
+    "pages/ContentDetailPage",
+    "pages/MyPostsPage",
+    "pages/OrderListPage",
+    "pages/OrderDetailPage",
+    "pages/DisputeApplyPage",
+    "pages/DisputeDetailPage",
+    "pages/JuryInvitationsPage"
+  ]
+}

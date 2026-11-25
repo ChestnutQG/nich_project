@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chuizhipu.shop.mapper.NotificationMapper">
+
+    <resultMap id="notiMap" type="com.chuizhipu.shop.entity.Notification">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="type" column="type"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="refId" column="ref_id"/>
+        <result property="isRead" column="is_read"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_notification (user_id, type, title, content, ref_id)
+        VALUES (#{userId}, #{type}, #{title}, #{content}, #{refId})
+    </insert>
+
+    <select id="selectByUserId" resultMap="notiMap">
+        SELECT * FROM t_notification WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+        LIMIT 100
+    </select>
+
+    <select id="countUnread" resultType="int">
+        SELECT COUNT(*) FROM t_notification WHERE user_id = #{userId} AND is_read = 0
+    </select>
+
+    <update id="markRead">
+        UPDATE t_notification SET is_read = 1 WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <update id="markAllRead">
+        UPDATE t_notification SET is_read = 1 WHERE user_id = #{userId} AND is_read = 0
+    </update>
+
+</mapper>

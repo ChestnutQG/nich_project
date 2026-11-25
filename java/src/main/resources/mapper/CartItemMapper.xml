@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chuizhipu.shop.mapper.CartItemMapper">
+
+    <select id="selectByUserId" resultType="com.chuizhipu.shop.entity.CartItem">
+        SELECT id, user_id AS userId, product_id AS productId,
+               sku_id AS skuId, quantity, is_checked AS isChecked, create_time AS createTime
+        FROM t_cart_item WHERE user_id = #{userId}
+    </select>
+
+    <select id="selectByUserAndSku" resultType="com.chuizhipu.shop.entity.CartItem">
+        SELECT id, user_id AS userId, product_id AS productId,
+               sku_id AS skuId, quantity, is_checked AS isChecked, create_time AS createTime
+        FROM t_cart_item WHERE user_id = #{userId} AND sku_id = #{skuId}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_cart_item (user_id, product_id, sku_id, quantity, is_checked)
+        VALUES (#{userId}, #{productId}, #{skuId}, #{quantity}, COALESCE(#{isChecked}, 1))
+    </insert>
+
+    <update id="updateQuantity">
+        UPDATE t_cart_item SET quantity = #{quantity} WHERE id = #{id}
+    </update>
+
+    <update id="updateChecked">
+        UPDATE t_cart_item SET is_checked = #{isChecked} WHERE id = #{id}
+    </update>
+
+    <update id="updateAllChecked">
+        UPDATE t_cart_item SET is_checked = #{isChecked} WHERE user_id = #{userId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_cart_item WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteByUserId">
+        DELETE FROM t_cart_item WHERE user_id = #{userId}
+    </delete>
+
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(*) FROM t_cart_item WHERE user_id = #{userId}
+    </select>
+
+</mapper>
